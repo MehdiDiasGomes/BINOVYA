@@ -14,26 +14,26 @@
 
       <!-- Nav desktop -->
       <nav class="hidden items-center gap-8 md:flex" :aria-label="$t('nav.mainNavAriaLabel')">
-        <a
+        <NuxtLink
           v-for="item in navigationItems"
-          :key="item.href"
-          :href="item.href"
+          :key="item.labelKey"
+          :to="{ path: localePath(item.path), hash: item.hash }"
           class="text-[14px] font-semibold text-[#dce8f0] transition-colors hover:text-turquoise"
         >
           {{ $t(item.labelKey) }}
-        </a>
+        </NuxtLink>
       </nav>
 
       <!-- CTA + burger -->
       <div class="flex items-center gap-3.5">
-        <a
-          href="#"
+        <NuxtLink
+          :to="localePath('/booking')"
           class="hidden items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all hover:-translate-y-px hover:bg-primary/90 md:flex"
           :aria-label="$t('nav.reserverAriaLabel')"
         >
           <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
           {{ $t('nav.reserver') }}
-        </a>
+        </NuxtLink>
         <button
           type="button"
           class="flex h-9 w-9 flex-col items-center justify-center gap-1.5 md:hidden"
@@ -63,30 +63,34 @@
     >
       <a
         v-for="item in navigationItems"
-        :key="item.href"
-        :href="item.href"
+        :key="item.labelKey"
+        :href="localePath(item.path) + (item.hash ?? '')"
         class="border-b border-white/5 py-3 text-[15px] font-semibold text-[#dce8f0] transition-colors hover:text-turquoise"
-        @click.prevent="handleMobileNavClick(item.href)"
+        @click.prevent="handleMobileNavClick(item)"
       >
         {{ $t(item.labelKey) }}
       </a>
+      <NuxtLink
+        :to="localePath('/booking')"
+        class="mt-4 flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white"
+        @click="mobileMenuOpen = false"
+      >
+        <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
+        {{ $t('nav.reserverAriaLabel') }}
+      </NuxtLink>
     </div>
     </Transition>
   </header>
 </template>
 
 <script setup lang="ts">
-import { navigationItems } from '@/constants/navbar'
+import { navigationItems, type NavItem } from '@/constants/navbar'
 
+const localePath = useLocalePath()
 const mobileMenuOpen = ref<boolean>(false)
 
-const handleMobileNavClick = (href: string): void => {
+const handleMobileNavClick = async (item: NavItem): Promise<void> => {
   mobileMenuOpen.value = false
-  setTimeout(() => {
-    const target = document.querySelector(href)
-    if (target) {
-      target.scrollIntoView({ behavior: 'smooth' })
-    }
-  }, 250)
+  await navigateTo({ path: localePath(item.path), hash: item.hash })
 }
 </script>
