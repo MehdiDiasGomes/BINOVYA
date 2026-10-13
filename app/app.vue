@@ -1,8 +1,10 @@
 <template>
   <div>
-    <NuxtLayout>
-      <NuxtPage />
-    </NuxtLayout>
+    <MotionConfig reduced-motion="user">
+      <NuxtLayout>
+        <NuxtPage />
+      </NuxtLayout>
+    </MotionConfig>
     <Toaster position="top-right" rich-colors />
   </div>
 </template>
