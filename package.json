@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "nuxt dev --dotenv .env.local",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
@@ -15,13 +15,16 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
+    "@internationalized/date": "^3.10.1",
     "@nuxt/image": "^2.0.0",
     "@nuxtjs/i18n": "^10.2.1",
+    "@nuxtjs/supabase": "^2.0.10",
     "@vee-validate/zod": "^4.15.1",
     "@vueuse/core": "^14.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-vue-next": "^0.562.0",
+    "motion-v": "^2.6.0",
     "nuxt": "^4.2.2",
     "reka-ui": "^2.7.0",
     "resend": "^6.6.0",
