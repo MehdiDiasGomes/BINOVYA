@@ -46,10 +46,10 @@
             tabindex="-1"
             class="text-[22px] font-black text-ink outline-none"
           >
-            {{ $t(`booking.${currentStep}.title`) }}
+            {{ $t(`booking.headings.${currentStep}.title`) }}
           </h2>
           <p class="mb-7 mt-1.5 text-[15px] leading-relaxed text-ink/70">
-            {{ $t(`booking.${currentStep}.description`) }}
+            {{ $t(`booking.headings.${currentStep}.description`) }}
           </p>
 
           <AnimatePresence mode="wait" :initial="false">
@@ -60,10 +60,16 @@
               :exit="{ opacity: 0, x: -STEP_OFFSET }"
               :transition="STEP_TRANSITION"
             >
-              <BookingAddressStep v-if="currentStep === 'address'" />
-              <BookingServicesStep v-else-if="currentStep === 'services'" />
-              <BookingDateStep v-else-if="currentStep === 'date'" />
-              <BookingContactStep v-else :show-errors="hasAttempted" />
+              <div v-if="currentStep === 'contact'" class="space-y-8">
+                <BookingContactStep :show-errors="hasAttempted" />
+                <BookingAddressStep />
+              </div>
+              <BookingBinsStep v-else-if="currentStep === 'bins'" />
+              <div v-else-if="currentStep === 'schedule'" class="space-y-10">
+                <BookingPlanPicker />
+                <BookingDateStep />
+              </div>
+              <BookingPaymentStep v-else />
             </Motion>
           </AnimatePresence>
 
@@ -101,7 +107,7 @@
               </template>
               <template v-else-if="isLastStep">
                 <Icon name="Lock" :size="16" aria-hidden="true" />
-                {{ $t('booking.actions.pay', { amount: formatPrice(totalCents, locale) }) }}
+                {{ $t('booking.actions.pay', { amount: formatPrice(priceCents ?? 0, locale) }) }}
               </template>
               <template v-else>
                 {{ $t('booking.actions.continue') }}
@@ -131,12 +137,10 @@ definePageMeta({
 
 const { t, locale } = useI18n()
 const route = useRoute()
-const { draft, totalCents, totalQuantity, resetDraft } = useBookingDraft()
-const {
-  state: availabilityState,
-  isInServiceArea,
-  reset: resetAvailability,
-} = useBookingAvailability()
+const { draft, totalQuantity, resetDraft } = useBookingDraft()
+const { reset: resetAvailability } = useBookingAvailability()
+const { priceCents } = useBookingPrice()
+const { errorFor } = useBookingValidation()
 
 useSeoMeta({
   title: () => t('booking.seo.title'),
@@ -147,7 +151,7 @@ useSeoMeta({
   twitterCard: 'summary_large_image',
 })
 
-const currentStep: Ref<BookingStepId> = ref('address')
+const currentStep: Ref<BookingStepId> = ref('contact')
 const hasAttempted: Ref<boolean> = ref(false)
 const isConfirmed: Ref<boolean> = ref(false)
 const isSubmitting: Ref<boolean> = ref(false)
@@ -159,42 +163,7 @@ const isLastStep: ComputedRef<boolean> = computed(
   () => currentIndex.value === BOOKING_STEPS.length - 1,
 )
 
-const addressError = (): string | null => {
-  if (!draft.value.address) {
-    return 'booking.errors.address'
-  }
-  if (availabilityState.value !== 'ready') {
-    return 'booking.errors.addressCheck'
-  }
-  return isInServiceArea.value ? null : 'booking.errors.outOfArea'
-}
-
-const servicesError = (): string | null => {
-  if (totalQuantity.value === 0) {
-    return 'booking.errors.services'
-  }
-  const hasCollectionAnswer: boolean =
-    draft.value.collectionWeekdays.length > 0 || draft.value.isCollectionUnknown
-  return hasCollectionAnswer ? null : 'booking.errors.collection'
-}
-
-const dateError = (): string | null => (draft.value.date ? null : 'booking.errors.date')
-
-const contactError = (): string | null => {
-  if (Object.keys(validateContact(draft.value.contact)).length > 0) {
-    return 'booking.errors.contact'
-  }
-  return draft.value.hasAcceptedTerms ? null : 'booking.errors.terms'
-}
-
-const stepValidators: Record<BookingStepId, () => string | null> = {
-  address: addressError,
-  services: servicesError,
-  date: dateError,
-  contact: contactError,
-}
-
-const stepErrorKey: ComputedRef<string | null> = computed(() => stepValidators[currentStep.value]())
+const stepErrorKey: ComputedRef<string | null> = computed(() => errorFor(currentStep.value))
 
 const visibleErrorKey: ComputedRef<string | null> = computed(
   () => submitErrorKey.value ?? (hasAttempted.value ? stepErrorKey.value : null),
@@ -214,7 +183,7 @@ const SUBMIT_ERROR_BY_STATUS: Record<number, string> = {
 }
 
 const buildRequest = (): BookingRequest | null => {
-  const { address, date, contact, plan, quantities } = draft.value
+  const { address, date, contact, plan, quantities, collection } = draft.value
   if (!address || !date) {
     return null
   }
@@ -225,8 +194,8 @@ const buildRequest = (): BookingRequest | null => {
     plan,
     smallBinCount: quantities['small-bin'],
     largeBinCount: quantities['large-bin'],
-    householdCollectionWeekdays: draft.value.collectionWeekdays,
-    recyclingCollectionWeekdays: draft.value.recyclingCollectionWeekdays,
+    householdCollectionWeekdays: collection.household.weekdays,
+    recyclingCollectionWeekdays: collection.recycling.weekdays,
     binsReadyConfirmed: draft.value.hasConfirmedBinsReady,
   }
 }
@@ -236,7 +205,7 @@ const handleSubmitError = async (error: unknown): Promise<void> => {
   const errorKey: string = (status && SUBMIT_ERROR_BY_STATUS[status]) || 'booking.errors.submit'
   if (status === 409) {
     draft.value.date = null
-    await showStep('date')
+    await showStep('schedule')
   }
   submitErrorKey.value = errorKey
 }
@@ -282,7 +251,7 @@ const restart = async (): Promise<void> => {
   resetDraft()
   resetAvailability()
   isConfirmed.value = false
-  await showStep('address')
+  await showStep('contact')
 }
 
 const preselectService = (): void => {

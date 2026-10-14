@@ -82,6 +82,16 @@
           {{ $t('booking.date.legend.unavailable') }}
         </li>
       </ul>
+      <p
+        v-if="hasCollectionDays"
+        class="mt-3 flex items-start gap-2.5 rounded-xl bg-paper-2 p-3.5 text-[13px] text-ink"
+      >
+        <Icon name="Info" :size="16" aria-hidden="true" class="mt-0.5 shrink-0 text-primary" />
+        <span>
+          <span class="font-bold">{{ $t('booking.date.whyRecommended.title') }}</span>
+          {{ $t('booking.date.whyRecommended.text') }}
+        </span>
+      </p>
     </div>
 
     <div aria-live="polite" class="space-y-3">
@@ -107,16 +117,14 @@
 <script setup lang="ts">
 const { locale } = useI18n()
 const localePath = useLocalePath()
-const { draft } = useBookingDraft()
+const { draft, collectionWeekdays } = useBookingDraft()
 const { days, nextAvailable, load } = useBookingAvailability()
 
 onMounted(() => {
   load().catch(() => undefined)
 })
 
-const hasCollectionDays: ComputedRef<boolean> = computed(
-  () => draft.value.collectionWeekdays.length > 0,
-)
+const hasCollectionDays: ComputedRef<boolean> = computed(() => collectionWeekdays.value.length > 0)
 
 const isSelectionOffCollection: ComputedRef<boolean> = computed(() => {
   const { date } = draft.value

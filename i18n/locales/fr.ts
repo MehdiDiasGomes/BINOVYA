@@ -76,17 +76,17 @@ export default {
     cta: 'Réserver une intervention',
     small: {
       title: 'Petits bacs',
-      desc: 'Bac 240L — nettoyage vapeur haute température.',
-      price: '19,90 €',
-      priceNote: '9,90 € à partir du deuxième',
+      desc: 'Bac de 120 à 240 L — nettoyage vapeur haute température.',
+      price: 'Dès 19 €',
+      priceNote: 'par passage, en formule annuelle',
       ctaAriaLabel: 'Réserver une intervention pour petits bacs',
     },
     large: {
       title: 'Grands bacs',
       badge: 'Grand format',
-      desc: 'À partir de 660L — nettoyage vapeur haute température.',
-      price: '39,90 €',
-      priceNote: '29,90 € à partir du deuxième',
+      desc: 'Bac de 600 à 1 100 L — nettoyage vapeur haute température.',
+      price: 'Dès 29 €',
+      priceNote: 'par passage, en formule annuelle',
       ctaAriaLabel: 'Réserver une intervention pour grands bacs',
     },
     features: {

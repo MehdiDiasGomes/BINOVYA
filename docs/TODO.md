@@ -22,13 +22,13 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 2. Parcours de réservation
 
-- [ ] Ordre des étapes : coordonnées et adresse → bacs et collecte → formule et date → paiement
-- [ ] Visuels des bacs (120–240 L, 600–1 100 L)
-- [ ] Choix de la formule avec prix mis à jour immédiatement
-- [ ] Deux jours de collecte, option « Je ne sais pas »
-- [ ] Case obligatoire « bacs vides et accessibles »
-- [ ] Bascule vers le devis : 3 bacs ou plus, ou 1 petit + 1 grand
-- [ ] Validation FR + LU (code postal, téléphone)
+- [x] Ordre des étapes : coordonnées et adresse → bacs et collecte → formule et date → paiement
+- [x] Visuels des bacs (120–240 L, 600–1 100 L)
+- [x] Choix de la formule avec prix mis à jour immédiatement
+- [x] Deux jours de collecte, option « Je ne sais pas »
+- [x] Case obligatoire « bacs vides et accessibles »
+- [x] Bascule vers le devis : 3 bacs ou plus, ou 1 petit + 1 grand
+- [x] Validation FR + LU (code postal, téléphone)
 
 ## 3. Géocodage
 
@@ -51,6 +51,8 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [ ] Vérifier le domaine `binovya.com` sur Resend, corriger l'expéditeur du contact
 - [ ] Mail de confirmation de réservation
 - [ ] Mail de rappel avant le passage
+- [ ] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée : bouton
+      « Voir mes photos » en lien magique (connexion en un clic), tutoriel pas à pas en secours
 
 ## 7. Espace client
 

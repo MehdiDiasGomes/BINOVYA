@@ -7,7 +7,7 @@
     :max-value="maxDate"
     :is-date-unavailable="isDateUnavailable"
     :locale="locale"
-    :week-starts-on="1"
+    :week-starts-on="mondayIndex"
     :calendar-label="$t('booking.date.calendarLabel')"
     weekday-format="short"
     fixed-weeks
@@ -66,7 +66,13 @@
 </template>
 
 <script setup lang="ts">
-import { getLocalTimeZone, parseDate, today, type DateValue } from '@internationalized/date'
+import {
+  getDayOfWeek,
+  getLocalTimeZone,
+  parseDate,
+  today,
+  type DateValue,
+} from '@internationalized/date'
 import {
   CalendarCell,
   CalendarCellTrigger,
@@ -110,7 +116,13 @@ const CELL_CLASS =
 const RECOMMENDED_CLASS =
   'bg-turquoise/15 ring-1 ring-inset ring-turquoise-deep data-[selected]:ring-0'
 
+const KNOWN_MONDAY = '2024-01-01'
+
 const { locale } = useI18n()
+
+const mondayIndex: ComputedRef<0 | 1 | 2 | 3 | 4 | 5 | 6> = computed(
+  () => getDayOfWeek(parseDate(KNOWN_MONDAY), locale.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+)
 
 const dayKeys: ComputedRef<string[]> = computed(() => [...props.days.keys()])
 

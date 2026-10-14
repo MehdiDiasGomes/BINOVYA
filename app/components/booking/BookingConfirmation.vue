@@ -77,7 +77,7 @@ import { POP_SPRING } from '@/constants/motion'
 
 type NextStep = {
   key: string
-  icon: 'MessageSquare' | 'Trash2' | 'Camera'
+  icon: 'Mail' | 'Trash2' | 'Camera'
 }
 
 const emit = defineEmits<{
@@ -85,7 +85,7 @@ const emit = defineEmits<{
 }>()
 
 const NEXT_STEPS: NextStep[] = [
-  { key: 'reminder', icon: 'MessageSquare' },
+  { key: 'reminder', icon: 'Mail' },
   { key: 'empty', icon: 'Trash2' },
   { key: 'photos', icon: 'Camera' },
 ]

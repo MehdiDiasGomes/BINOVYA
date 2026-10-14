@@ -17,7 +17,7 @@ export const bookingRequestSchema = z.object({
     postcode: z
       .string()
       .trim()
-      .regex(/^\d{5}$/),
+      .regex(/^\d{4,5}$/),
     latitude,
     longitude,
   }),

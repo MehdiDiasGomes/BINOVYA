@@ -63,7 +63,7 @@ const props = withDefaults(
   }>(),
   {
     steps: () => [],
-    current: 'address',
+    current: 'contact',
   },
 )
 

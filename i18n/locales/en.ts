@@ -76,17 +76,17 @@ export default {
     cta: 'Book an intervention',
     small: {
       title: 'Small bins',
-      desc: 'For standard wheeled bins up to 140L.',
-      price: '€15 for the first bin',
-      priceNote: '€10 from the second bin',
+      desc: '120 to 240 L bin — high-temperature steam cleaning.',
+      price: 'From €19',
+      priceNote: 'per visit, with the annual plan',
       ctaAriaLabel: 'Book an intervention for small bins',
     },
     large: {
       title: 'Large bins',
       badge: 'Large format',
-      desc: 'For bins of 240L and above, PAV and collective containers.',
-      price: '€24.90 for the first bin',
-      priceNote: '€19.90 from the second bin',
+      desc: '600 to 1,100 L bin — high-temperature steam cleaning.',
+      price: 'From €29',
+      priceNote: 'per visit, with the annual plan',
       ctaAriaLabel: 'Book an intervention for large bins',
     },
     features: {
