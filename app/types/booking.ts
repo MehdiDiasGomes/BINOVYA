@@ -2,7 +2,9 @@ export type ServiceSlug = 'small-bin' | 'large-bin'
 
 export type BookingPlan = 'one_off' | 'quarterly' | 'annual'
 
-export type BookingStepId = 'address' | 'services' | 'date' | 'contact'
+export type BookingStepId = 'contact' | 'bins' | 'schedule' | 'payment'
+
+export type CollectionKind = 'household' | 'recycling'
 
 export type DayStatus = 'available' | 'full' | 'closed' | 'outOfSector'
 
@@ -14,10 +16,8 @@ export type GeoPoint = {
 export type BookingService = {
   slug: ServiceSlug
   titleKey: string
-  descriptionKey: string
+  capacityKey: string
   image: string
-  firstUnitPriceCents: number
-  additionalUnitPriceCents: number
 }
 
 export type BookingAddress = GeoPoint & {
@@ -35,23 +35,27 @@ export type BookingContact = {
 
 export type BookingQuantities = Record<ServiceSlug, number>
 
+export type CollectionAnswer = {
+  weekdays: number[]
+  isUnknown: boolean
+}
+
 export type BookingDraft = {
   address: BookingAddress | null
   quantities: BookingQuantities
   plan: BookingPlan
-  collectionWeekdays: number[]
-  recyclingCollectionWeekdays: number[]
-  isCollectionUnknown: boolean
+  collection: Record<CollectionKind, CollectionAnswer>
   date: string | null
   contact: BookingContact
   hasConfirmedBinsReady: boolean
   hasAcceptedTerms: boolean
 }
 
-export type BookingLine = {
-  service: BookingService
-  quantity: number
-  totalCents: number
+export type PriceGridEntry = {
+  plan: BookingPlan
+  smallBinCount: number
+  largeBinCount: number
+  priceCents: number
 }
 
 export type DayStatusEntry = {

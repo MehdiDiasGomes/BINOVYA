@@ -1,5 +1,5 @@
 /**
- * Tells whether a day is the customer's collection day or the day right after it.
+ * Tells whether a day is one of the customer's collection days or the day right after it.
  * @param date - Day to evaluate
  * @param collectionWeekdays - Collection weekdays, 0 (Sunday) to 6 (Saturday)
  * @returns True when the bins are expected to be empty

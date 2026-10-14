@@ -1,25 +1,30 @@
-import type { BookingService, BookingStepId } from '@/types/booking'
+import type { BookingPlan, BookingService, BookingStepId, CollectionKind } from '@/types/booking'
 
 export const BOOKING_SERVICES: BookingService[] = [
   {
     slug: 'small-bin',
-    titleKey: 'offers.small.title',
-    descriptionKey: 'offers.small.desc',
+    titleKey: 'booking.bins.small.title',
+    capacityKey: 'booking.bins.small.capacity',
     image: '/images/offers/petit-format.png',
-    firstUnitPriceCents: 1990,
-    additionalUnitPriceCents: 990,
   },
   {
     slug: 'large-bin',
-    titleKey: 'offers.large.title',
-    descriptionKey: 'offers.large.desc',
+    titleKey: 'booking.bins.large.title',
+    capacityKey: 'booking.bins.large.capacity',
     image: '/images/offers/grand-format.png',
-    firstUnitPriceCents: 3990,
-    additionalUnitPriceCents: 2990,
   },
 ]
 
-export const BOOKING_STEPS: BookingStepId[] = ['address', 'services', 'date', 'contact']
+export const BOOKING_STEPS: BookingStepId[] = ['contact', 'bins', 'schedule', 'payment']
+
+export const BOOKING_PLANS: BookingPlan[] = ['one_off', 'quarterly', 'annual']
+
+export const COLLECTION_KINDS: CollectionKind[] = ['household', 'recycling']
+
+export const COLLECTION_LID_CLASSES: Record<CollectionKind, string[]> = {
+  household: ['fill-green-700', 'fill-zinc-400'],
+  recycling: ['fill-yellow-400'],
+}
 
 export const MAX_QUANTITY_PER_SERVICE = 10
 

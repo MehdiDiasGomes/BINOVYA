@@ -20,7 +20,7 @@ type BookingAvailability = {
  * @returns Request state, service area check, availability per ISO date and the loader
  */
 export const useBookingAvailability = (): BookingAvailability => {
-  const { draft } = useBookingDraft()
+  const { draft, collectionWeekdays } = useBookingDraft()
   const response: Ref<AvailabilityResponse | null> = useState<AvailabilityResponse | null>(
     'booking-availability',
     () => null,
@@ -67,10 +67,12 @@ export const useBookingAvailability = (): BookingAvailability => {
   )
 
   const days: ComputedRef<Map<string, DayAvailability>> = computed(() => {
-    const { collectionWeekdays } = draft.value
     const entries = (response.value?.days ?? []).map((day): [string, DayAvailability] => [
       day.date,
-      { ...day, isRecommended: isRecommendedDay(parseIsoDate(day.date), collectionWeekdays) },
+      {
+        ...day,
+        isRecommended: isRecommendedDay(parseIsoDate(day.date), collectionWeekdays.value),
+      },
     ])
     return new Map(entries)
   })

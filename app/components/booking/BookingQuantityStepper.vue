@@ -3,7 +3,7 @@
     <button
       type="button"
       :disabled="props.modelValue <= 0"
-      :aria-label="$t('booking.services.decrease', { service: props.serviceName })"
+      :aria-label="$t('booking.bins.decrease', { service: props.serviceName })"
       class="flex h-11 w-11 items-center justify-center rounded-lg border border-ink/25 bg-white text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
       @click="update(-1)"
     >
@@ -13,13 +13,13 @@
       <span aria-hidden="true">{{ props.modelValue }}</span>
       <span class="sr-only">
         {{ props.serviceName }} :
-        {{ $t('booking.services.quantityStatus', { count: props.modelValue }) }}
+        {{ $t('booking.bins.quantityStatus', { count: props.modelValue }) }}
       </span>
     </p>
     <button
       type="button"
       :disabled="props.modelValue >= props.max"
-      :aria-label="$t('booking.services.increase', { service: props.serviceName })"
+      :aria-label="$t('booking.bins.increase', { service: props.serviceName })"
       class="flex h-11 w-11 items-center justify-center rounded-lg border border-ink/25 bg-white text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
       @click="update(1)"
     >

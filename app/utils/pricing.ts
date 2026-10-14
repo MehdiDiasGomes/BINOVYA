@@ -1,15 +1,23 @@
-import type { BookingService } from '@/types/booking'
+import type { BookingPlan, PriceGridEntry } from '@/types/booking'
 
 /**
- * Applies the degressive pricing of a service: full price for the first unit, reduced price after.
- * @param service - Service being priced
- * @param quantity - Number of units booked
- * @returns Line total in cents
+ * Looks up the price of one visit for a plan and a bin combination.
+ * @param grid - Price grid loaded from the database
+ * @param plan - Chosen plan
+ * @param counts - Number of small and large bins
+ * @returns Price in cents, or null when the combination requires a quote
  */
-export const computeLineTotalCents = (service: BookingService, quantity: number): number =>
-  quantity <= 0
-    ? 0
-    : service.firstUnitPriceCents + (quantity - 1) * service.additionalUnitPriceCents
+export const findPriceCents = (
+  grid: PriceGridEntry[],
+  plan: BookingPlan,
+  counts: { small: number; large: number },
+): number | null =>
+  grid.find(
+    entry =>
+      entry.plan === plan &&
+      entry.smallBinCount === counts.small &&
+      entry.largeBinCount === counts.large,
+  )?.priceCents ?? null
 
 export const formatPrice = (cents: number, locale: string): string =>
   new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' }).format(cents / 100)

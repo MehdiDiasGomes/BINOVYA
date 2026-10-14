@@ -38,36 +38,6 @@
       :error="errorFor('phone')"
       autocomplete="tel"
     />
-
-    <div>
-      <label
-        for="booking-terms"
-        class="flex cursor-pointer items-start gap-3 text-sm font-semibold text-ink"
-      >
-        <input
-          id="booking-terms"
-          v-model="draft.hasAcceptedTerms"
-          type="checkbox"
-          required
-          class="mt-0.5 h-5 w-5 shrink-0 rounded border-ink/40 accent-primary"
-        />
-        {{ $t('booking.contact.terms') }}
-      </label>
-      <NuxtLink
-        :to="localePath('/privacy')"
-        target="_blank"
-        class="ml-8 mt-1 inline-block text-[13px] font-bold text-ink underline underline-offset-4 hover:text-primary"
-      >
-        {{ $t('booking.contact.termsLink') }}
-      </NuxtLink>
-    </div>
-
-    <p
-      class="flex items-start gap-2.5 rounded-xl bg-paper-2 p-4 text-[13px] font-semibold text-ink"
-    >
-      <Icon name="Lock" :size="16" aria-hidden="true" class="mt-0.5 shrink-0 text-primary" />
-      {{ $t('booking.contact.securePayment') }}
-    </p>
   </div>
 </template>
 
@@ -84,7 +54,6 @@ const props = withDefaults(
 )
 
 const { t } = useI18n()
-const localePath = useLocalePath()
 const { draft } = useBookingDraft()
 
 const errors: ComputedRef<ContactErrors> = computed(() => validateContact(draft.value.contact))

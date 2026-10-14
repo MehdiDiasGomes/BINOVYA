@@ -19,23 +19,29 @@
 
       <div>
         <dt class="text-xs font-black uppercase tracking-[1.2px] text-ink/70">
-          {{ $t('booking.summary.services') }}
+          {{ $t('booking.summary.bins') }}
         </dt>
         <dd class="mt-1 font-semibold text-ink">
-          <span v-if="lines.length === 0">{{ $t('booking.summary.empty') }}</span>
+          <span v-if="selectedServices.length === 0">{{ $t('booking.summary.empty') }}</span>
           <ul v-else class="space-y-1">
-            <li v-for="line in lines" :key="line.service.slug" class="flex justify-between gap-3">
-              <span>
-                {{
-                  $t('booking.summary.line', {
-                    quantity: line.quantity,
-                    service: $t(line.service.titleKey),
-                  })
-                }}
-              </span>
-              <span class="shrink-0">{{ formatPrice(line.totalCents, locale) }}</span>
+            <li v-for="service in selectedServices" :key="service.slug">
+              {{
+                $t('booking.summary.line', {
+                  quantity: draft.quantities[service.slug],
+                  service: $t(service.titleKey),
+                })
+              }}
             </li>
           </ul>
+        </dd>
+      </div>
+
+      <div>
+        <dt class="text-xs font-black uppercase tracking-[1.2px] text-ink/70">
+          {{ $t('booking.summary.plan') }}
+        </dt>
+        <dd class="mt-1 font-semibold text-ink">
+          {{ $t(`booking.plans.${draft.plan}.title`) }}
         </dd>
       </div>
 
@@ -51,15 +57,29 @@
 
     <div class="mt-5 flex items-baseline justify-between border-t border-border pt-4">
       <span class="text-sm font-black text-ink">{{ $t('booking.summary.total') }}</span>
-      <span class="text-2xl font-black text-ink" aria-live="polite">
-        {{ formatPrice(totalCents, locale) }}
-      </span>
+      <span class="text-2xl font-black text-ink" aria-live="polite">{{ totalLabel }}</span>
     </div>
     <p class="mt-1 text-right text-xs text-ink/70">{{ $t('booking.summary.taxNote') }}</p>
   </aside>
 </template>
 
 <script setup lang="ts">
-const { locale } = useI18n()
-const { draft, lines, totalCents } = useBookingDraft()
+import type { BookingService } from '@/types/booking'
+
+import { BOOKING_SERVICES } from '@/constants/booking'
+
+const { t, locale } = useI18n()
+const { draft } = useBookingDraft()
+const { priceCents, isQuoteRequired } = useBookingPrice()
+
+const selectedServices: ComputedRef<BookingService[]> = computed(() =>
+  BOOKING_SERVICES.filter(service => draft.value.quantities[service.slug] > 0),
+)
+
+const totalLabel: ComputedRef<string> = computed(() => {
+  if (isQuoteRequired.value) {
+    return t('booking.summary.quote')
+  }
+  return priceCents.value === null ? '—' : formatPrice(priceCents.value, locale.value)
+})
 </script>
