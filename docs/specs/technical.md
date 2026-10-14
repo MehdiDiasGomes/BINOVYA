@@ -55,11 +55,16 @@
 
 | Pays | Service |
 | --- | --- |
-| France | Géoplateforme IGN (Base Adresse Nationale) |
-| Luxembourg | API de geoportail.lu (conditions d'usage à vérifier) |
+| France | Géoplateforme IGN (Base Adresse Nationale), `data.geopf.fr/geocodage/search`, biaisé vers Uckange |
+| Luxembourg | geoportail.lu, `apiv4.geoportail.lu/fulltextsearch`, couche `Adresse`, limité au sud du pays (conditions d'usage à vérifier) |
 
-- Un seul endpoint serveur (`/api/address/search`) interroge les deux services en parallèle et
-  fusionne les résultats. Le front ne connaît pas les fournisseurs.
+- Le client choisit le pays à côté du champ adresse. Un seul endpoint serveur
+  (`/api/address/search?q=…&country=FR|LU`) interroge le service de ce pays. Le front ne
+  connaît pas les fournisseurs.
+- Le téléphone a aussi un sélecteur de pays (+33, +352) : le client saisit son numéro national,
+  le serveur reçoit et enregistre le format international (`+33612345678`).
+- Avec 20 km à vol d'oiseau autour d'Uckange, seule une petite partie du Luxembourg est
+  desservie (Rumelange, sud de Dudelange).
 - La validation accepte les deux formats : code postal (5 chiffres FR, 4 chiffres LU) et
   téléphone (+33, +352).
 

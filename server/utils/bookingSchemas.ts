@@ -7,20 +7,23 @@ const longitude = z.coerce.number().min(-180).max(180)
 const dayStatus = z.enum(['available', 'full', 'closed', 'outOfSector'])
 const binCount = z.number().int().min(0).max(10)
 const weekdays = z.array(z.number().int().min(0).max(6)).max(7)
+const POSTCODE_PATTERNS: Record<'FR' | 'LU', RegExp> = { FR: /^\d{5}$/, LU: /^\d{4}$/ }
 
 export const coordinatesSchema = z.object({ latitude, longitude })
 
 export const bookingRequestSchema = z.object({
-  address: z.object({
-    label: z.string().trim().min(3).max(300),
-    city: z.string().trim().min(1).max(120),
-    postcode: z
-      .string()
-      .trim()
-      .regex(/^\d{4,5}$/),
-    latitude,
-    longitude,
-  }),
+  address: z
+    .object({
+      label: z.string().trim().min(3).max(300),
+      city: z.string().trim().min(1).max(120),
+      postcode: z.string().trim(),
+      countryCode: z.enum(['FR', 'LU']),
+      latitude,
+      longitude,
+    })
+    .refine(address => POSTCODE_PATTERNS[address.countryCode].test(address.postcode), {
+      path: ['postcode'],
+    }),
   plan: z.enum(['one_off', 'quarterly', 'annual']),
   smallBinCount: binCount,
   largeBinCount: binCount,

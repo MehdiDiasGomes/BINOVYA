@@ -1,14 +1,18 @@
 <template>
   <div>
-    <label for="booking-address" class="block">
-      <span class="mb-1.5 block text-sm font-bold text-ink">{{ $t('booking.address.label') }}</span>
-      <span class="relative block">
-        <Icon
-          name="MapPin"
-          :size="18"
-          aria-hidden="true"
-          class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-primary"
-        />
+    <div class="group grid grid-cols-[auto_minmax(0,1fr)]">
+      <span aria-hidden="true" :class="INPUT_GROUP_FRAME_CLASS" />
+      <BookingCountrySelect
+        id="booking-address-country"
+        :model-value="countryCode"
+        :label="$t('booking.address.country')"
+        class="col-start-1 row-start-2"
+        @update:model-value="changeCountry"
+      />
+      <label for="booking-address" class="contents">
+        <span class="col-span-2 row-start-1 mb-1.5 block text-sm font-bold text-ink">
+          {{ $t('booking.address.label') }}
+        </span>
         <input
           id="booking-address"
           v-model="query"
@@ -20,14 +24,14 @@
           aria-describedby="booking-address-hint"
           :aria-expanded="isListOpen"
           :aria-activedescendant="activeOptionId"
-          :placeholder="$t('booking.address.placeholder')"
-          class="h-12 w-full rounded-lg border border-ink/25 bg-white pl-11 pr-4 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/50 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/30"
+          :placeholder="$t(`booking.address.placeholder.${countryCode}`)"
+          class="relative z-10 col-start-2 row-start-2 h-12 min-w-0 bg-transparent px-3 text-[15px] text-ink outline-none placeholder:text-ink/50"
           @input="handleInput"
           @keydown="handleKeydown"
           @blur="isListVisible = false"
         />
-      </span>
-    </label>
+      </label>
+    </div>
     <p id="booking-address-hint" class="mt-1.5 text-[13px] text-ink/70">
       {{ $t('booking.address.hint') }}
     </p>
@@ -147,8 +151,9 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
 
-import type { BookingAddress } from '@/types/booking'
+import type { BookingAddress, CountryCode } from '@/types/booking'
 
+import { INPUT_GROUP_FRAME_CLASS } from '@/constants/booking'
 import { cn } from '@/lib/utils'
 
 const SEARCH_DELAY_MS = 500
@@ -162,7 +167,9 @@ const {
   load: loadAvailability,
   reset: resetAvailability,
 } = useBookingAvailability()
-const { suggestions, isLoading, hasError, hasSearched, search, clear } = useAddressSearch()
+const countryCode: Ref<CountryCode> = ref(draft.value.address?.countryCode ?? 'FR')
+const { suggestions, isLoading, hasError, hasSearched, search, clear } =
+  useAddressSearch(countryCode)
 
 const query: Ref<string> = ref(draft.value.address?.label ?? '')
 const isListVisible: Ref<boolean> = ref(false)
@@ -198,6 +205,16 @@ const handleInput = (): void => {
   isListVisible.value = true
   activeIndex.value = -1
   debouncedSearch(query.value).catch(() => clear())
+}
+
+const changeCountry = (code: CountryCode): void => {
+  countryCode.value = code
+  query.value = ''
+  draft.value.address = null
+  draft.value.date = null
+  resetAvailability()
+  isListVisible.value = false
+  clear()
 }
 
 const selectSuggestion = (suggestion: BookingAddress): void => {

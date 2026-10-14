@@ -23,6 +23,7 @@
     "@vueuse/core": "^14.1.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "country-flag-icons": "1.6.20",
     "lucide-vue-next": "^0.562.0",
     "motion-v": "^2.6.0",
     "nuxt": "^4.2.2",

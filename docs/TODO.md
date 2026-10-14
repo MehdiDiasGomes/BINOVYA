@@ -32,8 +32,9 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 3. Géocodage
 
-- [ ] Endpoint `/api/address/search` : Géoplateforme IGN + geoportail.lu, résultats fusionnés
-- [ ] Brancher `useAddressSearch` sur cet endpoint
+- [x] Endpoint `/api/address/search` : Géoplateforme IGN (France) ou geoportail.lu (Luxembourg)
+- [x] Brancher `useAddressSearch` sur cet endpoint
+- [x] Sélecteur de pays sur l'adresse et sur le téléphone (indicatif automatique)
 
 ## 4. Devis
 

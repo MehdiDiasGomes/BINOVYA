@@ -2,6 +2,8 @@ import type { BookingContact } from '@/types/booking'
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
+type CustomerContact = Omit<BookingContact, 'phoneCountryCode'>
+
 const findCustomerId = async (
   client: SupabaseClient<Database>,
   email: string,
@@ -26,7 +28,7 @@ const findCustomerId = async (
  */
 export const findOrCreateCustomer = async (
   client: SupabaseClient<Database>,
-  contact: BookingContact,
+  contact: CustomerContact,
 ): Promise<string> => {
   const email: string = contact.email.trim().toLowerCase()
   const existingId: string | null = await findCustomerId(client, email)

@@ -1,6 +1,4 @@
-import type { BookingAddress, GeocodingResponse } from '@/types/booking'
-
-import { GEOCODING_ENDPOINT } from '@/constants/booking'
+import type { AddressSearchResponse, BookingAddress, CountryCode } from '@/types/booking'
 
 type AddressSearch = {
   suggestions: Ref<BookingAddress[]>
@@ -12,13 +10,13 @@ type AddressSearch = {
 }
 
 const MIN_QUERY_LENGTH = 3
-const MAX_SUGGESTIONS = 5
 
 /**
- * Searches French addresses through the public IGN geocoding service.
+ * Searches the addresses of the selected country through the server.
+ * @param countryCode - Country picked next to the address field
  * @returns Suggestions, request state and the search trigger
  */
-export const useAddressSearch = (): AddressSearch => {
+export const useAddressSearch = (countryCode: Ref<CountryCode>): AddressSearch => {
   const suggestions: Ref<BookingAddress[]> = ref([])
   const isLoading: Ref<boolean> = ref(false)
   const hasError: Ref<boolean> = ref(false)
@@ -46,19 +44,13 @@ export const useAddressSearch = (): AddressSearch => {
     hasError.value = false
 
     try {
-      const response = await $fetch<GeocodingResponse>(GEOCODING_ENDPOINT, {
-        query: { q: query, autocomplete: 1, limit: MAX_SUGGESTIONS },
+      const response = await $fetch<AddressSearchResponse>('/api/address/search', {
+        query: { q: query, country: countryCode.value },
       })
       if (request !== latestRequest) {
         return
       }
-      suggestions.value = response.features.map(feature => ({
-        label: feature.properties.label,
-        city: feature.properties.city,
-        postcode: feature.properties.postcode,
-        longitude: feature.geometry.coordinates[0],
-        latitude: feature.geometry.coordinates[1],
-      }))
+      suggestions.value = response.suggestions
       hasSearched.value = true
     } catch {
       if (request === latestRequest) {
