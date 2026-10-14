@@ -28,15 +28,15 @@
       :error="errorFor('email')"
       autocomplete="email"
     />
-    <BookingField
+    <BookingPhoneField
       id="booking-phone"
       v-model="draft.contact.phone"
-      type="tel"
+      v-model:country-code="draft.contact.phoneCountryCode"
       :label="$t('booking.contact.phone')"
-      :placeholder="$t('booking.contact.phonePlaceholder')"
+      :country-label="$t('booking.contact.phoneCountry')"
+      :placeholder="$t(`booking.contact.phonePlaceholder.${draft.contact.phoneCountryCode}`)"
       :hint="$t('booking.contact.phoneHint')"
       :error="errorFor('phone')"
-      autocomplete="tel"
     />
   </div>
 </template>

@@ -61,9 +61,17 @@ export default {
     dayTaken: 'This day has just been booked by someone else. Please choose another one.',
     submit: 'The booking could not be saved. Try again in a moment.',
   },
+  countries: {
+    FR: 'France',
+    LU: 'Luxembourg',
+  },
   address: {
     label: 'Address of the bins to clean',
-    placeholder: '12 rue de la Gare, Thionville',
+    country: 'Country of the address',
+    placeholder: {
+      FR: '12 rue de la Gare, Thionville',
+      LU: '24 Grand-Rue, Rumelange',
+    },
     hint: 'Type at least 3 characters, then choose an address from the list.',
     listLabel: 'Suggested addresses',
     loading: 'Searching…',
@@ -158,8 +166,12 @@ export default {
     emailPlaceholder: "john.smith{'@'}example.com",
     emailHint: 'For the confirmation and access to your customer area.',
     phone: 'Mobile phone',
-    phonePlaceholder: '06 12 34 56 78',
-    phoneHint: 'French or Luxembourgish number, to reach you on the day of the visit.',
+    phoneCountry: 'Country calling code',
+    phonePlaceholder: {
+      FR: '6 12 34 56 78',
+      LU: '621 123 456',
+    },
+    phoneHint: 'To reach you on the day of the visit if needed.',
     errors: {
       firstName: 'Enter your first name (at least 2 characters).',
       lastName: 'Enter your last name (at least 2 characters).',

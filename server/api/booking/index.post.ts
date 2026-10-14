@@ -18,6 +18,7 @@ export default defineEventHandler(async (event): Promise<BookingResponse> => {
     p_address: body.address.label,
     p_city: body.address.city,
     p_postcode: body.address.postcode,
+    p_country_code: body.address.countryCode,
     p_latitude: body.address.latitude,
     p_longitude: body.address.longitude,
     p_plan: body.plan,

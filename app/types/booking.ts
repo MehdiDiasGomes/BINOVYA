@@ -20,10 +20,17 @@ export type BookingService = {
   image: string
 }
 
+export type CountryCode = 'FR' | 'LU'
+
 export type BookingAddress = GeoPoint & {
   label: string
   city: string
   postcode: string
+  countryCode: CountryCode
+}
+
+export type AddressSearchResponse = {
+  suggestions: BookingAddress[]
 }
 
 export type BookingContact = {
@@ -31,6 +38,7 @@ export type BookingContact = {
   lastName: string
   email: string
   phone: string
+  phoneCountryCode: CountryCode
 }
 
 export type BookingQuantities = Record<ServiceSlug, number>
@@ -93,19 +101,3 @@ export type BookingResponse = {
 }
 
 export type ContactErrors = Partial<Record<keyof BookingContact, string>>
-
-export type GeocodingFeature = {
-  geometry: {
-    coordinates: [number, number]
-  }
-  properties: {
-    id: string
-    label: string
-    city: string
-    postcode: string
-  }
-}
-
-export type GeocodingResponse = {
-  features: GeocodingFeature[]
-}

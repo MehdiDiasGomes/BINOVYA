@@ -16,7 +16,7 @@ const createEmptyDraft = (): BookingDraft => ({
     recycling: { weekdays: [], isUnknown: false },
   },
   date: null,
-  contact: { firstName: '', lastName: '', email: '', phone: '' },
+  contact: { firstName: '', lastName: '', email: '', phone: '', phoneCountryCode: 'FR' },
   hasConfirmedBinsReady: false,
   hasAcceptedTerms: false,
 })

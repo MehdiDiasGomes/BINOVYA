@@ -62,9 +62,17 @@ export default {
     dayTaken: "Ce jour vient d'être réservé par quelqu'un d'autre. Choisissez-en un autre.",
     submit: "La réservation n'a pas pu être enregistrée. Réessayez dans un instant.",
   },
+  countries: {
+    FR: 'France',
+    LU: 'Luxembourg',
+  },
   address: {
     label: 'Adresse des bacs à nettoyer',
-    placeholder: '12 rue de la Gare, Thionville',
+    country: "Pays de l'adresse",
+    placeholder: {
+      FR: '12 rue de la Gare, Thionville',
+      LU: '24 Grand-Rue, Rumelange',
+    },
     hint: 'Saisissez au moins 3 caractères, puis choisissez une adresse dans la liste.',
     listLabel: 'Adresses proposées',
     loading: 'Recherche en cours…',
@@ -160,8 +168,12 @@ export default {
     emailPlaceholder: "jean.dupont{'@'}exemple.fr",
     emailHint: 'Pour la confirmation et l’accès à votre espace client.',
     phone: 'Téléphone mobile',
-    phonePlaceholder: '06 12 34 56 78',
-    phoneHint: 'Numéro français ou luxembourgeois, pour vous joindre le jour du passage.',
+    phoneCountry: 'Indicatif du pays',
+    phonePlaceholder: {
+      FR: '6 12 34 56 78',
+      LU: '621 123 456',
+    },
+    phoneHint: 'Pour vous joindre le jour du passage si besoin.',
     errors: {
       firstName: 'Indiquez votre prénom (2 caractères minimum).',
       lastName: 'Indiquez votre nom (2 caractères minimum).',

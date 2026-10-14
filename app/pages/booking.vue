@@ -190,7 +190,7 @@ const buildRequest = (): BookingRequest | null => {
   return {
     address,
     date,
-    contact,
+    contact: { ...contact, phone: toInternationalPhone(contact.phone, contact.phoneCountryCode) },
     plan,
     smallBinCount: quantities['small-bin'],
     largeBinCount: quantities['large-bin'],
