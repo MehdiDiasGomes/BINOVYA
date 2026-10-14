@@ -166,7 +166,8 @@ With alphabetical sorting and newlines between groups.
 
 - Compatibility date: 2025-07-15
 - DevTools enabled
-- Modules: `shadcn-nuxt`, `@nuxt/eslint`
+- Modules: `shadcn-nuxt`, `@nuxt/eslint`, `@nuxt/image`, `@nuxtjs/i18n`, `@nuxt/fonts`,
+  `motion-v/nuxt`, `@nuxtjs/supabase`
 - Tailwind integrated via Vite plugin (not Nuxt module)
 
 ### Package Manager
@@ -182,9 +183,11 @@ With alphabetical sorting and newlines between groups.
 
 ### Git Workflow
 
-- Main branch not configured yet (new project)
-- Current branch: `chore/#1-init-linter`
-- Untracked files show linting setup in progress
+- `main`: production, `dev`: integration branch
+- One branch per step of `docs/TODO.md` (e.g. `feat/booking-quote`), created from `dev`
+- Merge the finished branch into `dev` (`--no-ff`) before creating the next step's branch, never
+  stack branches
+- Commits follow gitmoji, see `docs/CONTRIBUTING.md`
 
 ## Important Patterns
 
@@ -243,3 +246,30 @@ Vue SFCs must follow this pattern:
 ### Auto-imports
 
 Nuxt provides auto-imports for composables, components, and utilities. ESLint is configured to allow unresolved imports for this reason (`import/no-unresolved: 'off'`).
+
+## Agent Workflow
+
+The main session is the orchestrator: it implements the code and delegates the rest to the
+subagents in `.claude/agents/`. Full pipeline: `/feature <description>` (`.claude/commands/feature.md`).
+
+| Agent              | Model  | Writes                                                       | Runs when                                     |
+| ------------------ | ------ | ------------------------------------------------------------ | --------------------------------------------- |
+| `db-migrator`      | sonnet | new `supabase/migrations/*.sql`, `database.types.ts`         | the schema changes, before implementation     |
+| `ui-stylist`       | sonnet | Tailwind classes and markup in `app/pages`, `app/components` | templates changed, after implementation       |
+| `security-auditor` | opus   | nothing (read-only)                                          | `server/`, `supabase/`, auth, payments, input |
+| `a11y-auditor`     | sonnet | nothing (read-only)                                          | `.vue` or `i18n/` changed                     |
+| `code-reviewer`    | opus   | nothing (read-only)                                          | always, last before commit                    |
+| `docs-writer`      | sonnet | `docs/` only                                                 | end of feature                                |
+
+Rules:
+
+- Order: db-migrator → implementation → ui-stylist → security-auditor ∥ a11y-auditor → fixes →
+  code-reviewer → docs-writer. Only read-only agents run in parallel.
+- The orchestrator fixes critical, high and medium findings; visual findings go back to
+  ui-stylist. The review is re-run at most twice, then open findings go to the user.
+- Read-only agents cannot run commands: the orchestrator passes them the change set
+  (`git diff --name-only dev` + untracked files) and the lint, typecheck and format output.
+- Migrations are applied by the user in the Supabase SQL Editor and verified before dependent
+  code is written. Nothing is committed automatically.
+- Skip the pipeline for changes under ~30 lines with no new component and no `server/` or
+  `supabase/` change. Any `server/` or `supabase/` change still goes through security-auditor.
