@@ -1,22 +1,23 @@
 # Système de réservation en ligne
 
-> Statut : brainstorming, rien n'est développé. Dernière mise à jour : 2026-10-10.
+> Statut : brainstorming, rien n'est développé. Dernière mise à jour : 2026-10-14.
 
 ## Objectif
 
 Permettre à un client de réserver une intervention, de la payer en ligne, puis de consulter
-les photos avant/après depuis son compte.
+ses réservations et les photos avant/après depuis son espace client.
 
 ## Parcours
 
 1. Le client saisit son adresse, puis choisit une ou plusieurs prestations et leur quantité.
 2. Il indique le ou les jours de collecte de ses bacs (ou « je ne sais pas »).
 3. Il choisit un jour parmi ceux ouverts pour son secteur.
-4. Il saisit ses coordonnées, son compte est créé automatiquement.
+4. Il saisit ses coordonnées, son espace client est créé automatiquement et il en est informé.
 5. Il paie via Stripe Checkout.
 6. Il reçoit un mail de confirmation, puis un SMS la veille et le jour J.
 7. Après l'intervention, l'admin dépose une photo avant et une photo après.
-8. Le client consulte ses réservations et ses photos dans son espace.
+8. Le client se connecte à son espace pour consulter ses réservations et ses photos, aussi
+   souvent qu'il le souhaite.
 
 ## Services retenus
 
@@ -26,16 +27,16 @@ les photos avant/après depuis son compte.
 | SMS                             | Brevo    | À connecter |
 | Paiement                        | Stripe   | À connecter |
 | Comptes, base de données, photos | Supabase | À connecter |
-| Géocodage des adresses          | Géoplateforme IGN (gratuit) | À connecter |
+| Géocodage des adresses          | Géoplateforme IGN (France) et geoportail.lu (Luxembourg) | À connecter |
+| Distances routières et tournées | OSRM et VROOM (auto-hébergés) | À installer |
 
 En production, tous les comptes sont au nom du client final, le développeur y est invité.
 En développement : Stripe en mode test sur le compte du développeur, Supabase dans une
 organisation dédiée au client (transférable).
 
-- **Supabase** : plan gratuit au lancement, avec maintien en vie et sauvegarde programmés
-  par action GitHub. Passage au plan Pro quand l'activité est réelle.
-- **Hébergement** : Vercel aujourd'hui, à trancher (Vercel Pro, serveur loué ou Cloudflare).
-  Le code reste indépendant de l'hébergeur.
+- **Supabase** : plan gratuit au lancement, avec maintien en vie programmé
+  par action GitHub. Sauvegardes prévues en V2. Passage au plan Pro quand l'activité est réelle.
+- **Hébergement** : VPS européen avec Docker, détaillé dans [technical.md](./technical.md).
 
 ## Schéma de données
 
@@ -107,13 +108,16 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
   19,90 € puis 9,90 €, grands bacs 39,90 € puis 29,90 €), appliqué par prestation. Le total
   est calculé côté serveur.
 - **Montant** : figé dans `amount_total_cents` au moment du paiement.
-- **Photos** : bucket privé, accès par URL signées temporaires.
+- **Photos** : bucket privé, URL signées temporaires créées à chaque consultation de l'espace.
+- **Espace client** : créé automatiquement à la réservation, sans mot de passe. Le client en
+  est informé au moment de la réservation et peut demander sa suppression.
 - **Accès** : RLS, un client ne lit que ses données, seul l'admin écrit photos et statuts.
 - **Rôle admin** : stocké dans `app_metadata` (jamais `user_metadata`, modifiable par
   l'utilisateur), lu dans les policies via `auth.jwt() -> 'app_metadata' ->> 'role'`.
-- **Connexion** : lien magique par mail, sans mot de passe.
+- **Connexion** : lien magique par mail, sans mot de passe, pour les clients comme pour l'admin.
 - **SMS** : tâche quotidienne (`pg_cron`), les colonnes `*_sent_at` empêchent les doublons.
-- **Confidentialité** : téléphone et photos des locaux à mentionner dans la page dédiée.
+- **Confidentialité** : téléphone, photos des locaux et durée de conservation des données
+  client à mentionner dans la page dédiée. Suppression des données sur simple demande.
 
 ## Limites connues
 
@@ -132,10 +136,6 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
 
 - **Stripe** : commission par paiement, pas d'abonnement (tarif à vérifier sur stripe.com/fr/pricing).
 - **Brevo** : environ 0,045 € par SMS, soit environ 0,09 € par réservation (à confirmer).
-
-## Estimation
-
-Environ 7 à 11 jours : réservation, calendrier, paiement, comptes, espace client, page admin et SMS.
 
 ## À remplir (à voir avec le client)
 
