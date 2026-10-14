@@ -9,7 +9,7 @@
       :placeholder="props.placeholder"
       :aria-invalid="props.error ? 'true' : undefined"
       :aria-describedby="describedBy"
-      required
+      :required="props.isRequired"
       class="h-12 w-full rounded-lg border border-ink/25 bg-white px-4 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/50 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/30 aria-invalid:border-destructive"
       @input="handleInput"
     />
@@ -38,6 +38,7 @@ const props = withDefaults(
     placeholder?: string
     hint?: string
     error?: string
+    isRequired?: boolean
   }>(),
   {
     modelValue: '',
@@ -46,6 +47,7 @@ const props = withDefaults(
     placeholder: '',
     hint: '',
     error: '',
+    isRequired: true,
   },
 )
 

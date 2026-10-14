@@ -11,20 +11,24 @@ const POSTCODE_PATTERNS: Record<'FR' | 'LU', RegExp> = { FR: /^\d{5}$/, LU: /^\d
 
 export const coordinatesSchema = z.object({ latitude, longitude })
 
+export const bookingAddressSchema = z
+  .object({
+    label: z.string().trim().min(3).max(300),
+    city: z.string().trim().min(1).max(120),
+    postcode: z.string().trim(),
+    countryCode: z.enum(['FR', 'LU']),
+    latitude,
+    longitude,
+  })
+  .refine(address => POSTCODE_PATTERNS[address.countryCode].test(address.postcode), {
+    path: ['postcode'],
+  })
+
+export const bookingPlanSchema = z.enum(['one_off', 'quarterly', 'annual'])
+
 export const bookingRequestSchema = z.object({
-  address: z
-    .object({
-      label: z.string().trim().min(3).max(300),
-      city: z.string().trim().min(1).max(120),
-      postcode: z.string().trim(),
-      countryCode: z.enum(['FR', 'LU']),
-      latitude,
-      longitude,
-    })
-    .refine(address => POSTCODE_PATTERNS[address.countryCode].test(address.postcode), {
-      path: ['postcode'],
-    }),
-  plan: z.enum(['one_off', 'quarterly', 'annual']),
+  address: bookingAddressSchema,
+  plan: bookingPlanSchema,
   smallBinCount: binCount,
   largeBinCount: binCount,
   householdCollectionWeekdays: weekdays,

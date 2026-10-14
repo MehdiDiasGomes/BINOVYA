@@ -62,11 +62,13 @@
             >
               <div v-if="currentStep === 'contact'" class="space-y-8">
                 <BookingContactStep :show-errors="hasAttempted" />
+                <Separator />
                 <BookingAddressStep />
               </div>
               <BookingBinsStep v-else-if="currentStep === 'bins'" />
-              <div v-else-if="currentStep === 'schedule'" class="space-y-10">
+              <div v-else-if="currentStep === 'schedule'" class="space-y-8">
                 <BookingPlanPicker />
+                <Separator />
                 <BookingDateStep />
               </div>
               <BookingPaymentStep v-else />
