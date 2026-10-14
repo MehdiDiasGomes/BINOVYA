@@ -3,7 +3,10 @@
  * Regenerate with `supabase gen types typescript` once the Supabase CLI is linked to the project.
  */
 type BookingStatus = 'pending_payment' | 'paid' | 'completed' | 'cancelled' | 'expired'
+type BookingPlan = 'one_off' | 'quarterly' | 'annual'
 type PhotoKind = 'before' | 'after'
+type QuoteStatus = 'new' | 'answered' | 'closed'
+type CountryCode = 'FR' | 'LU'
 
 type Table<Row, Required extends keyof Row = never> = {
   Row: Row
@@ -21,14 +24,11 @@ type ProfileRow = {
   created_at: string
 }
 
-type ServiceRow = {
-  id: string
-  slug: string
-  name: string
-  first_unit_price_cents: number
-  additional_unit_price_cents: number
-  is_active: boolean
-  created_at: string
+type PriceGridRow = {
+  plan: BookingPlan
+  small_bin_count: number
+  large_bin_count: number
+  price_cents: number
 }
 
 type BookingRow = {
@@ -38,9 +38,15 @@ type BookingRow = {
   address: string
   city: string
   postcode: string
+  country_code: CountryCode
   latitude: number
   longitude: number
-  collection_weekdays: number[]
+  plan: BookingPlan
+  small_bin_count: number
+  large_bin_count: number
+  household_collection_weekdays: number[]
+  recycling_collection_weekdays: number[]
+  bins_ready_confirmed_at: string
   status: BookingStatus
   amount_total_cents: number
   stripe_checkout_session_id: string | null
@@ -52,12 +58,26 @@ type BookingRow = {
   created_at: string
 }
 
-type BookingItemRow = {
+type QuoteRequestRow = {
   id: string
-  booking_id: string
-  service_id: string
-  quantity: number
-  line_total_cents: number
+  first_name: string
+  last_name: string
+  company: string | null
+  email: string
+  phone: string
+  address: string
+  city: string
+  postcode: string
+  country_code: CountryCode
+  latitude: number | null
+  longitude: number | null
+  small_bin_count: number
+  large_bin_count: number
+  plan: BookingPlan | null
+  comment: string | null
+  photo_paths: string[]
+  status: QuoteStatus
+  created_at: string
 }
 
 type InterventionPhotoRow = {
@@ -95,9 +115,9 @@ export type Database = {
   public: {
     Tables: {
       profiles: Table<ProfileRow, 'id' | 'email' | 'first_name' | 'last_name' | 'phone'>
-      services: Table<
-        ServiceRow,
-        'slug' | 'name' | 'first_unit_price_cents' | 'additional_unit_price_cents'
+      price_grid: Table<
+        PriceGridRow,
+        'plan' | 'small_bin_count' | 'large_bin_count' | 'price_cents'
       >
       bookings: Table<
         BookingRow,
@@ -108,10 +128,14 @@ export type Database = {
         | 'postcode'
         | 'latitude'
         | 'longitude'
+        | 'plan'
+        | 'small_bin_count'
+        | 'large_bin_count'
+        | 'bins_ready_confirmed_at'
       >
-      booking_items: Table<
-        BookingItemRow,
-        'booking_id' | 'service_id' | 'quantity' | 'line_total_cents'
+      quote_requests: Table<
+        QuoteRequestRow,
+        'first_name' | 'last_name' | 'email' | 'phone' | 'address' | 'city' | 'postcode'
       >
       intervention_photos: Table<InterventionPhotoRow, 'booking_id' | 'kind' | 'storage_path'>
       availability_rules: Table<AvailabilityRuleRow, 'weekday' | 'max_bookings'>
@@ -141,8 +165,13 @@ export type Database = {
           p_postcode: string
           p_latitude: number
           p_longitude: number
-          p_collection_weekdays: number[]
-          p_items: { slug: string; quantity: number }[]
+          p_plan: BookingPlan
+          p_small_bin_count: number
+          p_large_bin_count: number
+          p_household_collection_weekdays: number[]
+          p_recycling_collection_weekdays: number[]
+          p_bins_ready_confirmed: boolean
+          p_country_code?: CountryCode
           p_hold_minutes?: number
         }
         Returns: { new_booking_id: string; total_cents: number }[]
@@ -154,7 +183,9 @@ export type Database = {
     }
     Enums: {
       booking_status: BookingStatus
+      booking_plan: BookingPlan
       photo_kind: PhotoKind
+      quote_status: QuoteStatus
     }
     CompositeTypes: { [_ in never]: never }
   }
