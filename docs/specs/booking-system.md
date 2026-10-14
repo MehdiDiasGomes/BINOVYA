@@ -15,7 +15,10 @@ ses réservations et les photos avant/après depuis son espace client.
 4. Il saisit ses coordonnées, son espace client est créé automatiquement et il en est informé.
 5. Il paie via Stripe Checkout.
 6. Il reçoit un mail de confirmation, puis un SMS la veille et le jour J.
-7. Après l'intervention, l'admin dépose une photo avant et une photo après.
+7. Après l'intervention, l'admin dépose une photo avant et une photo après. Le client reçoit un
+   mail l'informant que ses photos sont disponibles dans son espace client. Le bouton « Voir mes
+   photos » est un lien magique qui le connecte en un clic ; un tutoriel pas à pas sert de secours
+   si le lien a expiré.
 8. Le client se connecte à son espace pour consulter ses réservations et ses photos, aussi
    souvent qu'il le souhaite.
 
