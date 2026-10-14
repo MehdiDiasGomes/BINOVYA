@@ -43,29 +43,32 @@ organisation dédiée au client (transférable).
 Source de vérité : `supabase/migrations/`. Vue d'ensemble :
 
 ```
-profiles                      services
---------                      --------
-id (= auth.users.id)          id
-email                         slug
-first_name                    name
-last_name                     first_unit_price_cents
-phone                         additional_unit_price_cents
-                              is_active
+profiles                      price_grid
+--------                      ----------
+id (= auth.users.id)          plan (one_off | quarterly | annual)
+email                         small_bin_count (0 à 2)
+first_name                    large_bin_count (0 à 2)
+last_name                     price_cents
+phone                         (combinaison absente = devis)
 
-bookings                              booking_items
---------                              -------------
+bookings                              intervention_photos
+--------                              -------------------
 id                                    id
 customer_id  -> profiles.id           booking_id -> bookings.id
-scheduled_date                        service_id -> services.id
-address, city, postcode               quantity
-latitude, longitude                   line_total_cents
-collection_weekdays
-status (pending_payment | paid |      intervention_photos
-        completed | cancelled |       -------------------
-        expired)                      id
-amount_total_cents                    booking_id -> bookings.id
-stripe_checkout_session_id            kind (before | after)
-stripe_payment_intent_id              storage_path
+scheduled_date                        kind (before | after)
+address, city, postcode, country_code storage_path
+latitude, longitude
+plan                                  quote_requests
+small_bin_count, large_bin_count      --------------
+household_collection_weekdays         id
+recycling_collection_weekdays         first_name, last_name, company
+bins_ready_confirmed_at               email, phone
+status (pending_payment | paid |      address, city, postcode, country_code
+        completed | cancelled |       latitude, longitude
+        expired)                      small_bin_count, large_bin_count
+amount_total_cents                    plan
+stripe_checkout_session_id            comment, photo_paths
+stripe_payment_intent_id              status (new | answered | closed)
 expires_at
 reminder_sent_at
 day_of_sms_sent_at

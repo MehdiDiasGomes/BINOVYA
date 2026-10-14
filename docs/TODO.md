@@ -7,18 +7,18 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [ ] Aligner la spec fonctionnelle sur le brief : rayon 20 km, grille tarifaire par formule,
       deux jours de collecte, confirmation « bacs vides et accessibles », devis, pros sur la
       même grille, Luxembourg
-- [ ] Reporter la réponse client : capacité maximale par jour
 
 ## 1. Base de données
 
-- [ ] Table de prix : formule × combinaison (1 petit, 2 petits, 1 grand, 2 grands)
-- [ ] Formule sur la réservation (ponctuelle, trimestrielle, annuelle)
-- [ ] Deux jours de collecte (ordures ménagères, emballages)
-- [ ] Confirmation « bacs vides et accessibles » enregistrée sur la réservation
-- [ ] Table des demandes de devis
-- [ ] Seed : rayon 20 km, capacité selon la réponse client
-- [ ] `create_booking` : prix lu dans la grille, plus de tarif dégressif
-- [ ] Régénérer `database.types.ts`
+- [x] Table de prix : formule × combinaison (1 petit, 2 petits, 1 grand, 2 grands)
+- [x] Formule sur la réservation (ponctuelle, trimestrielle, annuelle)
+- [x] Deux jours de collecte (ordures ménagères, emballages)
+- [x] Confirmation « bacs vides et accessibles » enregistrée sur la réservation
+- [x] Table des demandes de devis
+- [x] Seed : rayon 20 km, capacité de départ à 3 par jour
+- [x] `create_booking` : prix lu dans la grille, plus de tarif dégressif
+- [x] Mettre à jour `database.types.ts`
+- [x] Appliquer la migration sur le projet Supabase
 
 ## 2. Parcours de réservation
 
@@ -66,6 +66,7 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [ ] Liste des interventions : client, date, adresse, bacs, formule, paiement, statut
 - [ ] Bouton « Itinéraire Google Maps »
 - [ ] Bloquer une journée, changer une date, imposer le secteur d'un jour
+- [ ] Modifier la capacité par jour de semaine
 - [ ] Photos avant/après depuis le téléphone
 - [ ] « Terminer l'intervention », disponible après l'ajout des photos
 

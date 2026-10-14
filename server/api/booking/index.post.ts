@@ -20,8 +20,12 @@ export default defineEventHandler(async (event): Promise<BookingResponse> => {
     p_postcode: body.address.postcode,
     p_latitude: body.address.latitude,
     p_longitude: body.address.longitude,
-    p_collection_weekdays: body.collectionWeekdays,
-    p_items: body.items,
+    p_plan: body.plan,
+    p_small_bin_count: body.smallBinCount,
+    p_large_bin_count: body.largeBinCount,
+    p_household_collection_weekdays: body.householdCollectionWeekdays,
+    p_recycling_collection_weekdays: body.recyclingCollectionWeekdays,
+    p_bins_ready_confirmed: body.binsReadyConfirmed,
   })
   if (error) {
     throw createError({
