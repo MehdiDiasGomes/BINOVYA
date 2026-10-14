@@ -2,13 +2,24 @@ import { z } from 'zod'
 
 import type { BookingContact, ContactErrors } from '@/types/booking'
 
-const FRENCH_PHONE_PATTERN = /^(?:\+33\s?|0)[1-9](?:[\s.-]?\d{2}){4}$/
+const FRENCH_PHONE_PATTERN = /^(?:\+33|0033|0)[1-9]\d{8}$/
+const LUXEMBOURG_PHONE_PATTERN = /^(?:\+352|00352)\d{6,9}$/
+
+/**
+ * Tells whether a phone number is a valid French or Luxembourgish number.
+ * @param phone - Phone number as typed, separators allowed
+ * @returns True when the number matches one of the two formats
+ */
+export const isValidPhone = (phone: string): boolean => {
+  const compact: string = phone.replace(/[\s.()-]/g, '')
+  return FRENCH_PHONE_PATTERN.test(compact) || LUXEMBOURG_PHONE_PATTERN.test(compact)
+}
 
 export const contactSchema = z.object({
   firstName: z.string().trim().min(2),
   lastName: z.string().trim().min(2),
   email: z.string().trim().email(),
-  phone: z.string().trim().regex(FRENCH_PHONE_PATTERN),
+  phone: z.string().trim().refine(isValidPhone),
 })
 
 /**
