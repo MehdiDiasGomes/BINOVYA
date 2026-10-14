@@ -68,6 +68,22 @@
 - La validation accepte les deux formats : code postal (5 chiffres FR, 4 chiffres LU) et
   téléphone (+33, +352).
 
+## Demandes de devis
+
+- Page `/quote`, préremplie avec la réservation en cours (adresse, coordonnées, bacs). Les
+  combinaisons sans tarif (3 bacs ou plus, 1 petit + 1 grand) y mènent depuis le parcours.
+- `POST /api/quote` reçoit un formulaire multipart : un champ `payload` (JSON validé par Zod) et
+  jusqu'à 3 photos de 5 Mo.
+- Les photos sont contrôlées sur leur signature réelle (JPEG, PNG, WebP), jamais sur le type
+  déclaré par le navigateur, puis stockées dans le bucket privé `quote-photos`, un dossier par
+  demande.
+- La demande est enregistrée dans `quote_requests`, puis un mail part à BINOVYA via Resend, avec
+  des liens signés valables 7 jours vers les photos. Tout texte saisi est échappé dans le mail.
+  Un échec d'envoi est journalisé sans bloquer le client : la demande est déjà en base.
+- Anti-spam : champ piège invisible, taille de requête plafonnée. Une limite de débit par IP sera
+  posée sur Caddy au déploiement.
+- Accès : seul l'admin lit `quote_requests` (RLS), le public n'a aucun accès direct.
+
 ## Hébergement
 
 **Critères du VPS** : datacenter dans l'UE, au moins 8 Go de RAM (OSRM + supervision), 4 vCPU,

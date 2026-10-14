@@ -38,8 +38,9 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 4. Devis
 
-- [ ] Formulaire : coordonnées, adresse, bacs, fréquence, commentaire, photos facultatives
-- [ ] Enregistrement en base et mail à BINOVYA
+- [x] Formulaire : coordonnées, adresse, bacs, fréquence, commentaire, photos facultatives
+- [x] Enregistrement en base et mail à BINOVYA
+- [ ] Renseigner `RESEND_API_KEY` et `CONTACT_EMAIL_TO` pour que le mail de devis parte (ignoré sinon)
 
 ## 5. Paiement
 
