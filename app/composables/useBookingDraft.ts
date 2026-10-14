@@ -13,10 +13,13 @@ type BookingDraftState = {
 const createEmptyDraft = (): BookingDraft => ({
   address: null,
   quantities: { 'small-bin': 0, 'large-bin': 0 },
+  plan: 'one_off',
   collectionWeekdays: [],
+  recyclingCollectionWeekdays: [],
   isCollectionUnknown: false,
   date: null,
   contact: { firstName: '', lastName: '', email: '', phone: '' },
+  hasConfirmedBinsReady: false,
   hasAcceptedTerms: false,
 })
 

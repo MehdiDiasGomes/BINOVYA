@@ -131,7 +131,7 @@ definePageMeta({
 
 const { t, locale } = useI18n()
 const route = useRoute()
-const { draft, lines, totalCents, totalQuantity, resetDraft } = useBookingDraft()
+const { draft, totalCents, totalQuantity, resetDraft } = useBookingDraft()
 const {
   state: availabilityState,
   isInServiceArea,
@@ -214,16 +214,20 @@ const SUBMIT_ERROR_BY_STATUS: Record<number, string> = {
 }
 
 const buildRequest = (): BookingRequest | null => {
-  const { address, date, collectionWeekdays, contact } = draft.value
+  const { address, date, contact, plan, quantities } = draft.value
   if (!address || !date) {
     return null
   }
   return {
     address,
     date,
-    collectionWeekdays,
     contact,
-    items: lines.value.map(line => ({ slug: line.service.slug, quantity: line.quantity })),
+    plan,
+    smallBinCount: quantities['small-bin'],
+    largeBinCount: quantities['large-bin'],
+    householdCollectionWeekdays: draft.value.collectionWeekdays,
+    recyclingCollectionWeekdays: draft.value.recyclingCollectionWeekdays,
+    binsReadyConfirmed: draft.value.hasConfirmedBinsReady,
   }
 }
 

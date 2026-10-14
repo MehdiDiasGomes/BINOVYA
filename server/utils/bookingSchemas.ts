@@ -5,6 +5,8 @@ import { contactSchema } from '@/utils/bookingValidation'
 const latitude = z.coerce.number().min(-90).max(90)
 const longitude = z.coerce.number().min(-180).max(180)
 const dayStatus = z.enum(['available', 'full', 'closed', 'outOfSector'])
+const binCount = z.number().int().min(0).max(10)
+const weekdays = z.array(z.number().int().min(0).max(6)).max(7)
 
 export const coordinatesSchema = z.object({ latitude, longitude })
 
@@ -19,15 +21,12 @@ export const bookingRequestSchema = z.object({
     latitude,
     longitude,
   }),
-  items: z
-    .array(
-      z.object({
-        slug: z.enum(['small-bin', 'large-bin']),
-        quantity: z.number().int().min(1).max(10),
-      }),
-    )
-    .min(1),
-  collectionWeekdays: z.array(z.number().int().min(0).max(6)).max(7),
+  plan: z.enum(['one_off', 'quarterly', 'annual']),
+  smallBinCount: binCount,
+  largeBinCount: binCount,
+  householdCollectionWeekdays: weekdays,
+  recyclingCollectionWeekdays: weekdays,
+  binsReadyConfirmed: z.literal(true),
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   contact: contactSchema,
 })

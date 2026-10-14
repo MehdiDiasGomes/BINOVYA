@@ -1,5 +1,7 @@
 export type ServiceSlug = 'small-bin' | 'large-bin'
 
+export type BookingPlan = 'one_off' | 'quarterly' | 'annual'
+
 export type BookingStepId = 'address' | 'services' | 'date' | 'contact'
 
 export type DayStatus = 'available' | 'full' | 'closed' | 'outOfSector'
@@ -36,10 +38,13 @@ export type BookingQuantities = Record<ServiceSlug, number>
 export type BookingDraft = {
   address: BookingAddress | null
   quantities: BookingQuantities
+  plan: BookingPlan
   collectionWeekdays: number[]
+  recyclingCollectionWeekdays: number[]
   isCollectionUnknown: boolean
   date: string | null
   contact: BookingContact
+  hasConfirmedBinsReady: boolean
   hasAcceptedTerms: boolean
 }
 
@@ -66,15 +71,14 @@ export type AvailabilityResponse = {
 
 export type AvailabilityState = 'idle' | 'loading' | 'ready' | 'error'
 
-export type BookingRequestItem = {
-  slug: ServiceSlug
-  quantity: number
-}
-
 export type BookingRequest = {
   address: BookingAddress
-  items: BookingRequestItem[]
-  collectionWeekdays: number[]
+  plan: BookingPlan
+  smallBinCount: number
+  largeBinCount: number
+  householdCollectionWeekdays: number[]
+  recyclingCollectionWeekdays: number[]
+  binsReadyConfirmed: boolean
   date: string
   contact: BookingContact
 }
