@@ -14,7 +14,18 @@ export default defineNuxtConfig({
   vite: {
     plugins: [tailwindcss()],
   },
-  modules: ['shadcn-nuxt', '@nuxt/eslint', '@nuxt/image', '@nuxtjs/i18n', '@nuxt/fonts'],
+  modules: [
+    'shadcn-nuxt',
+    '@nuxt/eslint',
+    '@nuxt/image',
+    '@nuxtjs/i18n',
+    '@nuxt/fonts',
+    'motion-v/nuxt',
+    '@nuxtjs/supabase',
+  ],
+  supabase: {
+    redirect: false,
+  },
   shadcn: {
     /**
      * Prefix for all the imported component.

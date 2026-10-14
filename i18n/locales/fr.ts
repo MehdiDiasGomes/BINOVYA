@@ -1,7 +1,9 @@
 import about from './fr/about'
+import booking from './fr/booking'
 import faq from './fr/faq'
 import legal from './fr/legal'
 import privacy from './fr/privacy'
+import professionals from './fr/professionals'
 import solutions from './fr/solutions'
 
 export default {
@@ -243,6 +245,8 @@ export default {
     },
   },
   about,
+  booking,
+  professionals,
   ...solutions,
   common: {
     logoAlt: 'Logo BINOVYA',
