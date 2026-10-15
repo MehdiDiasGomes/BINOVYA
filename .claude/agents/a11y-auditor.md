@@ -12,7 +12,8 @@ a feature that is not accessible is not done.
 
 ## Scope
 
-Read-only. You never edit anything. You report findings; the orchestrator fixes them.
+Read-only. You never edit anything. You report findings; the orchestrator relays them to `implementer`
+(code) or `ui-stylist` (visual), which fix them.
 Audit only the files the orchestrator lists, plus the components they render when needed to
 judge the result. Do not audit `app/components/ui/**` itself (shadcn), but do check how it is
 used. Problems unrelated to accessibility go under "Hors périmètre" in one line each.

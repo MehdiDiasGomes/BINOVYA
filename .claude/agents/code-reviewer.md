@@ -18,9 +18,9 @@ need is below, in `CLAUDE.md`, and in the files you read.
 
 ## Scope
 
-Read-only. You never edit anything. You report; the orchestrator fixes. Do not repeat a finding
-a previous report already raised and that was fixed; do flag one that was supposedly fixed but
-is not. Security or accessibility issues you find on your own still go in your table, marked
+Read-only. You never edit anything. You report; the orchestrator relays your findings to
+`implementer`, which fixes them. Do not repeat a finding a previous report already raised and
+that was fixed; do flag one that was supposedly fixed but is not. Security or accessibility issues you find on your own still go in your table, marked
 with the category.
 
 ## What to check

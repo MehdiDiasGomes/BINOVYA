@@ -28,6 +28,12 @@ bun run lint:fix          # Auto-fix errors
 # Formatting
 bun run format            # Format all files
 bun run format:check      # Check formatting without changes
+
+# Tests (integration and e2e need `bun run dev` and `stripe listen` running)
+bun run test:unit         # Vitest, pure logic, no server
+bun run test:integration  # Vitest, server routes and signed Stripe webhooks
+bun run test:e2e          # Playwright, real Chromium and Stripe Checkout in test mode
+bun run test              # All three, in that order
 ```
 
 ## Project Structure
@@ -249,27 +255,40 @@ Nuxt provides auto-imports for composables, components, and utilities. ESLint is
 
 ## Agent Workflow
 
-The main session is the orchestrator: it implements the code and delegates the rest to the
-subagents in `.claude/agents/`. Full pipeline: `/feature <description>` (`.claude/commands/feature.md`).
+The main session is the orchestrator only: it never writes code, migrations, docs or styles. It
+briefs the subagents in `.claude/agents/`, passes reports between them and talks to the user.
+Full pipeline: `/feature <description>` (`.claude/commands/feature.md`).
 
 | Agent              | Model  | Writes                                                                                                                  | Runs when                                     |
 | ------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
 | `db-migrator`      | sonnet | new `supabase/migrations/*.sql`, `database.types.ts`                                                                    | the schema changes, before implementation     |
+| `implementer`      | opus   | logic, components, server routes, Zod schemas, i18n, config; runs lint, typecheck, prettier                             | every code change, and every code fix         |
 | `ui-stylist`       | sonnet | Tailwind classes, markup and motion-v animations in `app/pages`, `app/components`; presets in `app/constants/motion.ts` | templates changed, after implementation       |
 | `security-auditor` | opus   | nothing (read-only)                                                                                                     | `server/`, `supabase/`, auth, payments, input |
 | `a11y-auditor`     | sonnet | nothing (read-only)                                                                                                     | `.vue` or `i18n/` changed                     |
+| `tester`           | sonnet | unit (`tests/unit/`), integration (`tests/integration/`), Playwright E2E (`tests/e2e/`); runs them, checks the DB       | after fixes, before the final review          |
 | `code-reviewer`    | opus   | nothing (read-only)                                                                                                     | always, last before commit                    |
 | `docs-writer`      | sonnet | `docs/` only                                                                                                            | end of feature                                |
 
 Rules:
 
-- Order: db-migrator → implementation → ui-stylist → security-auditor ∥ a11y-auditor → fixes →
-  code-reviewer → docs-writer. Only read-only agents run in parallel.
-- The orchestrator fixes critical, high and medium findings; visual findings go back to
+- Order: db-migrator → implementer → ui-stylist ∥ security-auditor → a11y-auditor → fixes →
+  tester → code-reviewer → docs-writer. Two writers never run together; a read-only agent may
+  run next to a writer when it reads files that writer does not touch (security-auditor reads
+  `server/` and `supabase/`, ui-stylist edits `.vue`).
+- Within a feature, the same implementer, tester and code-reviewer are resumed with
+  `SendMessage` instead of respawned, and findings are relayed verbatim.
+- Test pyramid: many unit tests, some integration tests, few end-to-end tests. Unit and
+  integration run in CI; E2E through the real Stripe page stays local, before merging to `main`.
+- tester only uses Stripe test keys, `delivered@resend.dev` for mail, and deletes only the rows
+  it created (`e2e+…@binovya.test`). It never edits application code or `.env*`.
+- A project `PostToolUse` hook (`.claude/settings.json`) runs prettier on every written file.
+- implementer fixes critical, high and medium findings; visual findings go back to
   ui-stylist. The review is re-run at most twice, then open findings go to the user.
 - Read-only agents cannot run commands: the orchestrator passes them the change set
-  (`git diff --name-only dev` + untracked files) and the lint, typecheck and format output.
+  (`git diff --name-only dev` + untracked files) and the lint, typecheck and format output
+  from implementer's report.
 - Migrations are applied by the user in the Supabase SQL Editor and verified before dependent
   code is written. Nothing is committed automatically.
-- Skip the pipeline for changes under ~30 lines with no new component and no `server/` or
-  `supabase/` change. Any `server/` or `supabase/` change still goes through security-auditor.
+- Small changes still go through implementer: skip the rest of the pipeline for changes under
+  ~30 lines with no new component and no `server/` or `supabase/` change. Any `server/` or `supabase/` change still goes through security-auditor.
