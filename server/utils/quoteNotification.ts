@@ -2,6 +2,7 @@ import { Resend } from 'resend'
 
 import type { BookingPlan } from '@/types/booking'
 import type { Database } from '@/types/database.types'
+import type { QuoteEquipment } from '@/types/quote'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { QUOTE_PHOTOS_BUCKET } from '@/constants/quote'
@@ -14,6 +15,7 @@ type QuoteNotification = {
   email: string
   phone: string
   address: string
+  equipment: QuoteEquipment[]
   smallBinCount: number
   largeBinCount: number
   plan: BookingPlan | null
@@ -27,7 +29,16 @@ const PLAN_LABELS: Record<BookingPlan, string> = {
   annual: 'Annuelle (un passage chaque mois)',
 }
 
-const PHOTO_LINK_LIFETIME_SECONDS = 7 * 24 * 60 * 60
+const EQUIPMENT_LABELS: Record<QuoteEquipment, string> = {
+  bins: 'Bacs roulants',
+  pav: "Points d'apport volontaire",
+  urban_furniture: 'Mobilier urbain',
+  signage: 'Signalisation',
+}
+
+const PHOTO_LINK_LIFETIME_DAYS = 7
+
+const PHOTO_LINK_LIFETIME_SECONDS = PHOTO_LINK_LIFETIME_DAYS * 24 * 60 * 60
 
 const describeBins = (quote: QuoteNotification): string =>
   [
@@ -70,8 +81,10 @@ export const notifyQuoteRequest = async (
     const html: string = generateQuoteEmailHtml(
       {
         ...quote,
+        equipmentLabel: quote.equipment.map(item => EQUIPMENT_LABELS[item]).join(', '),
         binsLabel: describeBins(quote),
         planLabel: quote.plan ? PLAN_LABELS[quote.plan] : 'Pas encore décidée',
+        photoLinkDays: PHOTO_LINK_LIFETIME_DAYS,
         photoUrls: await signPhotoUrls(client, quote.photoPaths),
       },
       escapeHtml,

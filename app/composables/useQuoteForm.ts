@@ -21,6 +21,7 @@ export const useQuoteForm = (): QuoteFormState => {
   const form: Ref<QuoteForm> = ref({
     contact: { ...draft.value.contact, company: '' },
     address: draft.value.address,
+    equipment: ['bins'],
     smallBinCount: draft.value.quantities['small-bin'],
     largeBinCount: draft.value.quantities['large-bin'],
     plan: null,
@@ -36,11 +37,13 @@ export const useQuoteForm = (): QuoteFormState => {
   const errors: ComputedRef<QuoteErrors> = computed(() => validateQuote(form.value))
 
   const buildBody = (address: NonNullable<QuoteForm['address']>): FormData => {
+    const hasBins: boolean = form.value.equipment.includes('bins')
     const payload: QuotePayload = {
       contact: toQuoteContactPayload(form.value),
       address,
-      smallBinCount: form.value.smallBinCount,
-      largeBinCount: form.value.largeBinCount,
+      equipment: form.value.equipment,
+      smallBinCount: hasBins ? form.value.smallBinCount : 0,
+      largeBinCount: hasBins ? form.value.largeBinCount : 0,
       plan: form.value.plan,
       comment: form.value.comment,
       website: form.value.website,

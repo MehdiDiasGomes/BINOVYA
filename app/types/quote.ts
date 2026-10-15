@@ -4,9 +4,12 @@ export type QuoteContact = BookingContact & {
   company: string
 }
 
+export type QuoteEquipment = 'bins' | 'pav' | 'urban_furniture' | 'signage'
+
 export type QuoteForm = {
   contact: QuoteContact
   address: BookingAddress | null
+  equipment: QuoteEquipment[]
   smallBinCount: number
   largeBinCount: number
   plan: BookingPlan | null
@@ -17,6 +20,7 @@ export type QuoteForm = {
 export type QuotePayload = {
   contact: Omit<QuoteContact, 'phoneCountryCode' | 'company'> & { company?: string }
   address: BookingAddress
+  equipment: QuoteEquipment[]
   smallBinCount: number
   largeBinCount: number
   plan: BookingPlan | null
@@ -28,7 +32,7 @@ export type QuoteResponse = {
   quoteId: string
 }
 
-export type QuoteField = 'contact' | 'address' | 'bins' | 'photos'
+export type QuoteField = 'contact' | 'address' | 'equipment' | 'bins'
 
 export type QuoteErrors = Partial<Record<QuoteField, string>>
 

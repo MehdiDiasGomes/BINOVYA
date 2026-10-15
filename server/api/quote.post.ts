@@ -21,10 +21,7 @@ const readPayload = (parts: MultiPartData[]): QuotePayload => {
 }
 
 export default defineEventHandler(async (event): Promise<QuoteResponse> => {
-  const contentLength = Number(getRequestHeader(event, 'content-length') ?? 0)
-  if (contentLength > MAX_BODY_BYTES) {
-    throw createError({ statusCode: 413, statusMessage: 'Request too large' })
-  }
+  assertBodySize(event, MAX_BODY_BYTES)
 
   const parts: MultiPartData[] | undefined = await readMultipartFormData(event)
   if (!parts) {
@@ -57,6 +54,7 @@ export default defineEventHandler(async (event): Promise<QuoteResponse> => {
     country_code: address.countryCode,
     latitude: address.latitude,
     longitude: address.longitude,
+    equipment: payload.equipment,
     small_bin_count: payload.smallBinCount,
     large_bin_count: payload.largeBinCount,
     plan: payload.plan,
@@ -75,6 +73,7 @@ export default defineEventHandler(async (event): Promise<QuoteResponse> => {
     email,
     phone: contact.phone.trim(),
     address: address.label,
+    equipment: payload.equipment,
     smallBinCount: payload.smallBinCount,
     largeBinCount: payload.largeBinCount,
     plan: payload.plan,

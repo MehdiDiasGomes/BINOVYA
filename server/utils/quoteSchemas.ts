@@ -1,21 +1,23 @@
 import { z } from 'zod'
 
+import { honeypotSchema } from '@/utils/bookingValidation'
 import {
+  hasConsistentBins,
   quoteBinCountSchema,
   quoteCommentSchema,
   quoteContactSchema,
+  quoteEquipmentSchema,
 } from '@/utils/quoteValidation'
 
 export const quotePayloadSchema = z
   .object({
     contact: quoteContactSchema,
     address: bookingAddressSchema,
+    equipment: quoteEquipmentSchema,
     smallBinCount: quoteBinCountSchema,
     largeBinCount: quoteBinCountSchema,
     plan: bookingPlanSchema.nullable(),
     comment: quoteCommentSchema,
-    website: z.string().max(200),
+    website: honeypotSchema,
   })
-  .refine(payload => payload.smallBinCount + payload.largeBinCount > 0, {
-    path: ['smallBinCount'],
-  })
+  .refine(hasConsistentBins, { path: ['smallBinCount'] })

@@ -2,17 +2,12 @@
   <div>
     <p class="text-lg font-black text-ink">{{ $t('quote.photos.legend') }}</p>
     <p id="quote-photos-hint" class="mt-1 text-sm text-ink/70">
-      {{
-        $t('quote.photos.hint', {
-          count: QUOTE_MAX_PHOTOS,
-          size: Math.round(QUOTE_MAX_PHOTO_BYTES / (1024 * 1024)),
-        })
-      }}
+      {{ $t('quote.photos.hint', photoLimits) }}
     </p>
 
     <label
       for="quote-photos"
-      class="mt-4 inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-ink/25 bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-paper-2 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-primary/40"
+      class="mt-4 inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-ink/50 bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-paper-2 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2"
     >
       <Icon name="Camera" :size="16" aria-hidden="true" />
       {{ $t('quote.photos.add') }}
@@ -28,7 +23,7 @@
     </label>
 
     <p v-if="issue" role="alert" class="mt-2 text-[13px] font-bold text-destructive">
-      {{ $t(`quote.photos.issues.${issue}`) }}
+      {{ $t(`quote.photos.issues.${issue}`, photoLimits) }}
     </p>
 
     <ul v-if="previews.length > 0" class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -48,7 +43,7 @@
           <button
             type="button"
             :aria-label="$t('quote.photos.remove', { name: preview.file.name })"
-            class="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-ink shadow-md transition-colors hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40"
+            class="absolute right-1.5 top-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-white text-ink shadow-md transition-colors hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
             @click="removeAt(index)"
           >
             <Icon name="X" :size="16" aria-hidden="true" />
@@ -63,7 +58,17 @@
 <script setup lang="ts">
 import type { QuotePhotoIssue, QuotePhotoPreview } from '@/types/quote'
 
-import { QUOTE_MAX_PHOTO_BYTES, QUOTE_MAX_PHOTOS, QUOTE_PHOTO_MIME_TYPES } from '@/constants/quote'
+import {
+  QUOTE_MAX_PHOTO_BYTES,
+  QUOTE_MAX_PHOTO_MEGABYTES,
+  QUOTE_MAX_PHOTOS,
+  QUOTE_PHOTO_MIME_TYPES,
+} from '@/constants/quote'
+
+type PhotoLimits = {
+  count: number
+  size: number
+}
 
 const props = withDefaults(
   defineProps<{
@@ -77,6 +82,8 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [value: File[]]
 }>()
+
+const photoLimits: PhotoLimits = { count: QUOTE_MAX_PHOTOS, size: QUOTE_MAX_PHOTO_MEGABYTES }
 
 const issue: Ref<QuotePhotoIssue | null> = ref(null)
 const previews: Ref<QuotePhotoPreview[]> = ref([])
