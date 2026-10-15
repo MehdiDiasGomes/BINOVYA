@@ -3,7 +3,9 @@ import {
   type Escape,
   emailContactFields,
   emailField,
+  emailFieldTable,
   emailTextBlock,
+  emailTitle,
   renderEmailLayout,
 } from '@/templates/email/layout'
 
@@ -12,6 +14,8 @@ type ContactEmailData = EmailContact & {
   message: string
 }
 
+const TITLE = 'Nouveau message de contact'
+
 /**
  * Builds the email sent to BINOVYA when a visitor uses the contact form.
  * @param data - Contact request details, as plain text
@@ -19,11 +23,19 @@ type ContactEmailData = EmailContact & {
  * @returns Email body as HTML
  */
 export const generateContactEmailHtml = (data: ContactEmailData, escape: Escape): string =>
-  renderEmailLayout(
-    [
-      emailContactFields(data, escape),
-      emailField('Objet', escape(data.subjectLabel)),
-      emailField('Message', emailTextBlock(escape(data.message))),
+  renderEmailLayout({
+    title: TITLE,
+    preheader: `${escape(data.subjectLabel)} : message de ${escape(data.firstName)} ${escape(data.lastName)}`,
+    variant: 'notification',
+    content: [
+      emailTitle(TITLE),
+      emailFieldTable(
+        [
+          emailContactFields(data, escape),
+          emailField('Objet', escape(data.subjectLabel)),
+          emailField('Message', emailTextBlock(escape(data.message))),
+        ].join(''),
+        'list',
+      ),
     ].join(''),
-    'Nouveau message de contact BINOVYA',
-  )
+  })

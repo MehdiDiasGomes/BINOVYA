@@ -1,6 +1,6 @@
 import type { BookingEmailContent, BookingEmailData } from '@/types/email'
 
-import { bookingDateLabel, EMAIL_FOOTER } from '@/templates/email/bookingDetails'
+import { bookingDateLabel } from '@/templates/email/bookingDetails'
 import {
   type Escape,
   emailButton,
@@ -9,6 +9,7 @@ import {
   emailTitle,
   renderEmailLayout,
 } from '@/templates/email/layout'
+import { parseSecureUrl } from '@/utils/link'
 
 type PhotosAvailableEmailData = BookingEmailData & {
   loginUrl: string
@@ -16,7 +17,7 @@ type PhotosAvailableEmailData = BookingEmailData & {
 }
 
 const siteLink = (siteUrl: string, escape: Escape): string =>
-  siteUrl ? `<a href="${escape(siteUrl)}">${escape(siteUrl)}</a>` : 'notre site'
+  parseSecureUrl(siteUrl) ? `<a href="${escape(siteUrl)}">${escape(siteUrl)}</a>` : 'notre site'
 
 /**
  * Builds the email telling the customer that the before and after photos are available.
@@ -29,8 +30,10 @@ export const generatePhotosAvailableEmail = (
   escape: Escape,
 ): BookingEmailContent => ({
   subject: 'Vos photos avant/après sont disponibles',
-  html: renderEmailLayout(
-    [
+  html: renderEmailLayout({
+    title: 'Vos photos avant/après sont disponibles',
+    preheader: `Notre intervention du ${escape(bookingDateLabel(data))} est terminée : découvrez vos bacs avant et après.`,
+    content: [
       emailTitle('Vos photos avant/après sont disponibles'),
       emailParagraph(`Bonjour ${escape(data.firstName)},`),
       emailParagraph(
@@ -43,10 +46,9 @@ export const generatePhotosAvailableEmail = (
       emailSteps([
         `Rendez-vous sur ${siteLink(data.siteUrl, escape)}.`,
         'Cliquez sur « Espace client ».',
-        `Saisissez votre adresse e-mail : <strong>${escape(data.email)}</strong>.`,
+        `Saisissez votre adresse mail : <strong>${escape(data.email)}</strong>.`,
         'Ouvrez le mail que vous recevez et cliquez sur le lien de connexion.',
       ]),
     ].join(''),
-    EMAIL_FOOTER,
-  ),
+  }),
 })

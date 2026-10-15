@@ -1,16 +1,21 @@
 import type { BookingEmailContent, BookingEmailData } from '@/types/email'
 
 import {
+  bookingAmountLabel,
   bookingDateLabel,
   bookingDetailsFields,
-  EMAIL_FOOTER,
 } from '@/templates/email/bookingDetails'
 import {
   type Escape,
   emailContactFields,
   emailField,
+  emailFieldTable,
+  emailSubtitle,
+  emailTitle,
   renderEmailLayout,
 } from '@/templates/email/layout'
+
+const TITLE = 'Nouvelle réservation payée'
 
 /**
  * Builds the alert sent to BINOVYA when a booking has just been paid.
@@ -23,12 +28,19 @@ export const generateBookingAdminEmail = (
   escape: Escape,
 ): BookingEmailContent => ({
   subject: `Nouvelle réservation payée - ${bookingDateLabel(booking)} - ${booking.lastName} ${booking.firstName}`,
-  html: renderEmailLayout(
-    [
-      emailContactFields({ ...booking, company: '' }, escape),
-      bookingDetailsFields(booking, escape),
-      emailField('Référence', escape(booking.id)),
+  html: renderEmailLayout({
+    title: TITLE,
+    preheader: `${escape(bookingDateLabel(booking))} · ${escape(bookingAmountLabel(booking))} · ${escape(booking.address)}`,
+    variant: 'notification',
+    content: [
+      emailTitle(TITLE),
+      emailSubtitle('Client'),
+      emailFieldTable(emailContactFields({ ...booking, company: '' }, escape), 'list'),
+      emailSubtitle('Réservation'),
+      emailFieldTable(
+        bookingDetailsFields(booking, escape) + emailField('Référence', escape(booking.id)),
+        'details',
+      ),
     ].join(''),
-    `Nouvelle réservation payée. ${EMAIL_FOOTER}`,
-  ),
+  }),
 })
