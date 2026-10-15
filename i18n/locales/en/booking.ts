@@ -173,8 +173,8 @@ export default {
     },
     phoneHint: 'To reach you on the day of the visit if needed.',
     errors: {
-      firstName: 'Enter your first name (at least 2 characters).',
-      lastName: 'Enter your last name (at least 2 characters).',
+      firstName: 'Enter your first name (between {min} and {max} characters).',
+      lastName: 'Enter your last name (between {min} and {max} characters).',
       email: 'Enter a valid email address.',
       phone: 'Enter a valid French or Luxembourgish phone number.',
     },

@@ -21,11 +21,12 @@
           autocomplete="off"
           aria-autocomplete="list"
           :aria-controls="`${props.id}-listbox`"
-          :aria-describedby="`${props.id}-hint`"
+          :aria-describedby="describedBy"
+          :aria-invalid="props.error ? 'true' : undefined"
           :aria-expanded="isListOpen"
           :aria-activedescendant="activeOptionId"
           :placeholder="$t(`booking.address.placeholder.${countryCode}`)"
-          class="relative z-10 col-start-2 row-start-2 h-12 min-w-0 bg-transparent px-3 text-[15px] text-ink outline-none placeholder:text-ink/50"
+          class="relative z-10 col-start-2 row-start-2 h-12 min-w-0 bg-transparent px-3 text-[15px] text-ink outline-none placeholder:text-ink/60"
           @input="handleInput"
           @keydown="handleKeydown"
           @blur="isListVisible = false"
@@ -34,6 +35,14 @@
     </div>
     <p :id="`${props.id}-hint`" class="mt-1.5 text-[13px] text-ink/70">
       {{ $t('booking.address.hint') }}
+    </p>
+    <p
+      v-if="props.error"
+      :id="`${props.id}-error`"
+      class="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive"
+    >
+      <Icon name="CircleAlert" :size="14" aria-hidden="true" />
+      {{ props.error }}
     </p>
 
     <div class="relative">
@@ -91,10 +100,12 @@ const props = withDefaults(
   defineProps<{
     id?: string
     modelValue?: BookingAddress | null
+    error?: string
   }>(),
   {
     id: 'booking-address',
     modelValue: null,
+    error: '',
   },
 )
 
@@ -120,6 +131,10 @@ const activeOptionId: ComputedRef<string | undefined> = computed(() =>
   isListOpen.value && activeIndex.value >= 0
     ? `${props.id}-option-${activeIndex.value}`
     : undefined,
+)
+
+const describedBy: ComputedRef<string> = computed(() =>
+  props.error ? `${props.id}-hint ${props.id}-error` : `${props.id}-hint`,
 )
 
 const hasNoResult: ComputedRef<boolean> = computed(

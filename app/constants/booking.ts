@@ -20,7 +20,7 @@ export const COUNTRY_FLAG_SOURCES: Record<CountryCode, string> = {
 }
 
 export const INPUT_GROUP_FRAME_CLASS =
-  'col-span-2 col-start-1 row-start-2 rounded-lg border border-ink/25 bg-white transition-shadow group-has-[:focus-visible]:border-primary group-has-[:focus-visible]:ring-[3px] group-has-[:focus-visible]:ring-primary/30 group-has-[[aria-invalid=true]]:border-destructive'
+  'col-span-2 col-start-1 row-start-2 rounded-lg border border-ink/50 bg-white transition-shadow group-has-[:focus-visible]:border-primary group-has-[:focus-visible]:ring-[3px] group-has-[:focus-visible]:ring-primary/60 group-has-[[aria-invalid=true]]:border-destructive'
 
 export const BOOKING_SERVICES: BookingService[] = [
   {
@@ -56,3 +56,18 @@ export const WEEKDAYS_MONDAY_FIRST: number[] = [1, 2, 3, 4, 5, 6, 0]
  * While false, a booking holds its slot but cannot be paid, so it expires without being confirmed.
  */
 export const IS_ONLINE_PAYMENT_ENABLED = false
+
+export const CONTACT_NAME_MIN_LENGTH = 2
+
+export const CONTACT_NAME_MAX_LENGTH = 80
+
+export const CONTACT_NAME_LIMITS: Record<'min' | 'max', number> = {
+  min: CONTACT_NAME_MIN_LENGTH,
+  max: CONTACT_NAME_MAX_LENGTH,
+}
+
+export const COMPANY_MAX_LENGTH = 120
+
+export const HONEYPOT_MAX_LENGTH = 200
+
+export const EMAIL_MAX_LENGTH = 254
