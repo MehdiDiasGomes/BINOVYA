@@ -1,6 +1,6 @@
 # Système de réservation en ligne
 
-> Statut : brainstorming, rien n'est développé. Dernière mise à jour : 2026-10-14.
+> Statut : brainstorming, rien n'est développé. Dernière mise à jour : 2026-10-15.
 
 ## Objectif
 
@@ -24,14 +24,14 @@ ses réservations et les photos avant/après depuis son espace client.
 
 ## Services retenus
 
-| Besoin                           | Service                                                  | État          |
-| -------------------------------- | -------------------------------------------------------- | ------------- |
-| Mail                             | Resend                                                   | Déjà en place |
-| SMS                              | Brevo                                                    | À connecter   |
-| Paiement                         | Stripe                                                   | À connecter   |
-| Comptes, base de données, photos | Supabase                                                 | À connecter   |
-| Géocodage des adresses           | Géoplateforme IGN (France) et geoportail.lu (Luxembourg) | À connecter   |
-| Distances routières et tournées  | OSRM et VROOM (auto-hébergés)                            | À installer   |
+| Besoin                           | Service                                                  | État                 |
+| -------------------------------- | -------------------------------------------------------- | -------------------- |
+| Mail                             | Resend                                                   | Déjà en place        |
+| SMS                              | Brevo                                                    | À connecter          |
+| Paiement                         | Stripe                                                   | Connecté (mode test) |
+| Comptes, base de données, photos | Supabase                                                 | À connecter          |
+| Géocodage des adresses           | Géoplateforme IGN (France) et geoportail.lu (Luxembourg) | À connecter          |
+| Distances routières et tournées  | OSRM et VROOM (auto-hébergés)                            | À installer          |
 
 En production, tous les comptes sont au nom du client final, le développeur y est invité.
 En développement : Stripe en mode test sur le compte du développeur, Supabase dans une
@@ -89,6 +89,7 @@ max_bookings (0 = fermé)      max_bookings (0 = fermé)      service_area_radiu
 
 Fonctions réservées au serveur : `get_availability` (statut de chaque jour pour une adresse),
 `create_booking` (contrôle, calcul du prix et blocage de la place en une transaction),
+`confirm_booking_payment` (confirme un paiement reçu, sous le verrou du jour),
 `expire_stale_bookings` (libère les réservations non payées).
 
 ## Règles
@@ -105,7 +106,14 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
   comme recommandés, les autres jours restent réservables avec l'avertissement « vos bacs
   doivent être vides ». Le SMS de la veille le rappelle.
 - **Place bloquée** : la place est prise dès la création de la réservation, dans une
-  transaction, puis libérée (`expired`) si la session Stripe expire sans paiement.
+  transaction, pour 35 minutes. Elle est libérée (`expired`) si la session Stripe expire sans
+  paiement, si le client abandonne ou revient en arrière, ou par la tâche planifiée.
+- **Une réservation en attente par client** : tant qu'une réservation `pending_payment` est
+  active, une nouvelle est refusée.
+- **Paiement tardif** : un paiement reçu après la libération est accepté si le jour est encore
+  disponible. Sinon la réservation est annulée et Stripe rembourse automatiquement. Un paiement
+  sur une réservation déjà annulée est aussi remboursé. Le client n'est pas prévenu tant que les
+  mails de l'étape 6 n'existent pas.
 - **Bornes** : délai minimum avant intervention et horizon maximum de réservation, à définir.
 - **Paiement** : la réservation est créée en `pending_payment`, le webhook Stripe la passe en `paid`.
 - **Public** : particuliers et professionnels réservent en ligne sur la même grille tarifaire
@@ -141,6 +149,16 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
   secteur. Parade : l'admin impose le secteur du jour à l'avance.
 - **Zone desservie** : sans distance maximale autour du dépôt, n'importe quelle adresse en
   France pourrait réserver. D'où la limite de 30 km.
+
+- **Anti-abus** : champ piège et une seule réservation en attente par client pour l'instant. La
+  limite de débit par IP sur `/api/booking` et `/api/booking/release` (Caddy) est reportée à
+  l'étape 10.
+- **Libération par identifiant** : `/api/booking/release` n'est protégé que par l'uuid de la
+  réservation, impossible à deviner. Un jeton de libération dédié reste possible.
+- **Réservations abandonnées** : elles et leurs comptes ne sont ni purgés ni anonymisés. La durée
+  de conservation se décide à l'étape 13.
+- **Écran de confirmation** : il affiche « Paiement reçu » dès le retour de Stripe, avant que le
+  webhook ait confirmé. C'est voulu.
 
 - **Collecte déclarée par le client** : pas de source nationale connue des jours de collecte.
   Jours fériés décalés et collectes une semaine sur deux ne sont pas gérés. Les réponses
