@@ -16,52 +16,89 @@
     @update:model-value="handleSelect"
   >
     <CalendarHeader class="mb-3 flex items-center justify-between">
-      <CalendarPrev :aria-label="$t('booking.date.previousMonth')" :class="NAV_BUTTON_CLASS">
+      <CalendarPrev
+        :aria-label="$t('booking.date.previousMonth')"
+        :class="
+          cn(
+            NAV_BUTTON_CLASS,
+            'transition-[color,background-color,border-color,transform] duration-150 motion-safe:not-data-[disabled]:active:scale-95',
+          )
+        "
+      >
         <Icon name="ChevronLeft" :size="18" aria-hidden="true" />
       </CalendarPrev>
       <CalendarHeading class="font-heading text-base font-black capitalize text-ink" />
-      <CalendarNext :aria-label="$t('booking.date.nextMonth')" :class="NAV_BUTTON_CLASS">
+      <CalendarNext
+        :aria-label="$t('booking.date.nextMonth')"
+        :class="
+          cn(
+            NAV_BUTTON_CLASS,
+            'transition-[color,background-color,border-color,transform] duration-150 motion-safe:not-data-[disabled]:active:scale-95',
+          )
+        "
+      >
         <Icon name="ChevronRight" :size="18" aria-hidden="true" />
       </CalendarNext>
     </CalendarHeader>
 
-    <CalendarGrid
-      v-for="month in grid"
-      :key="month.value.toString()"
-      class="w-full border-collapse"
-    >
-      <CalendarGridHead>
-        <CalendarGridRow class="flex">
-          <CalendarHeadCell
-            v-for="day in weekDays"
-            :key="day"
-            class="flex-1 pb-2 text-center text-xs font-bold uppercase text-ink/70"
-          >
-            {{ day }}
-          </CalendarHeadCell>
-        </CalendarGridRow>
-      </CalendarGridHead>
-      <CalendarGridBody>
-        <CalendarGridRow v-for="(week, index) in month.rows" :key="`week-${index}`" class="flex">
-          <CalendarCell v-for="day in week" :key="day.toString()" :date="day" class="flex-1 p-0.5">
-            <CalendarCellTrigger
-              :day="day"
-              :month="month.value"
-              :class="cn(CELL_CLASS, isRecommended(day) && RECOMMENDED_CLASS)"
+    <AnimatePresence :initial="false">
+      <Motion
+        v-for="month in grid"
+        :key="month.value.toString()"
+        :initial="{ opacity: 0 }"
+        :animate="{ opacity: 1 }"
+        :transition="STEP_TRANSITION"
+      >
+        <CalendarGrid class="w-full border-collapse">
+          <CalendarGridHead>
+            <CalendarGridRow class="flex">
+              <CalendarHeadCell
+                v-for="day in weekDays"
+                :key="day"
+                class="flex-1 pb-2 text-center text-xs font-bold uppercase text-ink/70"
+              >
+                {{ day }}
+              </CalendarHeadCell>
+            </CalendarGridRow>
+          </CalendarGridHead>
+          <CalendarGridBody>
+            <CalendarGridRow
+              v-for="(week, index) in month.rows"
+              :key="`week-${index}`"
+              class="flex"
             >
-              {{ day.day }}
-              <template v-if="isRecommended(day)">
-                <span class="sr-only">{{ $t('booking.date.recommendedSuffix') }}</span>
-                <span
-                  aria-hidden="true"
-                  class="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-current"
-                />
-              </template>
-            </CalendarCellTrigger>
-          </CalendarCell>
-        </CalendarGridRow>
-      </CalendarGridBody>
-    </CalendarGrid>
+              <CalendarCell
+                v-for="day in week"
+                :key="day.toString()"
+                :date="day"
+                class="flex-1 p-0.5"
+              >
+                <CalendarCellTrigger
+                  :day="day"
+                  :month="month.value"
+                  :class="
+                    cn(
+                      CELL_CLASS,
+                      'transition-[color,background-color,transform] duration-150 motion-safe:not-data-[disabled]:not-data-[unavailable]:active:scale-95',
+                      isRecommended(day) && RECOMMENDED_CLASS,
+                    )
+                  "
+                >
+                  {{ day.day }}
+                  <template v-if="isRecommended(day)">
+                    <span class="sr-only">{{ $t('booking.date.recommendedSuffix') }}</span>
+                    <span
+                      aria-hidden="true"
+                      class="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-current"
+                    />
+                  </template>
+                </CalendarCellTrigger>
+              </CalendarCell>
+            </CalendarGridRow>
+          </CalendarGridBody>
+        </CalendarGrid>
+      </Motion>
+    </AnimatePresence>
   </CalendarRoot>
 </template>
 
@@ -90,6 +127,7 @@ import {
 
 import type { DayAvailability } from '@/types/booking'
 
+import { STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(
@@ -108,10 +146,10 @@ const emit = defineEmits<{
 }>()
 
 const NAV_BUTTON_CLASS =
-  'flex h-10 w-10 items-center justify-center rounded-lg border border-ink/25 text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40'
+  'flex h-10 w-10 items-center justify-center rounded-lg border border-ink/50 text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40'
 
 const CELL_CLASS =
-  'relative flex h-11 w-full cursor-pointer items-center justify-center rounded-lg text-sm font-bold text-ink transition-colors hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40 data-[outside-view]:invisible data-[disabled]:cursor-not-allowed data-[disabled]:font-medium data-[disabled]:text-ink/35 data-[disabled]:hover:bg-transparent data-[unavailable]:cursor-not-allowed data-[unavailable]:font-medium data-[unavailable]:text-ink/35 data-[unavailable]:line-through data-[unavailable]:hover:bg-transparent data-[selected]:bg-primary data-[selected]:text-white data-[selected]:hover:bg-primary'
+  'relative flex h-11 w-full cursor-pointer items-center justify-center rounded-lg text-sm font-bold text-ink transition-colors hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 data-[outside-view]:invisible data-[disabled]:cursor-not-allowed data-[disabled]:font-medium data-[disabled]:text-ink/35 data-[disabled]:hover:bg-transparent data-[unavailable]:cursor-not-allowed data-[unavailable]:font-medium data-[unavailable]:text-ink/35 data-[unavailable]:line-through data-[unavailable]:hover:bg-transparent data-[selected]:bg-primary data-[selected]:text-white data-[selected]:hover:bg-primary'
 
 const RECOMMENDED_CLASS =
   'bg-turquoise/15 ring-1 ring-inset ring-turquoise-deep data-[selected]:ring-0'

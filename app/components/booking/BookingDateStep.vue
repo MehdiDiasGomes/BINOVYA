@@ -14,7 +14,7 @@
       <div class="text-sm text-ink">
         <p class="font-bold">{{ $t('booking.date.empty') }}</p>
         <NuxtLink
-          :to="{ path: localePath('/'), hash: '#contact' }"
+          :to="localePath('/contact')"
           class="mt-1.5 inline-block font-bold underline underline-offset-4 hover:text-primary"
         >
           {{ $t('booking.date.emptyCta') }}
@@ -41,7 +41,7 @@
       <button
         v-if="draft.date !== nextAvailable.date"
         type="button"
-        class="flex h-11 items-center justify-center gap-2 rounded-lg bg-turquoise px-4 text-sm font-black text-navy-950 transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
+        class="flex h-11 items-center justify-center gap-2 rounded-lg bg-turquoise px-4 text-sm font-black text-navy-950 transition-all duration-150 hover:bg-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none motion-reduce:active:scale-100"
         @click="draft.date = nextAvailable.date"
       >
         <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
@@ -66,7 +66,7 @@
         <li class="flex items-center gap-2">
           <span
             aria-hidden="true"
-            class="flex h-6 w-6 items-center justify-center rounded-md border border-ink/25 text-[11px] font-bold"
+            class="flex h-6 w-6 items-center justify-center rounded-md border border-ink/50 text-[11px] font-bold"
           >
             8
           </span>
@@ -95,26 +95,44 @@
     </div>
 
     <div aria-live="polite" class="space-y-3">
-      <p v-if="draft.date" class="text-sm font-bold text-ink">
-        {{ $t('booking.date.selected', { date: formatLongDate(draft.date, locale) }) }}
-      </p>
-      <div
-        v-if="isSelectionOffCollection"
-        class="flex items-start gap-3 rounded-xl border border-amber-700/30 bg-amber-50 p-4 text-sm text-ink"
-      >
-        <Icon
-          name="TriangleAlert"
-          :size="20"
-          aria-hidden="true"
-          class="mt-0.5 shrink-0 text-amber-700"
-        />
-        <p class="font-semibold">{{ $t('booking.date.notRecommended') }}</p>
-      </div>
+      <AnimatePresence :initial="false">
+        <Motion
+          v-if="draft.date"
+          key="selected"
+          as="p"
+          :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :exit="{ opacity: 0 }"
+          :transition="STEP_TRANSITION"
+          class="text-sm font-bold text-ink"
+        >
+          {{ $t('booking.date.selected', { date: formatLongDate(draft.date, locale) }) }}
+        </Motion>
+        <Motion
+          v-if="isSelectionOffCollection"
+          key="off-collection"
+          :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :exit="{ opacity: 0 }"
+          :transition="STEP_TRANSITION"
+          class="flex items-start gap-3 rounded-xl border border-amber-700/30 bg-amber-50 p-4 text-sm text-ink"
+        >
+          <Icon
+            name="TriangleAlert"
+            :size="20"
+            aria-hidden="true"
+            class="mt-0.5 shrink-0 text-amber-700"
+          />
+          <p class="font-semibold">{{ $t('booking.date.notRecommended') }}</p>
+        </Motion>
+      </AnimatePresence>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+
 const { locale } = useI18n()
 const localePath = useLocalePath()
 const { draft, collectionWeekdays } = useBookingDraft()

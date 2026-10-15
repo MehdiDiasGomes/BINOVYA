@@ -175,8 +175,8 @@ export default {
     },
     phoneHint: 'Pour vous joindre le jour du passage si besoin.',
     errors: {
-      firstName: 'Indiquez votre prénom (2 caractères minimum).',
-      lastName: 'Indiquez votre nom (2 caractères minimum).',
+      firstName: 'Indiquez votre prénom (entre {min} et {max} caractères).',
+      lastName: 'Indiquez votre nom (entre {min} et {max} caractères).',
       email: 'Indiquez une adresse email valide.',
       phone: 'Indiquez un numéro de téléphone français ou luxembourgeois valide.',
     },

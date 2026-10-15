@@ -2,7 +2,7 @@
   <div class="space-y-5">
     <label
       for="booking-bins-ready"
-      class="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 text-sm font-semibold text-ink"
+      class="flex cursor-pointer items-start gap-3 rounded-xl border border-border p-4 text-sm font-semibold text-ink transition-colors duration-200 has-[:checked]:border-primary motion-reduce:transition-none"
     >
       <input
         id="booking-bins-ready"
@@ -46,7 +46,7 @@
     <p
       class="flex items-start gap-2.5 rounded-xl bg-paper-2 p-4 text-[13px] font-semibold text-ink"
     >
-      <Icon name="Lock" :size="16" aria-hidden="true" class="mt-0.5 shrink-0 text-primary" />
+      <StripeLogo :size="16" class="mt-0.5 shrink-0 text-stripe" />
       {{ $t('booking.payment.securePayment') }}
     </p>
   </div>

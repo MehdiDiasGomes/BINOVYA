@@ -1,9 +1,10 @@
 import about from './en/about'
 import booking from './en/booking'
+import contact from './en/contact'
 import faq from './en/faq'
 import legal from './en/legal'
 import privacy from './en/privacy'
-import professionals from './en/professionals'
+import quote from './en/quote'
 import solutions from './en/solutions'
 
 export default {
@@ -11,7 +12,7 @@ export default {
     home: 'Home',
     services: 'Our services',
     particuliers: 'Individuals',
-    pro: 'Professionals & Authorities',
+    quote: 'Quote',
     contact: 'Contact',
     reserver: 'Book',
     reserverAriaLabel: 'Book an intervention',
@@ -30,7 +31,6 @@ export default {
     ctaReserver: 'Book an intervention',
     ctaReserverAriaLabel: 'Book an intervention online',
     ctaDevis: 'Request a quote',
-    ctaDevisAriaLabel: 'Contact us for a professional quote',
     platNote: '100% electric vehicle',
     imageAlt: 'BINOVYA professional steam cleaning',
     badges: {
@@ -48,7 +48,8 @@ export default {
   services: {
     eyebrow: 'What we do',
     title: 'Our services',
-    subtitle: 'Four steam cleaning interventions to restore urban spaces to their full cleanliness.',
+    subtitle:
+      'Four steam cleaning interventions to restore urban spaces to their full cleanliness.',
     newBadge: 'NEW',
     items: {
       bins: {
@@ -97,37 +98,13 @@ export default {
       hightemp: 'High-temperature steam',
     },
   },
-  proForm: {
-    eyebrow: 'Professionals & Authorities',
-    title: 'Contact us',
-    subtitle: 'Fill in the form to send us your request.',
-    fields: {
-      lastName: 'Last name',
-      lastNamePlaceholder: 'Smith',
-      firstName: 'First name',
-      firstNamePlaceholder: 'John',
-      society: 'Company / Authority',
-      societyPlaceholder: 'City of ...',
-      phone: 'Phone',
-      phonePlaceholder: '+44 XX XX XX XX',
-      email: 'Email',
-      emailPlaceholder: "contact{'@'}company.com",
-      subject: 'Subject',
-      subjectPlaceholder: 'Select a subject',
-      message: 'Message',
-      messagePlaceholder: 'Describe your needs...',
-    },
-    subjects: {
-      quote: 'Quote request',
-      meeting: 'Meeting request',
-      info: 'Additional information',
-      other: 'Other',
-    },
-    submit: 'SEND MY REQUEST',
-    submitting: 'Sending...',
-    submitAriaLabel: 'Send my contact request',
-    success: 'Your request has been sent! We will get back to you within 48 hours.',
-    error: 'An error occurred. Please try again or contact us by phone.',
+  quoteCta: {
+    eyebrow: 'Professionals & Local authorities',
+    title: "Have a project? Let's talk",
+    subtitle:
+      'Bins, drop-off points, street furniture or signage: request a quote in a few minutes, or write to us.',
+    quote: 'Request a quote',
+    contact: 'Contact us',
   },
   beforeAfter: {
     imageAlt: 'Before/after result of BINOVYA steam cleaning',
@@ -161,94 +138,13 @@ export default {
   privacy,
   legal,
   faq,
-  contact: {
-    title: "Let's Get In Touch",
-    form: {
-      subtitle: 'Or fill out the form below',
-      lastName: {
-        label: 'Last Name',
-        placeholder: 'Smith',
-      },
-      firstName: {
-        label: 'First Name',
-        placeholder: 'John',
-      },
-      email: {
-        label: 'Email Address',
-        placeholder: "john.smith{'@'}example.com",
-      },
-      phone: {
-        label: 'Phone',
-        optional: '(optional)',
-        placeholder: '+1 234 567 8900',
-      },
-      isBusiness: {
-        label: 'I represent a business',
-      },
-      companyName: {
-        label: 'Company Name',
-        optional: '(optional)',
-        placeholder: 'BINOVYA LLC',
-      },
-      requestType: {
-        label: 'Request Type',
-        placeholder: 'Select an option',
-        options: {
-          demo: 'Free demonstration request',
-          callback: 'Request a callback for more information',
-          quote: 'Request a quote',
-        },
-      },
-      message: {
-        label: 'Message',
-        placeholder: 'Describe your needs...',
-      },
-      submit: 'Submit',
-      submitting: 'Submitting...',
-      success: 'Your message has been sent successfully!',
-      error: 'An error occurred. Please try again.',
-      validation: {
-        lastNameRequired: 'Last name is required',
-        lastNameMin: 'Last name must be at least 2 characters',
-        firstNameRequired: 'First name is required',
-        firstNameMin: 'First name must be at least 2 characters',
-        emailRequired: 'Email address is required',
-        emailInvalid: 'Email address is invalid',
-        companyNameRequired: 'Company name is required',
-        companyNameMin: 'Company name must be at least 2 characters',
-        requestTypeRequired: 'Please select a request type',
-        messageRequired: 'Message is required',
-        messageMin: 'Message must be at least 10 characters',
-      },
-    },
-    info: {
-      title: 'Information',
-      address: {
-        title: 'Address',
-        line1: "Les Portes de l'Orne, Rue André Marie Ampère",
-        line2: '57360 Amnéville, France',
-      },
-      phone: {
-        title: 'Phone',
-        number: '0000000',
-        display: '00 00 00 00 00',
-      },
-      email: {
-        title: 'Email',
-        address: "contact{'@'}binovya.fr",
-      },
-      hours: {
-        title: 'Business Hours',
-        weekdays: 'Mon - Fri: 9:00 AM - 6:00 PM',
-        weekend: 'Sat - Sun: Closed',
-      },
-    },
-  },
+  contact,
   about,
   booking,
-  professionals,
+  quote,
   ...solutions,
   common: {
+    honeypot: 'Leave this field empty',
     logoAlt: 'BINOVYA Logo',
     backToHome: 'Back to home page',
     language: 'Language',

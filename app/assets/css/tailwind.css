@@ -53,6 +53,7 @@
   --color-paper: #f4f9fb;
   --color-paper-2: #e8f4f8;
   --color-line: #1c3652;
+  --color-stripe: #635bff;
 }
 
 :root {
@@ -63,7 +64,7 @@
   --card-foreground: #08131f;
   --popover: #ffffff;
   --popover-foreground: #08131f;
-  --primary: #0b7fb8;
+  --primary: #0975ab;
   --primary-foreground: #ffffff;
   --secondary: #22c0de;
   --secondary-foreground: #ffffff;

@@ -1,6 +1,6 @@
 # Contributing Guide
 
-Thank you for your interest in contributing to My Massage Shop! This document will guide you through the contribution process.
+Thank you for your interest in contributing to BINOVYA! This document will guide you through the contribution process.
 
 ## 🚀 Quick Start
 
@@ -21,22 +21,22 @@ Thank you for your interest in contributing to My Massage Shop! This document wi
 
 ### Vue Component Structure
 
+Block order is enforced by ESLint (`vue/block-order`): `<template>` → `<script>` → `<style>`.
+
 ```vue
+<template>
+  <!-- Template -->
+</template>
+
 <script setup lang="ts">
 // Imports
 // Composables
 // Reactive data
 // Functions
 </script>
-
-<template>
-  <!-- Template -->
-</template>
-
-<style scoped>
-/* Specific styles if needed */
-</style>
 ```
+
+Styling is done with Tailwind classes only, so a `<style>` block should not be needed.
 
 ## 📝 Commit Conventions (Gitmoji)
 
@@ -100,9 +100,10 @@ This project uses [gitmoji](https://gitmoji.dev/) for commit messages. Here are 
 
 ## 🔀 Pull Request Process
 
-1. **Create a branch** from `main`:
+1. **Create a branch** from `dev`, one branch per step of `docs/TODO.md`:
 
 ```bash
+git checkout dev
 git checkout -b feat/my-new-feature
 # or
 git checkout -b fix/bug-fix
@@ -123,7 +124,7 @@ git commit -m "✨ feat: add product page"
 git push origin feat/my-new-feature
 ```
 
-5. **Open a Pull Request** on the main repository with:
+5. **Open a Pull Request** targeting `dev` with:
    - A clear title with gitmoji
    - A detailed description of changes
    - Screenshots if relevant (UI changes)
@@ -160,13 +161,21 @@ git push origin feat/my-new-feature
 
 Before submitting your PR:
 
-1. Verify the application builds correctly:
+1. Check linting, formatting and types:
+
+```bash
+bun run lint
+bun run format:check
+bunx nuxi typecheck
+```
+
+2. Verify the application builds correctly:
 
 ```bash
 bun run build
 ```
 
-2. Test locally:
+3. Test locally:
 
 ```bash
 bun run preview

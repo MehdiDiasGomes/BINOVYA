@@ -1,9 +1,10 @@
 import about from './fr/about'
 import booking from './fr/booking'
+import contact from './fr/contact'
 import faq from './fr/faq'
 import legal from './fr/legal'
 import privacy from './fr/privacy'
-import professionals from './fr/professionals'
+import quote from './fr/quote'
 import solutions from './fr/solutions'
 
 export default {
@@ -11,7 +12,7 @@ export default {
     home: 'Accueil',
     services: 'Nos services',
     particuliers: 'Particuliers',
-    pro: 'Professionnels & Collectivités',
+    quote: 'Devis',
     contact: 'Contact',
     reserver: 'Réserver',
     reserverAriaLabel: 'Réserver une intervention',
@@ -26,11 +27,10 @@ export default {
     eyebrow: 'Nettoyage vapeur professionnel',
     titleMain: "L'hygiène urbaine",
     titleAccent: 'nouvelle génération',
-    lead: "Nous nettoyons vos bacs à déchets, PAV, mobilier urbain, signalisation et zones de regroupement grâce à une méthode professionnelle, éco-responsable et adaptée aux besoins des particuliers, professionnels et collectivités.",
+    lead: 'Nous nettoyons vos bacs à déchets, PAV, mobilier urbain, signalisation et zones de regroupement grâce à une méthode professionnelle, éco-responsable et adaptée aux besoins des particuliers, professionnels et collectivités.',
     ctaReserver: 'Réserver une intervention',
     ctaReserverAriaLabel: 'Réserver une intervention en ligne',
     ctaDevis: 'Demander un devis',
-    ctaDevisAriaLabel: 'Contacter pour un devis professionnel',
     platNote: 'Véhicule 100% électrique',
     imageAlt: 'Nettoyage vapeur professionnel BINOVYA',
     badges: {
@@ -48,7 +48,8 @@ export default {
   services: {
     eyebrow: 'Ce que nous faisons',
     title: 'Nos services',
-    subtitle: "Quatre interventions de nettoyage vapeur pour redonner à l'espace urbain toute sa propreté.",
+    subtitle:
+      "Quatre interventions de nettoyage vapeur pour redonner à l'espace urbain toute sa propreté.",
     newBadge: 'NOUVEAU',
     items: {
       bins: {
@@ -97,37 +98,13 @@ export default {
       hightemp: 'Vapeur haute température',
     },
   },
-  proForm: {
+  quoteCta: {
     eyebrow: 'Professionnels & Collectivités',
-    title: 'Nous contacter',
-    subtitle: 'Remplissez le formulaire pour nous faire parvenir votre demande.',
-    fields: {
-      lastName: 'Nom',
-      lastNamePlaceholder: 'Dupont',
-      firstName: 'Prénom',
-      firstNamePlaceholder: 'Jean',
-      society: 'Société / Collectivité',
-      societyPlaceholder: 'Mairie de ...',
-      phone: 'Téléphone',
-      phonePlaceholder: '06 XX XX XX XX',
-      email: 'Email',
-      emailPlaceholder: "contact{'@'}societe.fr",
-      subject: 'Objet',
-      subjectPlaceholder: 'Sélectionnez un objet',
-      message: 'Message',
-      messagePlaceholder: 'Décrivez votre besoin...',
-    },
-    subjects: {
-      quote: 'Demande de devis',
-      meeting: 'Demande de rendez-vous',
-      info: "Complément d'information",
-      other: 'Autre',
-    },
-    submit: 'ENVOYER MA DEMANDE',
-    submitting: 'Envoi en cours...',
-    submitAriaLabel: 'Envoyer ma demande de contact',
-    success: 'Votre demande a bien été envoyée ! Nous reviendrons vers vous sous 48h.',
-    error: 'Une erreur est survenue. Veuillez réessayer ou nous contacter par téléphone.',
+    title: 'Un projet ? Parlons-en',
+    subtitle:
+      'Bacs, points d’apport volontaire, mobilier urbain ou signalisation : demandez un devis en quelques minutes, ou écrivez-nous.',
+    quote: 'Demander un devis',
+    contact: 'Nous contacter',
   },
   beforeAfter: {
     imageAlt: 'Résultat avant/après nettoyage vapeur BINOVYA',
@@ -161,94 +138,13 @@ export default {
   privacy,
   legal,
   faq,
-  contact: {
-    title: 'Contactez-nous',
-    form: {
-      subtitle: 'Ou remplissez le formulaire ci-dessous',
-      lastName: {
-        label: 'Nom',
-        placeholder: 'Dupont',
-      },
-      firstName: {
-        label: 'Prénom',
-        placeholder: 'Jean',
-      },
-      email: {
-        label: 'Adresse email',
-        placeholder: "jean.dupont{'@'}exemple.fr",
-      },
-      phone: {
-        label: 'Téléphone',
-        optional: '(optionnel)',
-        placeholder: '+33 6 12 34 56 78',
-      },
-      isBusiness: {
-        label: 'Je représente une entreprise',
-      },
-      companyName: {
-        label: "Nom de l'entreprise",
-        optional: '(optionnel)',
-        placeholder: 'BINOVYA SARL',
-      },
-      requestType: {
-        label: 'Type de demande',
-        placeholder: 'Sélectionnez une option',
-        options: {
-          demo: 'Demande de démonstration gratuite',
-          callback: "Être rappelé pour plus d'informations",
-          quote: 'Demande de devis',
-        },
-      },
-      message: {
-        label: 'Message',
-        placeholder: 'Décrivez votre besoin...',
-      },
-      submit: 'Envoyer',
-      submitting: 'Envoi en cours...',
-      success: 'Votre message a été envoyé avec succès !',
-      error: 'Une erreur est survenue. Veuillez réessayer.',
-      validation: {
-        lastNameRequired: 'Le nom est obligatoire',
-        lastNameMin: 'Le nom doit contenir au moins 2 caractères',
-        firstNameRequired: 'Le prénom est obligatoire',
-        firstNameMin: 'Le prénom doit contenir au moins 2 caractères',
-        emailRequired: "L'adresse email est obligatoire",
-        emailInvalid: "L'adresse email n'est pas valide",
-        companyNameRequired: "Le nom de l'entreprise est obligatoire",
-        companyNameMin: "Le nom de l'entreprise doit contenir au moins 2 caractères",
-        requestTypeRequired: 'Veuillez sélectionner un type de demande',
-        messageRequired: 'Le message est obligatoire',
-        messageMin: 'Le message doit contenir au moins 10 caractères',
-      },
-    },
-    info: {
-      title: 'Informations',
-      address: {
-        title: 'Adresse',
-        line1: "Les Portes de l'Orne, Rue André Marie Ampère",
-        line2: '57360 Amnéville',
-      },
-      phone: {
-        title: 'Téléphone',
-        number: '0000000',
-        display: '00 00 00 00 00',
-      },
-      email: {
-        title: 'Email',
-        address: "contact{'@'}binovya.fr",
-      },
-      hours: {
-        title: 'Horaires',
-        weekdays: 'Lun - Ven : 9h00 - 18h00',
-        weekend: 'Sam - Dim : Fermé',
-      },
-    },
-  },
+  contact,
   about,
   booking,
-  professionals,
+  quote,
   ...solutions,
   common: {
+    honeypot: 'Ne pas remplir ce champ',
     logoAlt: 'Logo BINOVYA',
     backToHome: "Retour à la page d'accueil",
     language: 'Langue',

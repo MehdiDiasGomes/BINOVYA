@@ -2,14 +2,22 @@ import { z } from 'zod'
 
 import type { BookingContact, ContactErrors } from '@/types/booking'
 
+import {
+  CONTACT_NAME_MAX_LENGTH,
+  CONTACT_NAME_MIN_LENGTH,
+  EMAIL_MAX_LENGTH,
+  HONEYPOT_MAX_LENGTH,
+} from '@/constants/booking'
 import { isValidPhone, toInternationalPhone } from '@/utils/phone'
 
 export const contactSchema = z.object({
-  firstName: z.string().trim().min(2),
-  lastName: z.string().trim().min(2),
-  email: z.string().trim().email(),
+  firstName: z.string().trim().min(CONTACT_NAME_MIN_LENGTH).max(CONTACT_NAME_MAX_LENGTH),
+  lastName: z.string().trim().min(CONTACT_NAME_MIN_LENGTH).max(CONTACT_NAME_MAX_LENGTH),
+  email: z.string().trim().email().max(EMAIL_MAX_LENGTH),
   phone: z.string().trim().refine(isValidPhone),
 })
+
+export const honeypotSchema = z.string().max(HONEYPOT_MAX_LENGTH)
 
 /**
  * Validates the contact details of a booking.

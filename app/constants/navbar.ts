@@ -6,6 +6,6 @@ export type NavItem = {
 
 export const navigationItems: NavItem[] = [
   { labelKey: 'nav.services', path: '/', hash: '#services' },
-  { labelKey: 'nav.pro', path: '/professionals' },
-  { labelKey: 'nav.contact', path: '/', hash: '#contact' },
+  { labelKey: 'nav.quote', path: '/quote' },
+  { labelKey: 'nav.contact', path: '/contact' },
 ]

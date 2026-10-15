@@ -1,224 +1,118 @@
-<!--
-  Form controls are accessible via shadcn-ui's FormField pattern:
-  FormLabel components are programmatically associated with inputs through FormField wrapper
--->
-<!-- eslint-disable vuejs-accessibility/form-control-has-label -->
 <template>
-  <div>
-    <PageContainer>
-      <section class="page-padding-x py-16">
-        <div class="mx-auto max-w-7xl">
-          <h1
-            class="mb-12 text-center font-heading text-3xl text-foreground sm:text-4xl md:text-5xl"
+  <div class="bg-paper">
+    <section class="bg-navy-950 pb-10 pt-12">
+      <div class="mx-auto max-w-[1180px] px-4 sm:px-8">
+        <span
+          :class="HERO_ENTER_CLASS"
+          class="mb-2.5 block text-[12.5px] font-black uppercase tracking-[1.5px] text-turquoise"
+        >
+          {{ $t('contact.header.eyebrow') }}
+        </span>
+        <h1
+          :class="HERO_ENTER_CLASS"
+          class="delay-75 text-[32px] font-black leading-tight text-white"
+        >
+          {{ $t('contact.header.title') }}
+        </h1>
+        <p
+          :class="HERO_ENTER_CLASS"
+          class="delay-150 mt-2 max-w-[560px] text-[15px] leading-relaxed text-[#c4d6e2]"
+        >
+          {{ $t('contact.header.subtitle') }}
+        </p>
+      </div>
+    </section>
+
+    <div
+      class="mx-auto grid max-w-[1180px] items-start gap-8 px-4 py-10 sm:px-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+    >
+      <div :class="HERO_ENTER_CLASS" class="min-w-0 delay-200">
+        <AnimatePresence mode="wait" :initial="false">
+          <Motion
+            v-if="isSent"
+            key="sent"
+            :initial="{ opacity: 0, y: STEP_OFFSET }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0 }"
+            :transition="STEP_TRANSITION"
           >
-            {{ $t('contact.title') }}
-          </h1>
+            <FormSent :title="$t('contact.sent.title')" :text="$t('contact.sent.text')" />
+          </Motion>
+          <Motion
+            v-else
+            key="form"
+            :initial="{ opacity: 0, y: STEP_OFFSET }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0 }"
+            :transition="STEP_TRANSITION"
+          >
+            <ContactForm
+              v-model="form"
+              :errors="errors"
+              :show-errors="hasAttempted"
+              :is-submitting="isSubmitting"
+              :has-failed="hasFailed"
+              @submit="submit"
+            />
+          </Motion>
+        </AnimatePresence>
+      </div>
 
-          <div class="grid grid-cols-1 gap-12 lg:grid-cols-[2fr_1fr]">
-            <div ref="formRef" :class="['scroll-animate-left', isFormVisible && 'is-visible']">
-              <form class="space-y-6" @submit="onSubmit">
-                <div class="grid gap-6 sm:grid-cols-2">
-                  <FormField #default="{ componentField }" name="requestType">
-                    <FormItem>
-                      <FormLabel>
-                        {{ $t('contact.form.requestType.label') }}
-                        <span class="text-destructive" aria-hidden="true">*</span>
-                      </FormLabel>
-                      <Select v-bind="componentField">
-                        <FormControl>
-                          <SelectTrigger class="w-full">
-                            <SelectValue
-                              :placeholder="$t('contact.form.requestType.placeholder')"
-                              class="truncate"
-                            />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent position="popper" :side-offset="5">
-                          <SelectItem value="demo">
-                            {{ $t('contact.form.requestType.options.demo') }}
-                          </SelectItem>
-                          <SelectItem value="callback">
-                            {{ $t('contact.form.requestType.options.callback') }}
-                          </SelectItem>
-                          <!-- Quote option temporarily hidden -->
-                          <!-- <SelectItem value="quote">
-                            {{ $t('contact.form.requestType.options.quote') }}
-                          </SelectItem> -->
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  </FormField>
-
-                  <FormField #default="{ componentField }" name="companyName">
-                    <FormItem>
-                      <FormLabel>
-                        {{ $t('contact.form.companyName.label') }}
-                        <span class="text-muted-foreground">
-                          {{ $t('contact.form.companyName.optional') }}
-                        </span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          :placeholder="$t('contact.form.companyName.placeholder')"
-                          v-bind="componentField"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  </FormField>
-                </div>
-
-                <div class="grid gap-6 sm:grid-cols-2">
-                  <FormField #default="{ componentField }" name="lastName">
-                    <FormItem>
-                      <FormLabel>
-                        {{ $t('contact.form.lastName.label') }}
-                        <span class="text-destructive" aria-hidden="true">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          :placeholder="$t('contact.form.lastName.placeholder')"
-                          v-bind="componentField"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  </FormField>
-
-                  <FormField #default="{ componentField }" name="email">
-                    <FormItem>
-                      <FormLabel>
-                        {{ $t('contact.form.email.label') }}
-                        <span class="text-destructive" aria-hidden="true">*</span>
-                      </FormLabel>
-                      <FormControl>
-                        <Input
-                          type="email"
-                          :placeholder="$t('contact.form.email.placeholder')"
-                          v-bind="componentField"
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  </FormField>
-                </div>
-
-                <FormField #default="{ componentField }" name="message">
-                  <FormItem>
-                    <FormLabel>
-                      {{ $t('contact.form.message.label') }}
-                      <span class="text-destructive" aria-hidden="true">*</span>
-                    </FormLabel>
-                    <FormControl>
-                      <Textarea
-                        :placeholder="$t('contact.form.message.placeholder')"
-                        class="min-h-50"
-                        v-bind="componentField"
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                </FormField>
-
-                <div class="flex justify-end">
-                  <Button type="submit" class="w-full sm:w-auto" :disabled="isSubmitting">
-                    {{ isSubmitting ? $t('contact.form.submitting') : $t('contact.form.submit') }}
-                  </Button>
-                </div>
-              </form>
-            </div>
-
-            <div
-              ref="sidebarRef"
-              :class="[
-                'flex flex-col items-center space-y-8 scroll-animate-right',
-                isSidebarVisible && 'is-visible',
-              ]"
-            >
-              <NuxtImg
-                src="/images/illustrations/contact.svg"
-                alt="Contact illustration"
-                class="h-auto w-full max-w-sm"
-              />
-
-              <div
-                class="flex w-full max-md:flex-col max-lg:justify-between lg:flex-col items-start gap-6"
-              >
-                <!-- Phone number temporarily hidden -->
-                <!-- <div class="flex items-center gap-4">
-                  <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted"
-                  >
-                    <Icon name="Phone" class="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <a
-                    :href="`tel:${$t('contact.info.phone.number')}`"
-                    class="text-sm text-foreground hover:text-primary"
-                  >
-                    {{ $t('contact.info.phone.display') }}
-                  </a>
-                </div> -->
-
-                <div class="flex items-center gap-4">
-                  <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted"
-                  >
-                    <Icon name="Mail" class="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <a
-                    :href="`mailto:${$t('contact.info.email.address')}`"
-                    class="text-sm text-foreground hover:text-primary"
-                  >
-                    {{ $t('contact.info.email.address') }}
-                  </a>
-                </div>
-
-                <div class="flex items-center gap-4">
-                  <div
-                    class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-muted"
-                  >
-                    <Icon name="MapPin" class="h-5 w-5 text-primary" aria-hidden="true" />
-                  </div>
-                  <p class="text-sm text-foreground">
-                    {{ $t('contact.info.address.line1') }}<br />
-                    {{ $t('contact.info.address.line2') }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
+      <aside
+        :aria-label="$t('contact.info.label')"
+        :class="HERO_ENTER_CLASS"
+        class="delay-300 space-y-4 lg:sticky lg:top-24"
+      >
+        <div class="rounded-2xl border border-border bg-paper-2 p-5 shadow-sm sm:p-6">
+          <h2 class="text-lg font-black text-ink">{{ $t('contact.quote.title') }}</h2>
+          <p class="mt-1.5 text-sm leading-relaxed text-ink/80">{{ $t('contact.quote.text') }}</p>
+          <NuxtLink
+            :to="localePath('/quote')"
+            class="mt-4 inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+          >
+            <Icon name="FileText" :size="16" aria-hidden="true" />
+            {{ $t('contact.quote.cta') }}
+          </NuxtLink>
         </div>
-      </section>
-    </PageContainer>
+
+        <ul class="space-y-4 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
+          <li class="flex items-center gap-3 text-sm text-ink">
+            <Icon name="Mail" :size="18" aria-hidden="true" class="shrink-0 text-primary" />
+            <a
+              :href="`mailto:${$t('contact.info.email.address')}`"
+              class="break-all rounded-sm font-bold underline-offset-4 hover:text-primary hover:underline focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              {{ $t('contact.info.email.address') }}
+            </a>
+          </li>
+          <li class="flex items-start gap-3 text-sm text-ink">
+            <Icon
+              name="MapPin"
+              :size="18"
+              aria-hidden="true"
+              class="mt-0.5 shrink-0 text-primary"
+            />
+            <p>
+              {{ $t('contact.info.address.line1') }}<br />
+              {{ $t('contact.info.address.line2') }}
+            </p>
+          </li>
+        </ul>
+      </aside>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { toTypedSchema } from '@vee-validate/zod'
-import { useForm } from 'vee-validate'
-import { toast } from 'vue-sonner'
-import { z } from 'zod'
-
-import { Button } from '@/components/ui/button'
-import { FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Textarea } from '@/components/ui/textarea'
+import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 definePageMeta({
   layout: 'default',
 })
 
 const { t } = useI18n()
+const localePath = useLocalePath()
+const { form, errors, hasAttempted, isSubmitting, isSent, hasFailed, submit } = useContactForm()
 
 useSeoMeta({
   title: () => t('seo.contact.title'),
@@ -228,95 +122,4 @@ useSeoMeta({
   ogType: 'website',
   twitterCard: 'summary_large_image',
 })
-
-const { elementRef: formRef, isVisible: isFormVisible } = useScrollAnimation(0.1)
-const { elementRef: sidebarRef, isVisible: isSidebarVisible } = useScrollAnimation(0.1)
-
-const route = useRoute()
-const validRequestTypes = ['demo', 'callback', 'quote']
-const initialRequestType = validRequestTypes.includes(route.query.type as string)
-  ? (route.query.type as string)
-  : ''
-
-const formSchema = toTypedSchema(
-  z.object({
-    lastName: z.string().min(2, t('contact.form.validation.lastNameMin')),
-    email: z.string().email(t('contact.form.validation.emailInvalid')),
-    companyName: z.string().optional(),
-    requestType: z.string().min(1, t('contact.form.validation.requestTypeRequired')),
-    message: z.string().min(10, t('contact.form.validation.messageMin')),
-  }),
-)
-
-const form = useForm({
-  validationSchema: formSchema,
-  initialValues: {
-    lastName: '',
-    email: '',
-    companyName: '',
-    requestType: initialRequestType,
-    message: '',
-  },
-})
-
-const isSubmitting = ref(false)
-
-const onSubmit = form.handleSubmit(async values => {
-  isSubmitting.value = true
-
-  try {
-    const response = await $fetch('/api/contact', {
-      method: 'POST',
-      body: values,
-    })
-
-    if (response.success) {
-      toast.success(t('contact.form.success'))
-      form.resetForm()
-    }
-  } catch {
-    toast.error(t('contact.form.error'))
-  } finally {
-    isSubmitting.value = false
-  }
-})
 </script>
-
-<style scoped>
-.scroll-animate-left {
-  opacity: 0;
-  transform: translateX(-40px);
-  transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.scroll-animate-left.is-visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-.scroll-animate-right {
-  opacity: 0;
-  transform: translateX(40px);
-  transition: all 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s;
-}
-
-.scroll-animate-right.is-visible {
-  opacity: 1;
-  transform: translateX(0);
-}
-
-:deep([data-slot='form-message']) {
-  animation: slideDown 0.3s ease-out;
-}
-
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-</style>

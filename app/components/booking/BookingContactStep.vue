@@ -44,6 +44,8 @@
 <script setup lang="ts">
 import type { BookingContact, ContactErrors } from '@/types/booking'
 
+import { CONTACT_NAME_LIMITS } from '@/constants/booking'
+
 const props = withDefaults(
   defineProps<{
     showErrors?: boolean
@@ -60,6 +62,6 @@ const errors: ComputedRef<ContactErrors> = computed(() => validateContact(draft.
 
 const errorFor = (field: keyof BookingContact): string => {
   const key: string | undefined = errors.value[field]
-  return props.showErrors && key ? t(key) : ''
+  return props.showErrors && key ? t(key, CONTACT_NAME_LIMITS) : ''
 }
 </script>

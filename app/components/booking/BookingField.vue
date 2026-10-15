@@ -9,8 +9,8 @@
       :placeholder="props.placeholder"
       :aria-invalid="props.error ? 'true' : undefined"
       :aria-describedby="describedBy"
-      required
-      class="h-12 w-full rounded-lg border border-ink/25 bg-white px-4 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/50 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/30 aria-invalid:border-destructive"
+      :required="props.isRequired"
+      class="h-12 w-full rounded-lg border border-ink/50 bg-white px-4 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60 aria-invalid:border-destructive"
       @input="handleInput"
     />
     <span v-if="props.hint" :id="`${props.id}-hint`" class="mt-1.5 block text-[13px] text-ink/70">
@@ -38,6 +38,7 @@ const props = withDefaults(
     placeholder?: string
     hint?: string
     error?: string
+    isRequired?: boolean
   }>(),
   {
     modelValue: '',
@@ -46,6 +47,7 @@ const props = withDefaults(
     placeholder: '',
     hint: '',
     error: '',
+    isRequired: true,
   },
 )
 

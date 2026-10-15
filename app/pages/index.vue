@@ -5,7 +5,7 @@
     <ServicesSection />
     <BeforeAfterSection />
     <OffersSection />
-    <ProFormSection />
+    <QuoteCtaSection />
   </div>
 </template>
 

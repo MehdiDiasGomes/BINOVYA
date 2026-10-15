@@ -38,8 +38,14 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 4. Devis
 
-- [ ] Formulaire : coordonnées, adresse, bacs, fréquence, commentaire, photos facultatives
-- [ ] Enregistrement en base et mail à BINOVYA
+- [x] Formulaire `/quote` : coordonnées, adresse, types d'équipement (bacs, PAV, mobilier urbain,
+      signalétique), bacs demandés seulement si « bacs » est coché, fréquence, commentaire, photos
+      facultatives, page unique pour particuliers et professionnels
+- [x] Enregistrement en base et mail à BINOVYA
+- [x] Bandeau devis/contact à la place de `ProFormSection`
+- [x] Page `/contact` refaite, API contact validée et protégée
+- [ ] Renseigner `RESEND_API_KEY` et `CONTACT_EMAIL_TO` pour que les mails de devis et de contact
+      partent (le devis est enregistré sans eux, mais `/contact` répond 503)
 
 ## 5. Paiement
 
