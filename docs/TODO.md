@@ -59,11 +59,18 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 6. Mails
 
-- [ ] Vérifier le domaine `binovya.com` sur Resend, corriger l'expéditeur du contact
-- [ ] Mail de confirmation de réservation
-- [ ] Mail de rappel avant le passage
+- [ ] Vérifier le domaine `binovya.com` sur Resend (à faire par l'utilisateur)
+- [x] Expéditeur corrigé : `NUXT_MAIL_FROM`, repli sur `contact@dg-zenith.com`
+- [ ] Renseigner `NUXT_MAIL_FROM` en production (`BINOVYA <…@binovya.com>` une fois le domaine
+      vérifié)
+- [x] Mail de confirmation de réservation
+- [x] Mail d'annulation et de remboursement (paiement tardif)
+- [x] Alerte admin à chaque réservation payée
+- [x] Mail de rappel avant le passage (tâche `booking:reminders`, J-1 à J-2)
 - [ ] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée : bouton
-      « Voir mes photos » en lien magique (connexion en un clic), tutoriel pas à pas en secours
+      « Voir mes photos » en lien magique (connexion en un clic), tutoriel pas à pas en secours.
+      Gabarit prêt (`sendPhotosAvailableEmail`), envoi pas encore branché : lien magique à
+      l'étape 7, déclenchement à l'étape 8
 
 ## 7. Espace client
 
@@ -110,7 +117,9 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 ## 12. VPS
 
 - [ ] Commander le VPS
-- [ ] Sécurité : SSH par clé, `ufw`, `fail2ban`, `unattended-upgrades`
+- [ ] Sécurité : SSH par clé, `ufw`, `fail2ban`, `unattended-upgrades`. Horloge synchronisée par
+      NTP (`timedatectl` doit afficher `System clock synchronized: yes`), sinon toutes les
+      signatures de webhook Stripe (tolérance de 5 min) sont rejetées
 - [ ] DNS `binovya.com` vers le VPS
 - [ ] Premier déploiement
 
@@ -120,9 +129,13 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [ ] CGV : annulation, report, remboursement
 - [ ] Politique de confidentialité : données client, photos, durées de conservation
 - [ ] Décider du sort des réservations abandonnées et de leurs comptes (purge ou anonymisation)
+- [ ] Avant le lancement, décider du sort des formules trimestrielle et annuelle : aujourd'hui
+      elles sont payées en une fois pour un seul passage, sans engagement enregistré. Les masquer
+      (devis uniquement) ou livrer l'étape 14 (abonnements) avant
 
 ## 14. Après le lancement
 
 - [ ] SMS Brevo (veille et jour J)
-- [ ] Abonnements récurrents (selon la décision du client)
+- [ ] Abonnements récurrents (selon la décision du client, voir l'item des formules trimestrielle
+      et annuelle à l'étape 13)
 - [ ] Sauvegardes (V2)

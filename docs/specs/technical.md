@@ -33,7 +33,7 @@
 | Gestionnaire de paquets         | Bun                                                                                |
 | Base de données, auth, fichiers | Supabase hébergé, région UE (Postgres, Auth par lien magique, Storage, `pg_cron`)  |
 | Paiement                        | Stripe Checkout + webhook                                                          |
-| Mail                            | Resend, domaine `binovya.com` vérifié                                              |
+| Mail                            | Resend, expéditeur `NUXT_MAIL_FROM` (repli : `BINOVYA <contact@dg-zenith.com>`)    |
 | SMS                             | Brevo                                                                              |
 | Distances routières             | OSRM                                                                               |
 | Optimisation des tournées       | VROOM                                                                              |
@@ -138,12 +138,56 @@
 - Corps plafonné à 16 Ko par `assertBodySize` (voir « Demandes de devis »). Entrée invalide : 400.
 - Champ piège rempli : l'API répond comme un succès sans rien envoyer, pour ne pas indiquer au
   robot qu'il a été repéré.
-- Le mail part à `NUXT_CONTACT_EMAIL_TO` via Resend, avec `replyTo` sur l'e-mail du client. Toutes
+- Le mail part à `NUXT_CONTACT_EMAIL_TO` via `sendTransactionalEmail` (voir « Mails »), avec
+  `replyTo` sur l'e-mail du client. Toutes
   les valeurs sont échappées en HTML. Contrairement au devis, rien n'est stocké en base : le mail
   est la demande.
-- Erreurs : 503 si `NUXT_RESEND_API_KEY` ou `NUXT_CONTACT_EMAIL_TO` manque, 502 si Resend échoue.
-  Le client voit donc un échec plutôt qu'un faux succès.
+- Erreurs : 503 si `NUXT_RESEND_API_KEY` ou `NUXT_CONTACT_EMAIL_TO` manque, 502 si l'envoi échoue
+  (Resend en erreur ou sans réponse après 5 s). Le client voit donc un échec plutôt qu'un faux
+  succès.
 - Une limite de débit par IP reste à poser sur Caddy.
+
+## Mails
+
+- Tous les envois passent par `sendTransactionalEmail` (`server/utils/mail.ts`), y compris le
+  contact et le devis. Elle abandonne après 5 secondes, ne lève jamais d'erreur (elle renvoie
+  `true` ou `false`) et ne journalise que le libellé de l'envoi, jamais d'adresse ni de nom. Un
+  mail lent ou en échec ne bloque donc jamais le webhook Stripe ni la réponse au client.
+- Expéditeur unique, `mailSender()` : `NUXT_MAIL_FROM`, avec repli sur
+  `BINOVYA <contact@dg-zenith.com>` tant que `binovya.com` n'est pas vérifié sur Resend.
+- `sanitizeEmailSubject` remplace les caractères de contrôle de tous les sujets, pour qu'un texte
+  saisi ne puisse pas injecter d'en-tête. Le corps HTML est échappé par `escapeHtml`.
+- Mails en français uniquement, quelle que soit la langue du site.
+- Gabarits dans `app/templates/email/` : `layout` (mise en page commune), `labels` (textes),
+  `bookingDetails` (bloc récapitulatif), `bookingCustomerEmails` (confirmation, rappel,
+  remboursement), `bookingAdminEmail` (alerte BINOVYA) et `photosAvailableEmail`.
+- Logique d'envoi dans `server/utils/bookingEmails.ts` : le client reçoit les mails avec
+  `NUXT_CONTACT_EMAIL_TO` en `replyTo`.
+
+| Mail                             | Déclencheur                                            |
+| -------------------------------- | ------------------------------------------------------ |
+| Confirmation au client           | Webhook, `confirm_booking_payment` renvoie `paid`      |
+| Alerte admin (réservation payée) | Idem, à `NUXT_CONTACT_EMAIL_TO`                        |
+| Annulation et remboursement      | Webhook, `refund_required` ou `not_payable`            |
+| Rappel                           | Tâche `booking:reminders` (voir « Tâches planifiées ») |
+| Photos disponibles               | Gabarit prêt, pas encore appelé                        |
+
+- Pas de mail de remboursement si la charge était déjà remboursée (`charge_already_refunded`) :
+  un événement Stripe rejoué ne prévient pas deux fois.
+- Clés d'idempotence Resend `booking-confirmation-<id>`, `booking-admin-alert-<id>`,
+  `booking-refund-<id>`, `booking-reminder-<id>` et `booking-photos-<id>`. Resend les garde 24
+  heures.
+- Le bouton « Réserver une autre date » du mail de remboursement pointe vers `/booking` sur
+  `NUXT_SITE_URL`.
+- `sendPhotosAvailableEmail` n'envoie que si le lien de connexion vise l'hôte Supabase ou celui de
+  `NUXT_SITE_URL` (`isAllowedLoginUrl`, https sauf `localhost`), pour qu'un lien détourné ne
+  parte jamais dans un mail de BINOVYA.
+- Limites connues :
+  - Si Resend échoue au moment du paiement, la confirmation est perdue : il n'y a pas de nouvel
+    essai.
+  - Un rappel peut partir deux fois si l'écriture de `reminder_sent_at` échoue après l'envoi.
+  - `sendPhotosAvailableEmail` existe mais n'est pas appelé : le lien magique arrive à l'étape 7,
+    le déclenchement à l'étape 8.
 
 ## Paiement
 
@@ -280,26 +324,45 @@ gestionnaire de mots de passe.
 | Tâche                                                         | Outil                       |
 | ------------------------------------------------------------- | --------------------------- |
 | Libérer les réservations non payées (`expire_stale_bookings`) | `pg_cron`, toutes les 5 min |
+| Mail de rappel (`booking:reminders`)                          | Tâche Nitro, `0 6 * * *`    |
 | SMS de la veille et du jour J                                 | `pg_cron`                   |
 | Mise à jour des cartes OSRM                                   | GitHub Action mensuelle     |
 
 Le job `expire-stale-bookings` (`*/5 * * * *`) appelle `public.expire_stale_bookings()`.
 
+### Rappel par mail (`booking:reminders`)
+
+- Tâche Nitro (`server/tasks/booking/reminders.ts`), pas `pg_cron` : le mail part de Node, avec
+  Resend. Planifiée dans `nuxt.config.ts` à `0 6 * * *`. L'heure suit le fuseau du processus :
+  UTC dans le conteneur Docker, donc 7 h ou 8 h à Paris. La date cible, elle, est calculée en
+  Europe/Paris.
+- Fenêtre J-1 à J-2 : les réservations `paid` dont `scheduled_date` tombe demain ou après-demain
+  et dont `reminder_sent_at` est vide. J-1 rattrape une réservation payée tard ou un passage
+  manqué, et un envoi échoué est retenté le lendemain.
+- Utilise `createServiceRoleClient()` (`server/utils/supabaseServiceClient.ts`), envoie un mail
+  toutes les 600 ms au plus pour rester sous la limite de débit de Resend, puis remplit
+  `reminder_sent_at` (seulement s'il est encore vide). Une seule instance Nuxt doit tourner, sinon
+  deux instances enverraient le même rappel.
+- La planification n'existe que dans un build de production (`NODE_ENV=production`). En dev,
+  aucun cron : on lance la tâche à la main avec `GET /_nitro/tasks/booking:reminders`, une route
+  qui n'existe qu'en dev.
+
 ## Variables d'environnement
 
-| Variable                     | Usage                                                    |
-| ---------------------------- | -------------------------------------------------------- |
-| `NUXT_PUBLIC_SUPABASE_URL`   | URL du projet Supabase                                   |
-| `NUXT_PUBLIC_SUPABASE_KEY`   | Clé publique Supabase                                    |
-| `NUXT_SUPABASE_SECRET_KEY`   | Clé secrète Supabase, serveur uniquement                 |
-| `NUXT_RESEND_API_KEY`        | Envoi des mails                                          |
-| `NUXT_CONTACT_EMAIL_TO`      | Destinataire du formulaire de contact                    |
-| `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                 |
-| `NUXT_STRIPE_WEBHOOK_SECRET` | Vérification des webhooks Stripe                         |
-| `NUXT_SITE_URL`              | URL publique, pages de retour de Stripe (https en prod.) |
-| `BREVO_API_KEY`              | Envoi des SMS                                            |
-| `OSRM_URL`                   | URL interne d'OSRM                                       |
-| `VROOM_URL`                  | URL interne de VROOM                                     |
+| Variable                     | Usage                                                   |
+| ---------------------------- | ------------------------------------------------------- |
+| `NUXT_PUBLIC_SUPABASE_URL`   | URL du projet Supabase                                  |
+| `NUXT_PUBLIC_SUPABASE_KEY`   | Clé publique Supabase                                   |
+| `NUXT_SUPABASE_SECRET_KEY`   | Clé secrète Supabase, serveur uniquement                |
+| `NUXT_RESEND_API_KEY`        | Envoi des mails                                         |
+| `NUXT_MAIL_FROM`             | Expéditeur des mails (repli : `contact@dg-zenith.com`)  |
+| `NUXT_CONTACT_EMAIL_TO`      | Contact, alerte de réservation payée, `replyTo` clients |
+| `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                |
+| `NUXT_STRIPE_WEBHOOK_SECRET` | Vérification des webhooks Stripe                        |
+| `NUXT_SITE_URL`              | URL publique : retour Stripe (https en prod.), mail     |
+| `BREVO_API_KEY`              | Envoi des SMS                                           |
+| `OSRM_URL`                   | URL interne d'OSRM                                      |
+| `VROOM_URL`                  | URL interne de VROOM                                    |
 
 Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`runtimeConfig` dans
 `nuxt.config.ts`), pas à la construction : aucun secret n'est figé dans l'image Docker.
@@ -312,6 +375,16 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
   `/api/stripe/webhook`, avec les événements `checkout.session.completed` et
   `checkout.session.expired`, puis reporter son secret.
 
+## Tests
+
+- Clients créés par les tests : `delivered+e2e-…@resend.dev`, adresse que Resend accepte toujours,
+  pour que les vrais envois ne rebondissent jamais. Le nettoyage supprime ce motif et l'ancien
+  `e2e+…@binovya.test`.
+- `bun run test:integration` demande `NUXT_RESEND_API_KEY` avec un accès en lecture
+  (`GET /emails`, pour vérifier les mails envoyés) et `NUXT_CONTACT_EMAIL_TO`.
+- Le test d'intégration des rappels refuse de tourner s'il existe une vraie réservation payée
+  dans la fenêtre J+1..J+2, car la tâche enverrait un vrai rappel à un vrai client.
+
 ## Légal
 
 - L'hébergeur du VPS et Supabase figurent dans les mentions légales.
@@ -323,8 +396,8 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 - Choix du VPS et du fournisseur.
 - Conditions d'usage de l'API geoportail.lu.
 - Environnement de préproduction (branche `dev`) : oui ou non ?
-- Adresse d'expédition du formulaire de contact : encore `contact@dg-zenith.com`, à passer
-  sur `binovya.com`.
+- Domaine `binovya.com` à vérifier sur Resend : tant que ce n'est pas fait, l'expéditeur reste
+  `contact@dg-zenith.com` (repli de `NUXT_MAIL_FROM`).
 
 ## Coûts estimés
 
