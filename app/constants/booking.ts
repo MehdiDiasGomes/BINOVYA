@@ -1,6 +1,7 @@
 import { FR, LU } from 'country-flag-icons/string/3x2'
 
 import type {
+  BookingErrorCode,
   BookingPlan,
   BookingService,
   BookingStepId,
@@ -52,11 +53,6 @@ export const MAX_QUANTITY_PER_SERVICE = 10
 
 export const WEEKDAYS_MONDAY_FIRST: number[] = [1, 2, 3, 4, 5, 6, 0]
 
-/**
- * While false, a booking holds its slot but cannot be paid, so it expires without being confirmed.
- */
-export const IS_ONLINE_PAYMENT_ENABLED = false
-
 export const CONTACT_NAME_MIN_LENGTH = 2
 
 export const CONTACT_NAME_MAX_LENGTH = 80
@@ -71,3 +67,11 @@ export const COMPANY_MAX_LENGTH = 120
 export const HONEYPOT_MAX_LENGTH = 200
 
 export const EMAIL_MAX_LENGTH = 254
+
+export const BOOKING_SUBMIT_ERROR_KEYS: Record<BookingErrorCode, string> = {
+  dayTaken: 'booking.errors.dayTaken',
+  pendingPayment: 'booking.errors.pendingPayment',
+  outOfArea: 'booking.errors.outOfArea',
+  quoteRequired: 'booking.errors.quoteRequired',
+  binsNotConfirmed: 'booking.errors.binsReady',
+}

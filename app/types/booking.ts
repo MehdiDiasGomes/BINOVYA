@@ -1,6 +1,10 @@
+import type { Ref } from 'vue'
+
 export type ServiceSlug = 'small-bin' | 'large-bin'
 
 export type BookingPlan = 'one_off' | 'quarterly' | 'annual'
+
+export type BookingLocale = 'fr' | 'en'
 
 export type BookingStepId = 'contact' | 'bins' | 'schedule' | 'payment'
 
@@ -93,11 +97,49 @@ export type BookingRequest = {
   binsReadyConfirmed: boolean
   date: string
   contact: BookingContact
+  locale: BookingLocale
+  website: string
 }
 
 export type BookingResponse = {
   bookingId: string
   amountTotalCents: number
+  checkoutUrl: string
+}
+
+export type BookingErrorCode =
+  | 'dayTaken'
+  | 'pendingPayment'
+  | 'outOfArea'
+  | 'quoteRequired'
+  | 'binsNotConfirmed'
+
+export type BookingReleaseResponse = {
+  isReleased: boolean
+}
+
+export type CheckoutOutcome = 'success' | 'cancelled'
+
+export type StoredCheckout = {
+  bookingId: string
+  draft: BookingDraft
 }
 
 export type ContactErrors = Partial<Record<keyof BookingContact, string>>
+
+export type BookingCheckoutState = {
+  rememberCheckout: (bookingId: string, draft: BookingDraft) => boolean
+  takeCheckout: () => StoredCheckout | null
+  readOutcome: () => CheckoutOutcome | null
+  releaseBooking: (bookingId: string) => Promise<void>
+  waitForRelease: () => Promise<void>
+  readErrorCode: (error: unknown) => BookingErrorCode | null
+}
+
+export type CheckoutReturnOptions = {
+  checkout: BookingCheckoutState
+  isSubmitting: Ref<boolean>
+  isConfirmed: Ref<boolean>
+  submitErrorKey: Ref<string | null>
+  showStep: (step: BookingStepId) => Promise<void>
+}

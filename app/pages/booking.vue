@@ -1,5 +1,8 @@
 <template>
   <div class="bg-paper">
+    <p class="sr-only" role="status">
+      {{ isSubmitting ? $t('booking.actions.submittingStatus') : '' }}
+    </p>
     <section class="bg-navy-950 pb-10 pt-12">
       <div class="mx-auto max-w-[1180px] px-4 sm:px-8">
         <span
@@ -31,14 +34,6 @@
     </section>
 
     <div class="mx-auto max-w-[1180px] px-4 py-10 sm:px-8">
-      <p
-        v-if="!IS_ONLINE_PAYMENT_ENABLED"
-        class="mb-6 flex items-start gap-2.5 rounded-xl border border-amber-700/30 bg-amber-50 p-3.5 text-sm font-semibold text-ink"
-      >
-        <Icon name="Info" :size="18" aria-hidden="true" class="mt-0.5 shrink-0 text-amber-700" />
-        {{ $t('booking.demoNotice') }}
-      </p>
-
       <AnimatePresence :initial="false">
         <Motion
           v-if="isConfirmed"
@@ -99,13 +94,14 @@
                 <BookingPaymentStep v-else />
               </Motion>
             </AnimatePresence>
+            <HoneypotField id="booking-website" v-model="website" />
 
             <p
               v-if="visibleErrorKey"
               role="alert"
-              class="mt-6 flex items-center gap-2 text-sm font-bold text-destructive"
+              class="mt-6 flex items-start gap-2 text-sm font-bold leading-relaxed text-destructive"
             >
-              <Icon name="CircleAlert" :size="16" aria-hidden="true" />
+              <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
               {{ $t(visibleErrorKey) }}
             </p>
 
@@ -124,9 +120,9 @@
               <span v-else />
               <button
                 type="submit"
-                :disabled="isSubmitting"
+                :aria-disabled="isSubmitting"
                 :aria-busy="isSubmitting"
-                class="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+                class="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:translate-y-0 aria-disabled:active:scale-100 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
               >
                 <template v-if="isSubmitting">
                   <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
@@ -151,11 +147,16 @@
 </template>
 
 <script setup lang="ts">
-import { FetchError } from 'ofetch'
+import type {
+  BookingCheckoutState,
+  BookingErrorCode,
+  BookingRequest,
+  BookingResponse,
+  BookingService,
+  BookingStepId,
+} from '@/types/booking'
 
-import type { BookingRequest, BookingService, BookingStepId } from '@/types/booking'
-
-import { BOOKING_SERVICES, BOOKING_STEPS, IS_ONLINE_PAYMENT_ENABLED } from '@/constants/booking'
+import { BOOKING_SERVICES, BOOKING_STEPS, BOOKING_SUBMIT_ERROR_KEYS } from '@/constants/booking'
 import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 definePageMeta({
@@ -168,6 +169,8 @@ const { draft, totalQuantity, resetDraft } = useBookingDraft()
 const { reset: resetAvailability } = useBookingAvailability()
 const { priceCents } = useBookingPrice()
 const { errorFor } = useBookingValidation()
+const checkout: BookingCheckoutState = useBookingCheckout()
+const { rememberCheckout, readOutcome, waitForRelease, readErrorCode } = checkout
 
 useSeoMeta({
   title: () => t('booking.seo.title'),
@@ -183,6 +186,7 @@ const hasAttempted: Ref<boolean> = ref(false)
 const isConfirmed: Ref<boolean> = ref(false)
 const isSubmitting: Ref<boolean> = ref(false)
 const submitErrorKey: Ref<string | null> = ref(null)
+const website: Ref<string> = ref('')
 const stepTitleRef: Ref<HTMLElement | null> = ref(null)
 
 const currentIndex: ComputedRef<number> = computed(() => BOOKING_STEPS.indexOf(currentStep.value))
@@ -204,11 +208,6 @@ const showStep = async (step: BookingStepId): Promise<void> => {
   stepTitleRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' })
 }
 
-const SUBMIT_ERROR_BY_STATUS: Record<number, string> = {
-  409: 'booking.errors.dayTaken',
-  422: 'booking.errors.outOfArea',
-}
-
 const buildRequest = (): BookingRequest | null => {
   const { address, date, contact, plan, quantities, collection } = draft.value
   if (!address || !date) {
@@ -224,17 +223,18 @@ const buildRequest = (): BookingRequest | null => {
     householdCollectionWeekdays: collection.household.weekdays,
     recyclingCollectionWeekdays: collection.recycling.weekdays,
     binsReadyConfirmed: draft.value.hasConfirmedBinsReady,
+    locale: locale.value,
+    website: website.value,
   }
 }
 
 const handleSubmitError = async (error: unknown): Promise<void> => {
-  const status: number | undefined = error instanceof FetchError ? error.statusCode : undefined
-  const errorKey: string = (status && SUBMIT_ERROR_BY_STATUS[status]) || 'booking.errors.submit'
-  if (status === 409) {
+  const code: BookingErrorCode | null = readErrorCode(error)
+  if (code === 'dayTaken') {
     draft.value.date = null
     await showStep('schedule')
   }
-  submitErrorKey.value = errorKey
+  submitErrorKey.value = code ? BOOKING_SUBMIT_ERROR_KEYS[code] : 'booking.errors.submit'
 }
 
 const submitBooking = async (): Promise<void> => {
@@ -244,19 +244,26 @@ const submitBooking = async (): Promise<void> => {
   }
   isSubmitting.value = true
   try {
-    await $fetch('/api/booking', { method: 'POST', body: request })
-    isConfirmed.value = true
+    await waitForRelease()
+    const response: BookingResponse = await $fetch<BookingResponse>('/api/booking', {
+      method: 'POST',
+      body: request,
+    })
+    rememberCheckout(response.bookingId, draft.value)
+    await navigateTo(response.checkoutUrl, { external: true })
   } catch (error) {
     await handleSubmitError(error)
-  } finally {
     isSubmitting.value = false
   }
 }
 
 const goNext = async (): Promise<void> => {
+  if (isSubmitting.value) {
+    return
+  }
   hasAttempted.value = true
   submitErrorKey.value = null
-  if (stepErrorKey.value || isSubmitting.value) {
+  if (stepErrorKey.value) {
     return
   }
   const nextStep: BookingStepId | undefined = BOOKING_STEPS[currentIndex.value + 1]
@@ -290,5 +297,15 @@ const preselectService = (): void => {
   }
 }
 
-preselectService()
+if (!readOutcome()) {
+  preselectService()
+}
+
+useBookingCheckoutReturn({
+  checkout,
+  isSubmitting,
+  isConfirmed,
+  submitErrorKey,
+  showStep,
+})
 </script>

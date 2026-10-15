@@ -9,8 +9,6 @@ export default {
     title: 'Book your cleaning',
     subtitle: 'Four steps, about two minutes. No password to create.',
   },
-  demoNotice:
-    'Online payment is not enabled yet: a booking holds its slot for 35 minutes, then expires without being confirmed.',
   steps: {
     ariaLabel: 'Booking steps',
     progress: 'Step {current} of {total}',
@@ -44,9 +42,12 @@ export default {
     back: 'Back',
     continue: 'Continue',
     pay: 'Pay {amount}',
-    submitting: 'Saving…',
+    submitting: 'Redirecting to payment…',
+    submittingStatus: 'Saving your booking, redirecting to payment…',
   },
   errors: {
+    paymentCancelled:
+      'Payment cancelled, you have not been charged. Check your booking and start the payment again.',
     contact: 'Check the fields highlighted above.',
     address: 'Select an address from the list to continue.',
     outOfArea: 'This address is outside our service area.',
@@ -59,6 +60,8 @@ export default {
     binsReady: 'You must confirm that your bins will be empty and accessible.',
     terms: 'You must accept the terms to continue.',
     dayTaken: 'This day has just been booked by someone else. Please choose another one.',
+    pendingPayment:
+      'A payment is already in progress for this email address. Complete it or try again in a few minutes.',
     submit: 'The booking could not be saved. Try again in a moment.',
   },
   countries: {
@@ -186,6 +189,9 @@ export default {
     termsLink: 'Read the privacy policy',
     securePayment: 'Secure payment by Stripe. No card data goes through our website.',
   },
+  checkout: {
+    productName: 'BINOVYA bin cleaning ({plan})',
+  },
   summary: {
     title: 'Your booking',
     address: 'Address',
@@ -199,10 +205,8 @@ export default {
     taxNote: 'Prices include VAT, online payment.',
   },
   confirmation: {
-    title: 'Your booking is recorded',
-    text: 'A confirmation email is sent to {email}. We will come on {date}.',
-    demoText:
-      'Online payment is not enabled yet: this booking is not confirmed and its slot will be released automatically.',
+    title: 'Payment received, thank you!',
+    text: 'The confirmation email for your visit on {date} will be sent to {email} shortly.',
     nextTitle: 'What happens next?',
     nextSteps: {
       reminder: 'You get an email reminder before our visit.',

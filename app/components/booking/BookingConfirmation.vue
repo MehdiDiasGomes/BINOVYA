@@ -20,22 +20,13 @@
     >
       {{ $t('booking.confirmation.title') }}
     </h2>
-    <p
-      v-if="IS_ONLINE_PAYMENT_ENABLED && draft.date"
-      class="mt-3 text-[15px] leading-relaxed text-ink/80"
-    >
+    <p v-if="draft.date" class="mt-3 text-[15px] leading-relaxed text-ink/80">
       {{
         $t('booking.confirmation.text', {
           email: draft.contact.email,
           date: formatLongDate(draft.date, locale),
         })
       }}
-    </p>
-    <p
-      v-else
-      class="mt-4 rounded-xl border border-amber-700/30 bg-amber-50 p-3 text-sm font-semibold text-ink"
-    >
-      {{ $t('booking.confirmation.demoText') }}
     </p>
 
     <div class="mt-8 rounded-xl bg-paper-2 p-5 text-left">
@@ -56,13 +47,13 @@
     <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
       <NuxtLink
         :to="localePath('/')"
-        class="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+        class="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {{ $t('booking.confirmation.home') }}
       </NuxtLink>
       <button
         type="button"
-        class="flex h-12 items-center justify-center rounded-lg border border-ink/50 px-6 text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+        class="flex h-12 items-center justify-center rounded-lg border border-ink/50 px-6 text-sm font-bold text-ink transition-all duration-150 hover:border-primary hover:bg-paper-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
         @click="emit('restart')"
       >
         {{ $t('booking.confirmation.newBooking') }}
@@ -72,7 +63,6 @@
 </template>
 
 <script setup lang="ts">
-import { IS_ONLINE_PAYMENT_ENABLED } from '@/constants/booking'
 import { POP_SPRING } from '@/constants/motion'
 
 type NextStep = {
