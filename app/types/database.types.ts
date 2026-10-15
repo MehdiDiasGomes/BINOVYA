@@ -6,6 +6,7 @@ type BookingStatus = 'pending_payment' | 'paid' | 'completed' | 'cancelled' | 'e
 type BookingPlan = 'one_off' | 'quarterly' | 'annual'
 type PhotoKind = 'before' | 'after'
 type QuoteStatus = 'new' | 'answered' | 'closed'
+type QuoteEquipment = 'bins' | 'pav' | 'urban_furniture' | 'signage'
 type CountryCode = 'FR' | 'LU'
 
 type Table<Row, Required extends keyof Row = never> = {
@@ -73,6 +74,7 @@ type QuoteRequestRow = {
   longitude: number | null
   small_bin_count: number
   large_bin_count: number
+  equipment: QuoteEquipment[]
   plan: BookingPlan | null
   comment: string | null
   photo_paths: string[]
@@ -186,6 +188,7 @@ export type Database = {
       booking_plan: BookingPlan
       photo_kind: PhotoKind
       quote_status: QuoteStatus
+      quote_equipment: QuoteEquipment
     }
     CompositeTypes: { [_ in never]: never }
   }
