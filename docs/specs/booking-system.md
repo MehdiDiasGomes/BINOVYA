@@ -24,14 +24,14 @@ ses réservations et les photos avant/après depuis son espace client.
 
 ## Services retenus
 
-| Besoin                          | Service  | État        |
-| ------------------------------- | -------- | ----------- |
-| Mail                            | Resend   | Déjà en place |
-| SMS                             | Brevo    | À connecter |
-| Paiement                        | Stripe   | À connecter |
-| Comptes, base de données, photos | Supabase | À connecter |
-| Géocodage des adresses          | Géoplateforme IGN (France) et geoportail.lu (Luxembourg) | À connecter |
-| Distances routières et tournées | OSRM et VROOM (auto-hébergés) | À installer |
+| Besoin                           | Service                                                  | État          |
+| -------------------------------- | -------------------------------------------------------- | ------------- |
+| Mail                             | Resend                                                   | Déjà en place |
+| SMS                              | Brevo                                                    | À connecter   |
+| Paiement                         | Stripe                                                   | À connecter   |
+| Comptes, base de données, photos | Supabase                                                 | À connecter   |
+| Géocodage des adresses           | Géoplateforme IGN (France) et geoportail.lu (Luxembourg) | À connecter   |
+| Distances routières et tournées  | OSRM et VROOM (auto-hébergés)                            | À installer   |
 
 En production, tous les comptes sont au nom du client final, le développeur y est invité.
 En développement : Stripe en mode test sur le compte du développeur, Supabase dans une
@@ -68,8 +68,10 @@ recycling_collection_weekdays         first_name, last_name, company
 bins_ready_confirmed_at               email, phone
 status (pending_payment | paid |      address, city, postcode, country_code
         completed | cancelled |       latitude, longitude
-        expired)                      small_bin_count, large_bin_count
-amount_total_cents                    plan
+        expired)                      equipment (bins | pav | urban_furniture
+amount_total_cents                      | signage, au moins un)
+                                      small_bin_count, large_bin_count (0 sans bacs)
+                                      plan
 stripe_checkout_session_id            comment, photo_paths
 stripe_payment_intent_id              status (new | answered | closed)
 expires_at
@@ -106,8 +108,14 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
   transaction, puis libérée (`expired`) si la session Stripe expire sans paiement.
 - **Bornes** : délai minimum avant intervention et horizon maximum de réservation, à définir.
 - **Paiement** : la réservation est créée en `pending_payment`, le webhook Stripe la passe en `paid`.
-- **Public** : réservation en ligne pour les particuliers uniquement, les professionnels
-  passent par le formulaire de contact pour un devis.
+- **Public** : particuliers et professionnels réservent en ligne sur la même grille tarifaire
+  (1 ou 2 bacs, hors 1 petit + 1 grand). Au-delà, ou pour d'autres équipements et les remises de
+  volume, ils demandent un devis sur `/quote`, page unique pour tous les publics.
+  `/quote` couvre bacs, PAV, mobilier urbain et signalétique, au moins un type à cocher. Le
+  nombre de bacs n'est demandé que si « bacs » est coché.
+- **Contact** : `/contact` sert aux questions et aux demandes de rendez-vous (objet
+  `meeting`, `info` ou `other`), pas aux devis. Les liens « adresse hors zone » et « aucune date
+  disponible » du parcours de réservation y mènent.
 - **Prestations** : une réservation contient une ou plusieurs lignes (`booking_items`), une
   par prestation, avec sa quantité et son total figé.
 - **Tarif dégressif** : premier bac au prix plein, suivants au prix réduit (petits bacs
