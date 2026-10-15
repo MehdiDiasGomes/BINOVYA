@@ -1,17 +1,29 @@
 <template>
-  <section id="accueil" class="overflow-hidden bg-gradient-to-b from-[#020810] via-navy-950 to-navy-900 py-20">
+  <section
+    id="accueil"
+    class="overflow-hidden bg-gradient-to-b from-[#020810] via-navy-950 to-navy-900 py-20"
+  >
     <div class="mx-auto max-w-[1180px] px-8">
       <div class="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
         <!-- Texte -->
         <div>
-          <span :class="HERO_ENTER_CLASS" class="mb-3.5 inline-block text-[13px] font-bold uppercase tracking-[1.5px] text-turquoise">
+          <span
+            :class="HERO_ENTER_CLASS"
+            class="mb-3.5 inline-block text-[13px] font-bold uppercase tracking-[1.5px] text-turquoise"
+          >
             {{ $t('hero.eyebrow') }}
           </span>
-          <h1 :class="HERO_ENTER_CLASS" class="delay-75 mb-5 text-[44px] font-black leading-[1.12] text-white lg:text-5xl">
+          <h1
+            :class="HERO_ENTER_CLASS"
+            class="delay-75 mb-5 text-[44px] font-black leading-[1.12] text-white lg:text-5xl"
+          >
             {{ $t('hero.titleMain') }}
             <span class="text-turquoise">{{ $t('hero.titleAccent') }}</span>
           </h1>
-          <p :class="HERO_ENTER_CLASS" class="delay-150 mb-8 max-w-[500px] text-[16.5px] leading-relaxed text-[#c4d6e2]">
+          <p
+            :class="HERO_ENTER_CLASS"
+            class="delay-150 mb-8 max-w-[500px] text-[16.5px] leading-relaxed text-[#c4d6e2]"
+          >
             {{ $t('hero.lead') }}
           </p>
 
@@ -25,16 +37,18 @@
               {{ $t('hero.ctaReserver') }}
             </NuxtLink>
             <NuxtLink
-              :to="localePath('/professionals')"
-              class="flex items-center gap-2 rounded-lg border border-white/25 px-5 py-3.5 text-sm font-bold text-white transition-all hover:border-turquoise hover:bg-turquoise/8"
-              :aria-label="$t('hero.ctaDevisAriaLabel')"
+              :to="localePath('/quote')"
+              class="flex items-center gap-2 rounded-lg border border-white/25 px-5 py-3.5 text-sm font-bold text-white transition-all hover:border-turquoise hover:bg-turquoise/8 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
             >
               <Icon name="FileText" :size="16" aria-hidden="true" />
               {{ $t('hero.ctaDevis') }}
             </NuxtLink>
           </div>
 
-          <div :class="HERO_ENTER_CLASS" class="delay-300 mt-2 grid grid-cols-2 gap-3.5 sm:grid-cols-4">
+          <div
+            :class="HERO_ENTER_CLASS"
+            class="delay-300 mt-2 grid grid-cols-2 gap-3.5 sm:grid-cols-4"
+          >
             <div
               v-for="badge in heroBadges"
               :key="badge.key"
@@ -49,7 +63,9 @@
         </div>
 
         <!-- Image -->
-        <div class="animate-in fade-in zoom-in-95 fill-mode-both delay-150 duration-1000 motion-reduce:animate-none relative">
+        <div
+          class="animate-in fade-in zoom-in-95 fill-mode-both delay-150 duration-1000 motion-reduce:animate-none relative"
+        >
           <NuxtImg
             src="/images/hero.png"
             :alt="$t('hero.imageAlt')"
@@ -63,7 +79,9 @@
             aria-live="polite"
           >
             <span class="relative flex h-2 w-2">
-              <span class="absolute inline-flex h-full w-full animate-ping rounded-full motion-reduce:animate-none bg-green-500 opacity-75" />
+              <span
+                class="absolute inline-flex h-full w-full animate-ping rounded-full motion-reduce:animate-none bg-green-500 opacity-75"
+              />
               <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
             </span>
             {{ $t('hero.platNote') }}
