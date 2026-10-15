@@ -178,6 +178,15 @@ export type Database = {
         }
         Returns: { new_booking_id: string; total_cents: number }[]
       }
+      confirm_booking_payment: {
+        Args: {
+          p_booking_id: string
+          p_checkout_session_id: string
+          p_payment_intent_id: string
+          p_amount_cents: number
+        }
+        Returns: 'paid' | 'already_paid' | 'refund_required' | 'not_payable' | 'not_found'
+      }
       expire_stale_bookings: {
         Args: Record<string, never>
         Returns: number
