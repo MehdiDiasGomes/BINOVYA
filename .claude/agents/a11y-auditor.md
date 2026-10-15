@@ -35,7 +35,7 @@ used. Problems unrelated to accessibility go under "Hors périmètre" in one lin
    `aria-activedescendant`, Arrow / Enter / Escape handled. Visually hidden inputs (`sr-only`)
    still show focus on their visible proxy (`peer-focus-visible:` or `has-[:focus-visible]:`).
 5. **Focus**: every interactive element has a visible `focus-visible:` style. After a step change
-   or a success screen, focus lands on the new heading (see `QuoteSent.vue`, `tabindex="-1"` +
+   or a success screen, focus lands on the new heading (see `FormSent.vue`, `tabindex="-1"` +
    `focus()` on mount). Modals trap focus and restore it on close.
 6. **Headings**: one `h1` per page, no skipped level, `legend` / `h2` for form sections.
 7. **Images and icons**: decorative images `alt=""`, meaningful images have a translated `alt`.

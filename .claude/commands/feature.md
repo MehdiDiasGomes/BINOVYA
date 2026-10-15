@@ -44,10 +44,13 @@ step 5 with `security-auditor`.
 3. Run `bun run lint`, `bunx nuxi typecheck` and `bunx prettier --check <change set>`. Fix every
    error in the change set. Keep the outputs: read-only agents cannot run commands.
 
-## 4. Styling (only if templates changed)
+## 4. Styling and motion (only if templates changed)
 
-Launch `ui-stylist` alone with: the feature description, the `.vue` files of the change set, and
-the pages to take as reference. Re-run lint and prettier on the files it touched.
+Launch `ui-stylist` alone with: the feature description, the `.vue` files of the change set, the
+pages to take as reference, and which elements appear, disappear or change state (conditional
+blocks, success screens, steps) so it can animate them. Re-run lint, typecheck and prettier on the
+files it touched, including `app/constants/motion.ts` if it added a preset. Keep its "À vérifier
+dans le navigateur" list for the handover: animations are only validated by the user in a browser.
 
 ## 5. Audits (in parallel, read-only)
 
@@ -90,5 +93,7 @@ Do not commit. Give the user a table with one row per item marked ✅ or ❌:
 | Étape | Agent | Résultat |
 | ----- | ----- | -------- |
 
-followed by: findings left open with their severity, manual actions for the user, and the
-suggested gitmoji commit message(s). The user commits with `/ship`.
+followed by: findings left open with their severity, manual actions for the user, a numbered
+browser test list (pages, actions, expected result, including the animations from ui-stylist and
+a pass with the system "reduce motion" setting on), and the suggested gitmoji commit message(s).
+The user commits with `/ship`.

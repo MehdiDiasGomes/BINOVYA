@@ -252,14 +252,14 @@ Nuxt provides auto-imports for composables, components, and utilities. ESLint is
 The main session is the orchestrator: it implements the code and delegates the rest to the
 subagents in `.claude/agents/`. Full pipeline: `/feature <description>` (`.claude/commands/feature.md`).
 
-| Agent              | Model  | Writes                                                       | Runs when                                     |
-| ------------------ | ------ | ------------------------------------------------------------ | --------------------------------------------- |
-| `db-migrator`      | sonnet | new `supabase/migrations/*.sql`, `database.types.ts`         | the schema changes, before implementation     |
-| `ui-stylist`       | sonnet | Tailwind classes and markup in `app/pages`, `app/components` | templates changed, after implementation       |
-| `security-auditor` | opus   | nothing (read-only)                                          | `server/`, `supabase/`, auth, payments, input |
-| `a11y-auditor`     | sonnet | nothing (read-only)                                          | `.vue` or `i18n/` changed                     |
-| `code-reviewer`    | opus   | nothing (read-only)                                          | always, last before commit                    |
-| `docs-writer`      | sonnet | `docs/` only                                                 | end of feature                                |
+| Agent              | Model  | Writes                                                                                                                  | Runs when                                     |
+| ------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| `db-migrator`      | sonnet | new `supabase/migrations/*.sql`, `database.types.ts`                                                                    | the schema changes, before implementation     |
+| `ui-stylist`       | sonnet | Tailwind classes, markup and motion-v animations in `app/pages`, `app/components`; presets in `app/constants/motion.ts` | templates changed, after implementation       |
+| `security-auditor` | opus   | nothing (read-only)                                                                                                     | `server/`, `supabase/`, auth, payments, input |
+| `a11y-auditor`     | sonnet | nothing (read-only)                                                                                                     | `.vue` or `i18n/` changed                     |
+| `code-reviewer`    | opus   | nothing (read-only)                                                                                                     | always, last before commit                    |
+| `docs-writer`      | sonnet | `docs/` only                                                                                                            | end of feature                                |
 
 Rules:
 
