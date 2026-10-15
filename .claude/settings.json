@@ -3,5 +3,20 @@
     "vercel@claude-plugins-official": false,
     "stripe@claude-plugins-official": true,
     "frontend-design@claude-plugins-official": true
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_response.filePath // .tool_input.file_path // empty'); case \"$f\" in \"$CLAUDE_PROJECT_DIR\"/*) ;; *) exit 0;; esac; case \"$f\" in */node_modules/*|*/.nuxt/*|*/.output/*|*/supabase/*) exit 0;; esac; case \"$f\" in *.ts|*.vue|*.js|*.mjs|*.json|*.md) cd \"$CLAUDE_PROJECT_DIR\" && bunx prettier --write --log-level warn \"$f\" 2>/dev/null || true;; esac",
+            "timeout": 30,
+            "statusMessage": "Prettier"
+          }
+        ]
+      }
+    ]
   }
 }

@@ -73,7 +73,7 @@ export const notifyQuoteRequest = async (
 ): Promise<void> => {
   const config = useRuntimeConfig()
   if (!config.resendApiKey || !config.contactEmailTo) {
-    console.warn('Quote email skipped: RESEND_API_KEY or CONTACT_EMAIL_TO is not set')
+    console.warn('Quote email skipped: NUXT_RESEND_API_KEY or NUXT_CONTACT_EMAIL_TO is not set')
     return
   }
 

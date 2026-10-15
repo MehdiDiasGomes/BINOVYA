@@ -44,14 +44,18 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [x] Enregistrement en base et mail à BINOVYA
 - [x] Bandeau devis/contact à la place de `ProFormSection`
 - [x] Page `/contact` refaite, API contact validée et protégée
-- [ ] Renseigner `RESEND_API_KEY` et `CONTACT_EMAIL_TO` pour que les mails de devis et de contact
-      partent (le devis est enregistré sans eux, mais `/contact` répond 503)
+- [ ] Renseigner `NUXT_RESEND_API_KEY` et `NUXT_CONTACT_EMAIL_TO` pour que les mails de devis et
+      de contact partent (le devis est enregistré sans eux, mais `/contact` répond 503)
 
 ## 5. Paiement
 
-- [ ] Stripe Checkout à la création de la réservation
-- [ ] Webhook : `pending_payment` → `paid`
-- [ ] `pg_cron` : `expire_stale_bookings`
+- [x] Stripe Checkout à la création de la réservation
+- [x] Webhook : `pending_payment` → `paid`
+- [x] `pg_cron` : `expire_stale_bookings`
+- [ ] Renseigner `NUXT_STRIPE_SECRET_KEY`, `NUXT_STRIPE_WEBHOOK_SECRET` et `NUXT_SITE_URL`. En
+      local : `stripe listen --forward-to localhost:3000/api/stripe/webhook`. En production :
+      créer le endpoint webhook dans le Dashboard Stripe (`checkout.session.completed`,
+      `checkout.session.expired`)
 
 ## 6. Mails
 
@@ -93,6 +97,8 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [ ] Supervision : Prometheus, Loki, Alloy, Grafana, node-exporter, cAdvisor
 - [ ] Logs JSON côté Nitro
 - [ ] Contrôle de disponibilité externe
+- [ ] Caddy : limite de débit par IP sur `/api/booking`, `/api/booking/release`, `/api/contact`
+      et `/api/quote`
 
 ## 11. CI/CD
 
@@ -113,6 +119,7 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [ ] Mentions légales (hébergeur VPS, Supabase)
 - [ ] CGV : annulation, report, remboursement
 - [ ] Politique de confidentialité : données client, photos, durées de conservation
+- [ ] Décider du sort des réservations abandonnées et de leurs comptes (purge ou anonymisation)
 
 ## 14. Après le lancement
 

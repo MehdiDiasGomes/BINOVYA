@@ -1,6 +1,6 @@
 # Spec technique
 
-> Statut : en cours de définition. Dernière mise à jour : 2026-10-14.
+> Statut : en cours de définition. Dernière mise à jour : 2026-10-15.
 > Spec fonctionnelle associée : [booking-system.md](./booking-system.md).
 
 ## Vue d'ensemble
@@ -138,12 +138,71 @@
 - Corps plafonné à 16 Ko par `assertBodySize` (voir « Demandes de devis »). Entrée invalide : 400.
 - Champ piège rempli : l'API répond comme un succès sans rien envoyer, pour ne pas indiquer au
   robot qu'il a été repéré.
-- Le mail part à `CONTACT_EMAIL_TO` via Resend, avec `replyTo` sur l'e-mail du client. Toutes les
-  valeurs sont échappées en HTML. Contrairement au devis, rien n'est stocké en base : le mail est
-  la demande.
-- Erreurs : 503 si `RESEND_API_KEY` ou `CONTACT_EMAIL_TO` manque, 502 si Resend échoue. Le client
-  voit donc un échec plutôt qu'un faux succès.
+- Le mail part à `NUXT_CONTACT_EMAIL_TO` via Resend, avec `replyTo` sur l'e-mail du client. Toutes
+  les valeurs sont échappées en HTML. Contrairement au devis, rien n'est stocké en base : le mail
+  est la demande.
+- Erreurs : 503 si `NUXT_RESEND_API_KEY` ou `NUXT_CONTACT_EMAIL_TO` manque, 502 si Resend échoue.
+  Le client voit donc un échec plutôt qu'un faux succès.
 - Une limite de débit par IP reste à poser sur Caddy.
+
+## Paiement
+
+### Création de la réservation
+
+- `POST /api/booking` (`server/api/booking/index.post.ts`) : corps plafonné à 16 Ko, validé par
+  `bookingRequestSchema`. Il retrouve ou crée le client, appelle `create_booking` (place bloquée
+  35 minutes), ouvre une session Stripe Checkout et renvoie `{ bookingId, amountTotalCents,
+checkoutUrl }`. Le navigateur est ensuite redirigé vers `checkoutUrl`.
+- Checkout (`server/utils/bookingCheckout.ts`) : carte uniquement, session de 31 minutes. Elle
+  expire avant la fin de la place (35 minutes), pour qu'un paiement ne puisse pas aboutir sur une
+  place déjà libérée. Clé d'idempotence `booking-checkout-<id>`.
+- Le nom du produit vient de la clé i18n `booking.checkout.productName`, où `{plan}` est remplacé
+  par `booking.plans.<plan>.title`. La description est la date en format long dans la langue du
+  client.
+- Retour sur `/booking?checkout=success` ou `?checkout=cancelled` (préfixe `/en` en anglais).
+  `NUXT_SITE_URL` est obligatoire, en https hors développement, sinon 503 « Payment unavailable ».
+- Codes d'erreur : 409 `dayTaken`, 409 `pendingPayment`, 422 `outOfArea`, `quoteRequired`,
+  `binsNotConfirmed`. Tout autre refus de `create_booking` donne 400 « Booking rejected ». Le code
+  métier est lu par le front dans `data.code`. 502 si la création de la session échoue, 500 si le
+  rattachement de la session à la réservation échoue : dans les deux cas la session est expirée
+  et la réservation libérée.
+- Un client n'a qu'une réservation `pending_payment` active : sinon 409 `pendingPayment`. Le
+  contrôle se fait dans `create_booking` sous un verrou consultatif par client, pour que deux
+  requêtes simultanées ne passent pas toutes les deux. Index
+  `bookings_customer_id_status_expires_at_idx`.
+- Anti-abus : champ piège `website`. S'il est rempli, l'API renvoie un faux succès qui redirige
+  vers `?checkout=cancelled` et ne crée rien. Limite de débit par IP sur `/api/booking` et
+  `/api/booking/release` : à poser sur Caddy (étape 10).
+
+### Webhook Stripe
+
+- `POST /api/stripe/webhook` (`server/api/stripe/webhook.post.ts`) : corps plafonné à 512 Ko,
+  signature vérifiée avec `NUXT_STRIPE_WEBHOOK_SECRET` sur le corps brut. 503 si le secret manque,
+  400 si la signature est absente ou invalide.
+- `checkout.session.completed` : appelle `confirm_booking_payment`, qui verrouille la réservation
+  et compare la session et le montant. Réservation encore valable : `paid`. Réservation expirée
+  par le cron ou par l'expiration de la session : elle passe `paid` si le jour est encore
+  disponible sous le verrou du jour, sinon le webhook la passe `cancelled` et rembourse. Un
+  paiement sur une réservation déjà `cancelled` est remboursé.
+- `checkout.session.expired` : `pending_payment` devient `expired`.
+- Chaque mise à jour est conditionnée au statut courant et les remboursements ont une clé
+  d'idempotence `booking-refund-<id>` : un événement rejoué ne change rien. Un échec renvoie 500,
+  pour que Stripe rejoue l'événement.
+
+### Libération d'une réservation abandonnée
+
+- `POST /api/booking/release` (corps `{ bookingId }`, 1 Ko, réponse `{ isReleased }`) expire la
+  session Stripe puis passe la réservation à `expired`. Si la session ne peut pas être expirée
+  (par exemple déjà payée), rien n'est libéré. Une réservation payée n'est jamais touchée.
+- Le front garde le brouillon et l'identifiant dans `sessionStorage` pendant la redirection
+  (`useBookingCheckout.ts`). Au retour (`useBookingCheckoutReturn.ts`), la libération part dans
+  trois cas : `?checkout=cancelled`, bouton Retour du navigateur (bfcache, événement `pageshow`),
+  rechargement de `/booking` sans `?checkout` avec une entrée stockée (aucun message dans ce
+  dernier cas). Le brouillon est restauré à l'étape paiement. Sans entrée stockée : étape
+  coordonnées, rien n'est libéré.
+- Sur `?checkout=success`, l'écran de confirmation s'affiche sans attendre le webhook.
+- Le `pg_cron` `expire_stale_bookings` rattrape ce que ces mécanismes ratent (voir « Tâches
+  planifiées »).
 
 ## Hébergement
 
@@ -218,26 +277,40 @@ gestionnaire de mots de passe.
 
 ## Tâches planifiées
 
-| Tâche                                                         | Outil                   |
-| ------------------------------------------------------------- | ----------------------- |
-| Libérer les réservations non payées (`expire_stale_bookings`) | `pg_cron`               |
-| SMS de la veille et du jour J                                 | `pg_cron`               |
-| Mise à jour des cartes OSRM                                   | GitHub Action mensuelle |
+| Tâche                                                         | Outil                       |
+| ------------------------------------------------------------- | --------------------------- |
+| Libérer les réservations non payées (`expire_stale_bookings`) | `pg_cron`, toutes les 5 min |
+| SMS de la veille et du jour J                                 | `pg_cron`                   |
+| Mise à jour des cartes OSRM                                   | GitHub Action mensuelle     |
+
+Le job `expire-stale-bookings` (`*/5 * * * *`) appelle `public.expire_stale_bookings()`.
 
 ## Variables d'environnement
 
-| Variable                    | Usage                                    |
-| --------------------------- | ---------------------------------------- |
-| `NUXT_PUBLIC_SUPABASE_URL`  | URL du projet Supabase                   |
-| `NUXT_PUBLIC_SUPABASE_KEY`  | Clé publique Supabase                    |
-| `NUXT_SUPABASE_SERVICE_KEY` | Clé secrète Supabase, serveur uniquement |
-| `RESEND_API_KEY`            | Envoi des mails                          |
-| `CONTACT_EMAIL_TO`          | Destinataire du formulaire de contact    |
-| `STRIPE_SECRET_KEY`         | Paiement                                 |
-| `STRIPE_WEBHOOK_SECRET`     | Vérification des webhooks Stripe         |
-| `BREVO_API_KEY`             | Envoi des SMS                            |
-| `OSRM_URL`                  | URL interne d'OSRM                       |
-| `VROOM_URL`                 | URL interne de VROOM                     |
+| Variable                     | Usage                                                    |
+| ---------------------------- | -------------------------------------------------------- |
+| `NUXT_PUBLIC_SUPABASE_URL`   | URL du projet Supabase                                   |
+| `NUXT_PUBLIC_SUPABASE_KEY`   | Clé publique Supabase                                    |
+| `NUXT_SUPABASE_SECRET_KEY`   | Clé secrète Supabase, serveur uniquement                 |
+| `NUXT_RESEND_API_KEY`        | Envoi des mails                                          |
+| `NUXT_CONTACT_EMAIL_TO`      | Destinataire du formulaire de contact                    |
+| `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                 |
+| `NUXT_STRIPE_WEBHOOK_SECRET` | Vérification des webhooks Stripe                         |
+| `NUXT_SITE_URL`              | URL publique, pages de retour de Stripe (https en prod.) |
+| `BREVO_API_KEY`              | Envoi des SMS                                            |
+| `OSRM_URL`                   | URL interne d'OSRM                                       |
+| `VROOM_URL`                  | URL interne de VROOM                                     |
+
+Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`runtimeConfig` dans
+`nuxt.config.ts`), pas à la construction : aucun secret n'est figé dans l'image Docker.
+
+### Mise en place de Stripe
+
+- En local : `stripe listen --forward-to localhost:3000/api/stripe/webhook`, puis copier le
+  `whsec_` affiché dans `NUXT_STRIPE_WEBHOOK_SECRET`.
+- En production : créer le endpoint webhook dans le Dashboard Stripe vers
+  `/api/stripe/webhook`, avec les événements `checkout.session.completed` et
+  `checkout.session.expired`, puis reporter son secret.
 
 ## Légal
 

@@ -39,7 +39,7 @@ outdated, say so under "Hors périmètre".
   (e.g. `## Demandes de devis`) with bullet lists; `docs/TODO.md` uses numbered `##` steps and
   `- [ ]` / `- [x]` items.
 - Name files, routes, tables and env vars in backticks (`POST /api/quote`, `quote_requests`,
-  `RESEND_API_KEY`).
+  `NUXT_RESEND_API_KEY`).
 - Explain the why of non-obvious choices (e.g. "contrôlées sur leur signature réelle, jamais
   sur le type déclaré par le navigateur"). Code reasoning belongs here, not in code comments.
 - No marketing tone, no emojis outside `CONTRIBUTING.md`.

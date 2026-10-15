@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { contactSchema } from '@/utils/bookingValidation'
+import { contactSchema, honeypotSchema } from '@/utils/bookingValidation'
 
 const latitude = z.coerce.number().min(-90).max(90)
 const longitude = z.coerce.number().min(-180).max(180)
@@ -34,9 +34,13 @@ export const bookingRequestSchema = z.object({
   householdCollectionWeekdays: weekdays,
   recyclingCollectionWeekdays: weekdays,
   binsReadyConfirmed: z.literal(true),
-  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  date: z.string().date(),
   contact: contactSchema,
+  locale: z.enum(['fr', 'en']).default('fr'),
+  website: honeypotSchema,
 })
+
+export const bookingReleaseSchema = z.object({ bookingId: z.string().uuid() })
 
 export const bookingSettingsSchema = z.object({
   depot_latitude: z.number(),

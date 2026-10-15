@@ -9,8 +9,6 @@ export default {
     title: 'Réservez votre intervention',
     subtitle: 'Quatre étapes, environ deux minutes. Sans création de mot de passe.',
   },
-  demoNotice:
-    "Le paiement en ligne n'est pas encore activé : une réservation bloque sa place 35 minutes, puis expire sans être confirmée.",
   steps: {
     ariaLabel: 'Étapes de la réservation',
     progress: 'Étape {current} sur {total}',
@@ -44,9 +42,12 @@ export default {
     back: 'Retour',
     continue: 'Continuer',
     pay: 'Payer {amount}',
-    submitting: 'Enregistrement…',
+    submitting: 'Redirection vers le paiement…',
+    submittingStatus: 'Réservation en cours d’enregistrement, redirection vers le paiement…',
   },
   errors: {
+    paymentCancelled:
+      'Paiement annulé, aucune somme n’a été débitée. Vérifiez votre réservation puis relancez le paiement.',
     contact: 'Vérifiez les champs signalés ci-dessus.',
     address: 'Sélectionnez une adresse dans la liste pour continuer.',
     outOfArea: "Cette adresse est hors de notre zone d'intervention.",
@@ -60,6 +61,8 @@ export default {
     binsReady: 'Vous devez confirmer que vos bacs seront vides et accessibles.',
     terms: 'Vous devez accepter les conditions pour continuer.',
     dayTaken: "Ce jour vient d'être réservé par quelqu'un d'autre. Choisissez-en un autre.",
+    pendingPayment:
+      'Un paiement est déjà en cours pour cette adresse email. Terminez-le ou réessayez dans quelques minutes.',
     submit: "La réservation n'a pas pu être enregistrée. Réessayez dans un instant.",
   },
   countries: {
@@ -189,6 +192,9 @@ export default {
     securePayment:
       'Paiement sécurisé par Stripe. Aucune donnée bancaire ne transite par notre site.',
   },
+  checkout: {
+    productName: 'Nettoyage de bacs BINOVYA ({plan})',
+  },
   summary: {
     title: 'Votre réservation',
     address: 'Adresse',
@@ -202,10 +208,8 @@ export default {
     taxNote: 'Prix TTC, paiement en ligne.',
   },
   confirmation: {
-    title: 'Votre réservation est enregistrée',
-    text: 'Un email de confirmation vous est envoyé à {email}. Nous passerons le {date}.',
-    demoText:
-      "Le paiement en ligne n'est pas encore activé : cette réservation n'est pas confirmée et sa place sera libérée automatiquement.",
+    title: 'Paiement reçu, merci !',
+    text: 'Vous allez recevoir à {email} l’email de confirmation de votre passage du {date}.',
     nextTitle: 'Et maintenant ?',
     nextSteps: {
       reminder: 'Vous recevez un rappel par email avant notre passage.',
