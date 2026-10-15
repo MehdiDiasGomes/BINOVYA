@@ -1,7 +1,14 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { pickFreeDates } from '../support/dates'
-import { assertTestStripeKey, cleanupE2eData, findBookings, type BookingRow } from '../support/db'
+import {
+  assertTestStripeKey,
+  cleanupE2eData,
+  findBookings,
+  readEnv,
+  type BookingRow,
+} from '../support/db'
+import { waitForSentEmails } from '../support/resend'
 import {
   createBooking,
   newEmail,
@@ -46,7 +53,7 @@ let days: string[] = []
 beforeAll(async () => {
   assertTestStripeKey()
   await cleanupE2eData()
-  days = await pickFreeDates(8)
+  days = await pickFreeDates(10)
 })
 
 afterAll(async () => {
@@ -115,6 +122,50 @@ describe('checkout.session.completed', () => {
     expect(row.status).toBe('paid')
     expect(row.stripe_payment_intent_id).toBe('pi_test_paid_1')
     expect(row.stripe_checkout_session_id).toBe(booking.sessionId)
+  })
+
+  it('sends the customer confirmation and the admin alert through Resend', async () => {
+    const startedAt = new Date()
+    const booking = await newBooking('mailpaid', days[8])
+    const result = await postSignedWebhook(sessionEvent('checkout.session.completed', booking))
+    expect(result.status).toBe(200)
+
+    const confirmations = await waitForSentEmails({
+      to: booking.email,
+      subjectIncludes: 'est confirmée',
+    })
+    expect(confirmations).toHaveLength(1)
+    expect(confirmations[0]?.subject).toMatch(/^Votre réservation BINOVYA du .+ est confirmée$/)
+
+    const alerts = await waitForSentEmails({
+      to: readEnv('NUXT_CONTACT_EMAIL_TO'),
+      subjectIncludes: 'Nouvelle réservation payée',
+      since: startedAt,
+    })
+    expect(alerts.length).toBeGreaterThanOrEqual(1)
+  })
+
+  it('does not send a second confirmation when the event is redelivered', async () => {
+    const booking = await newBooking('mailredelivery', days[8])
+    const event = sessionEvent('checkout.session.completed', booking)
+    expect((await postSignedWebhook(event)).status).toBe(200)
+    expect((await postSignedWebhook(event)).status).toBe(200)
+
+    const confirmations = await waitForSentEmails({
+      to: booking.email,
+      subjectIncludes: 'est confirmée',
+    })
+    expect(confirmations).toHaveLength(1)
+  })
+
+  it('sends no email for a payment that was ignored', async () => {
+    const booking = await newBooking('mailignored', days[9])
+    const event = sessionEvent('checkout.session.completed', booking, {
+      amount: booking.amount + 100,
+    })
+    expect((await postSignedWebhook(event)).status).toBe(200)
+    const emails = await waitForSentEmails({ to: booking.email, subjectIncludes: '' }, 6000)
+    expect(emails).toHaveLength(0)
   })
 
   it('is idempotent when the same event is redelivered', async () => {
@@ -263,10 +314,47 @@ describe('late payment on an expired booking', () => {
     expect(refunds.data).toHaveLength(1)
     expect(refunds.data[0]?.amount).toBe(late.amount)
 
+    const refundMails = await waitForSentEmails({
+      to: late.email,
+      subjectIncludes: 'annulée et remboursée',
+    })
+    expect(refundMails).toHaveLength(1)
+
     const redelivery = await postSignedWebhook(
       sessionEvent('checkout.session.completed', late, { paymentIntent: paymentIntent.id }),
     )
     expect(redelivery.status).toBe(200)
     expect((await stripe.refunds.list({ payment_intent: paymentIntent.id })).data).toHaveLength(1)
+  })
+
+  it('answers 200 and sends no refund email when the payment was already refunded', async () => {
+    const date = days[7]
+    const late = await newBooking('alreadyrefunded', date)
+    await expire(late)
+    await fillDay(date, 'alreadyrefunded')
+
+    const stripe = stripeClient()
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount: late.amount,
+      currency: 'eur',
+      payment_method: 'pm_card_visa',
+      confirm: true,
+      automatic_payment_methods: { enabled: true, allow_redirects: 'never' },
+      metadata: { booking_id: late.id },
+    })
+    await stripe.refunds.create({ payment_intent: paymentIntent.id })
+
+    const result = await postSignedWebhook(
+      sessionEvent('checkout.session.completed', late, { paymentIntent: paymentIntent.id }),
+    )
+    expect(result.status).toBe(200)
+    expect((await lastRow(late)).status).toBe('cancelled')
+    expect((await stripe.refunds.list({ payment_intent: paymentIntent.id })).data).toHaveLength(1)
+
+    const refundMails = await waitForSentEmails(
+      { to: late.email, subjectIncludes: 'annulée et remboursée' },
+      6000,
+    )
+    expect(refundMails).toHaveLength(0)
   })
 })

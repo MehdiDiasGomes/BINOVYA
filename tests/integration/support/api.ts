@@ -40,7 +40,7 @@ export const PARIS_ADDRESS: Record<string, unknown> = {
 }
 
 export const newEmail = (tag: string): string =>
-  `e2e+int-${tag}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}@binovya.test`
+  `delivered+e2e-int-${tag}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}@resend.dev`
 
 export const bookingBody = (overrides: BookingOverrides = {}): Record<string, unknown> => ({
   address: overrides.address ?? THIONVILLE_ADDRESS,
