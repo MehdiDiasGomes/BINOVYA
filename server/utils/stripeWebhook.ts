@@ -1,22 +1,40 @@
+import Stripe from 'stripe'
+
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type Stripe from 'stripe'
 
 const paymentIntentId = (session: Stripe.Checkout.Session): string | null =>
   typeof session.payment_intent === 'string'
     ? session.payment_intent
     : (session.payment_intent?.id ?? null)
 
-const refundBookingPayment = async (bookingId: string, paymentIntent: string): Promise<void> => {
-  await useStripe()
+const isAlreadyRefunded = (error: unknown): boolean =>
+  error instanceof Stripe.errors.StripeError && error.code === 'charge_already_refunded'
+
+const refundBookingPayment = async (bookingId: string, paymentIntent: string): Promise<boolean> =>
+  useStripe()
     .refunds.create(
       { payment_intent: paymentIntent },
       { idempotencyKey: `booking-refund-${bookingId}` },
     )
-    .catch(() => {
+    .then(() => true)
+    .catch((error: unknown) => {
+      if (isAlreadyRefunded(error)) {
+        return false
+      }
       console.error(`Refund failed for booking ${bookingId}`)
       throw createError({ statusCode: 500, statusMessage: 'Refund failed' })
     })
+
+const refundAndNotify = async (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+  paymentIntent: string,
+): Promise<void> => {
+  const isNewRefund: boolean = await refundBookingPayment(bookingId, paymentIntent)
+  if (isNewRefund) {
+    await sendBookingRefundEmail(client, bookingId)
+  }
 }
 
 const cancelExpiredBooking = async (
@@ -57,14 +75,16 @@ const confirmBookingPayment = async (
     throw createError({ statusCode: 500, statusMessage: 'Booking payment update failed' })
   }
 
-  if (result === 'not_found') {
+  if (result === 'paid') {
+    await sendBookingPaidEmails(client, bookingId)
+  } else if (result === 'not_found') {
     console.error(`Stripe session ${session.id} matched no booking`)
   } else if (result === 'refund_required') {
     await cancelExpiredBooking(client, bookingId)
-    await refundBookingPayment(bookingId, paymentIntent)
+    await refundAndNotify(client, bookingId, paymentIntent)
   } else if (result === 'not_payable') {
     console.error(`Stripe session ${session.id} paid a cancelled booking, refunding`)
-    await refundBookingPayment(bookingId, paymentIntent)
+    await refundAndNotify(client, bookingId, paymentIntent)
   }
 }
 
@@ -85,7 +105,9 @@ const markBookingExpired = async (
 /**
  * Applies a verified Stripe event to the matching booking. Each update is conditioned on the
  * current status and each refund carries an idempotency key, so a redelivered event changes
- * nothing. A payment that can no longer hold its slot is refunded.
+ * nothing; a payment already refunded once is not refunded nor notified again. A payment that can
+ * no longer hold its slot is refunded. Booking emails are sent after the database update and
+ * never make the webhook fail.
  * @param client - Supabase client using the secret key
  * @param stripeEvent - Event whose signature was already verified
  */
