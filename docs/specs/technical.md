@@ -291,7 +291,7 @@ Le job `expire-stale-bookings` (`*/5 * * * *`) appelle `public.expire_stale_book
 | ---------------------------- | -------------------------------------------------------- |
 | `NUXT_PUBLIC_SUPABASE_URL`   | URL du projet Supabase                                   |
 | `NUXT_PUBLIC_SUPABASE_KEY`   | Clé publique Supabase                                    |
-| `NUXT_SUPABASE_SERVICE_KEY`  | Clé secrète Supabase, serveur uniquement                 |
+| `NUXT_SUPABASE_SECRET_KEY`   | Clé secrète Supabase, serveur uniquement                 |
 | `NUXT_RESEND_API_KEY`        | Envoi des mails                                          |
 | `NUXT_CONTACT_EMAIL_TO`      | Destinataire du formulaire de contact                    |
 | `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                 |
