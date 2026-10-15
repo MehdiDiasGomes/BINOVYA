@@ -26,7 +26,7 @@
         v-for="weekday in WEEKDAYS_MONDAY_FIRST"
         :key="weekday"
         :for="`booking-collection-${props.kind}-${weekday}`"
-        class="cursor-pointer"
+        class="group cursor-pointer"
       >
         <input
           :id="`booking-collection-${props.kind}-${weekday}`"
@@ -36,7 +36,7 @@
           @change="toggleWeekday(weekday)"
         />
         <span
-          class="flex h-11 items-center rounded-full border border-ink/25 bg-white px-4 text-sm font-bold capitalize text-ink transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary/40"
+          class="flex h-11 items-center rounded-full border border-ink/50 bg-white px-4 text-sm font-bold capitalize text-ink transition-all duration-200 group-hover:border-primary group-active:scale-[0.97] motion-reduce:transition-none motion-reduce:group-active:scale-100 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2"
         >
           {{ formatWeekday(weekday, locale) }}
         </span>

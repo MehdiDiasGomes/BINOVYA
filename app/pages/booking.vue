@@ -3,21 +3,29 @@
     <section class="bg-navy-950 pb-10 pt-12">
       <div class="mx-auto max-w-[1180px] px-4 sm:px-8">
         <span
+          :class="HERO_ENTER_CLASS"
           class="mb-2.5 block text-[12.5px] font-black uppercase tracking-[1.5px] text-turquoise"
         >
           {{ $t('booking.header.eyebrow') }}
         </span>
-        <h1 class="text-[32px] font-black leading-tight text-white">
+        <h1
+          :class="HERO_ENTER_CLASS"
+          class="delay-75 text-[32px] font-black leading-tight text-white"
+        >
           {{ $t('booking.header.title') }}
         </h1>
-        <p class="mt-2 max-w-[560px] text-[15px] leading-relaxed text-[#c4d6e2]">
+        <p
+          :class="HERO_ENTER_CLASS"
+          class="delay-150 mt-2 max-w-[560px] text-[15px] leading-relaxed text-[#c4d6e2]"
+        >
           {{ $t('booking.header.subtitle') }}
         </p>
         <BookingStepper
           v-if="!isConfirmed"
           :steps="BOOKING_STEPS"
           :current="currentStep"
-          class="mt-8 max-w-3xl"
+          :class="HERO_ENTER_CLASS"
+          class="delay-200 mt-8 max-w-3xl"
         />
       </div>
     </section>
@@ -31,96 +39,113 @@
         {{ $t('booking.demoNotice') }}
       </p>
 
-      <BookingConfirmation v-if="isConfirmed" @restart="restart" />
-
-      <div v-else class="grid gap-8 lg:grid-cols-[1fr_340px]">
-        <form
-          novalidate
-          aria-labelledby="booking-step-title"
-          class="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8"
-          @submit.prevent="goNext"
+      <AnimatePresence :initial="false">
+        <Motion
+          v-if="isConfirmed"
+          key="confirmed"
+          :initial="{ opacity: 0, y: STEP_OFFSET }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="STEP_TRANSITION"
         >
-          <h2
-            id="booking-step-title"
-            ref="stepTitleRef"
-            tabindex="-1"
-            class="text-[22px] font-black text-ink outline-none"
+          <BookingConfirmation @restart="restart" />
+        </Motion>
+
+        <Motion
+          v-else
+          key="booking"
+          :initial="{ opacity: 0 }"
+          :animate="{ opacity: 1 }"
+          :transition="STEP_TRANSITION"
+          class="grid gap-8 lg:grid-cols-[1fr_340px]"
+        >
+          <form
+            novalidate
+            aria-labelledby="booking-step-title"
+            :class="HERO_ENTER_CLASS"
+            class="delay-200 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8"
+            @submit.prevent="goNext"
           >
-            {{ $t(`booking.headings.${currentStep}.title`) }}
-          </h2>
-          <p class="mb-7 mt-1.5 text-[15px] leading-relaxed text-ink/70">
-            {{ $t(`booking.headings.${currentStep}.description`) }}
-          </p>
-
-          <AnimatePresence mode="wait" :initial="false">
-            <Motion
-              :key="currentStep"
-              :initial="{ opacity: 0, x: STEP_OFFSET }"
-              :animate="{ opacity: 1, x: 0 }"
-              :exit="{ opacity: 0, x: -STEP_OFFSET }"
-              :transition="STEP_TRANSITION"
+            <h2
+              id="booking-step-title"
+              ref="stepTitleRef"
+              tabindex="-1"
+              class="text-[22px] font-black text-ink outline-none"
             >
-              <div v-if="currentStep === 'contact'" class="space-y-8">
-                <BookingContactStep :show-errors="hasAttempted" />
-                <Separator />
-                <BookingAddressStep />
-              </div>
-              <BookingBinsStep v-else-if="currentStep === 'bins'" />
-              <div v-else-if="currentStep === 'schedule'" class="space-y-8">
-                <BookingPlanPicker />
-                <Separator />
-                <BookingDateStep />
-              </div>
-              <BookingPaymentStep v-else />
-            </Motion>
-          </AnimatePresence>
+              {{ $t(`booking.headings.${currentStep}.title`) }}
+            </h2>
+            <p class="mb-7 mt-1.5 text-[15px] leading-relaxed text-ink/70">
+              {{ $t(`booking.headings.${currentStep}.description`) }}
+            </p>
 
-          <p
-            v-if="visibleErrorKey"
-            role="alert"
-            class="mt-6 flex items-center gap-2 text-sm font-bold text-destructive"
-          >
-            <Icon name="CircleAlert" :size="16" aria-hidden="true" />
-            {{ $t(visibleErrorKey) }}
-          </p>
+            <AnimatePresence mode="wait" :initial="false">
+              <Motion
+                :key="currentStep"
+                :initial="{ opacity: 0, x: STEP_OFFSET }"
+                :animate="{ opacity: 1, x: 0 }"
+                :exit="{ opacity: 0, x: -STEP_OFFSET }"
+                :transition="STEP_TRANSITION"
+              >
+                <div v-if="currentStep === 'contact'" class="space-y-8">
+                  <BookingContactStep :show-errors="hasAttempted" />
+                  <Separator />
+                  <BookingAddressStep />
+                </div>
+                <BookingBinsStep v-else-if="currentStep === 'bins'" />
+                <div v-else-if="currentStep === 'schedule'" class="space-y-8">
+                  <BookingPlanPicker />
+                  <Separator />
+                  <BookingDateStep />
+                </div>
+                <BookingPaymentStep v-else />
+              </Motion>
+            </AnimatePresence>
 
-          <div
-            class="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between"
-          >
-            <button
-              v-if="currentIndex > 0"
-              type="button"
-              class="flex h-12 items-center justify-center gap-2 rounded-lg border border-ink/25 px-5 text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40"
-              @click="goBack"
+            <p
+              v-if="visibleErrorKey"
+              role="alert"
+              class="mt-6 flex items-center gap-2 text-sm font-bold text-destructive"
             >
-              <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
-              {{ $t('booking.actions.back') }}
-            </button>
-            <span v-else />
-            <button
-              type="submit"
-              :disabled="isSubmitting"
-              :aria-busy="isSubmitting"
-              class="disabled:cursor-not-allowed disabled:opacity-60 flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all hover:-translate-y-px hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40"
-            >
-              <template v-if="isSubmitting">
-                <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
-                {{ $t('booking.actions.submitting') }}
-              </template>
-              <template v-else-if="isLastStep">
-                <Icon name="Lock" :size="16" aria-hidden="true" />
-                {{ $t('booking.actions.pay', { amount: formatPrice(priceCents ?? 0, locale) }) }}
-              </template>
-              <template v-else>
-                {{ $t('booking.actions.continue') }}
-                <Icon name="ArrowRight" :size="16" aria-hidden="true" />
-              </template>
-            </button>
-          </div>
-        </form>
+              <Icon name="CircleAlert" :size="16" aria-hidden="true" />
+              {{ $t(visibleErrorKey) }}
+            </p>
 
-        <BookingSummary />
-      </div>
+            <div
+              class="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between"
+            >
+              <button
+                v-if="currentIndex > 0"
+                type="button"
+                class="flex h-12 items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-150 hover:border-primary hover:bg-paper-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:active:scale-100"
+                @click="goBack"
+              >
+                <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
+                {{ $t('booking.actions.back') }}
+              </button>
+              <span v-else />
+              <button
+                type="submit"
+                :disabled="isSubmitting"
+                :aria-busy="isSubmitting"
+                class="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0 disabled:active:scale-100 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              >
+                <template v-if="isSubmitting">
+                  <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
+                  {{ $t('booking.actions.submitting') }}
+                </template>
+                <template v-else-if="isLastStep">
+                  {{ $t('booking.actions.pay', { amount: formatPrice(priceCents ?? 0, locale) }) }}
+                </template>
+                <template v-else>
+                  {{ $t('booking.actions.continue') }}
+                  <Icon name="ArrowRight" :size="16" aria-hidden="true" />
+                </template>
+              </button>
+            </div>
+          </form>
+
+          <BookingSummary :class="HERO_ENTER_CLASS" class="delay-300" />
+        </Motion>
+      </AnimatePresence>
     </div>
   </div>
 </template>
@@ -131,7 +156,7 @@ import { FetchError } from 'ofetch'
 import type { BookingRequest, BookingService, BookingStepId } from '@/types/booking'
 
 import { BOOKING_SERVICES, BOOKING_STEPS, IS_ONLINE_PAYMENT_ENABLED } from '@/constants/booking'
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 definePageMeta({
   layout: 'default',

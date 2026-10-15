@@ -5,7 +5,7 @@
     <p
       v-if="draft.address && state === 'loading'"
       role="status"
-      class="flex items-center gap-2.5 rounded-xl border border-border p-4 text-sm font-semibold text-ink"
+      class="flex animate-in items-center gap-2.5 rounded-xl border border-border p-4 text-sm font-semibold text-ink duration-150 fade-in motion-reduce:animate-none"
     >
       <Icon name="Loader2" :size="18" aria-hidden="true" class="animate-spin text-primary" />
       {{ $t('booking.address.checking') }}
@@ -39,7 +39,7 @@
       role="status"
       :class="
         cn(
-          'flex items-start gap-3 rounded-xl border p-4',
+          'flex animate-in items-start gap-3 rounded-xl border p-4 duration-150 fade-in motion-reduce:animate-none',
           isInServiceArea ? 'border-green-700/25 bg-green-50' : 'border-amber-700/30 bg-amber-50',
         )
       "
@@ -63,7 +63,7 @@
         </p>
         <NuxtLink
           v-if="!isInServiceArea"
-          :to="{ path: localePath('/'), hash: '#contact' }"
+          :to="localePath('/contact')"
           class="mt-1.5 inline-block font-bold text-ink underline underline-offset-4 hover:text-primary"
         >
           {{ $t('booking.address.outOfAreaCta') }}

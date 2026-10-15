@@ -56,13 +56,13 @@
     <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
       <NuxtLink
         :to="localePath('/')"
-        class="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40"
+        class="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-white transition-colors hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
       >
         {{ $t('booking.confirmation.home') }}
       </NuxtLink>
       <button
         type="button"
-        class="flex h-12 items-center justify-center rounded-lg border border-ink/25 px-6 text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40"
+        class="flex h-12 items-center justify-center rounded-lg border border-ink/50 px-6 text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
         @click="emit('restart')"
       >
         {{ $t('booking.confirmation.newBooking') }}

@@ -23,7 +23,7 @@
           :aria-invalid="props.error ? 'true' : undefined"
           :aria-describedby="describedBy"
           required
-          class="relative z-10 col-start-2 row-start-2 h-12 min-w-0 bg-transparent px-3 text-[15px] text-ink outline-none placeholder:text-ink/50"
+          class="relative z-10 col-start-2 row-start-2 h-12 min-w-0 bg-transparent px-3 text-[15px] text-ink outline-none placeholder:text-ink/60"
           @input="handleInput"
         />
       </label>

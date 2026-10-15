@@ -8,7 +8,7 @@
         v-for="plan in BOOKING_PLANS"
         :key="plan"
         :for="`booking-plan-${plan}`"
-        class="cursor-pointer"
+        class="group cursor-pointer"
       >
         <input
           :id="`booking-plan-${plan}`"
@@ -19,9 +19,19 @@
           class="peer sr-only"
         />
         <span
-          class="flex h-full flex-col rounded-xl border-2 border-border bg-white p-4 transition-colors peer-checked:border-primary peer-checked:bg-paper-2 peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary/40"
+          class="flex h-full flex-col rounded-xl border-2 border-border bg-white p-4 transition-all duration-200 group-hover:-translate-y-px group-hover:border-primary group-active:translate-y-0 group-active:scale-[0.98] motion-reduce:transition-none motion-reduce:group-hover:translate-y-0 motion-reduce:group-active:scale-100 peer-checked:border-primary peer-checked:bg-paper-2 peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2"
         >
-          <span class="text-sm font-black text-ink">{{ $t(`booking.plans.${plan}.title`) }}</span>
+          <span class="flex items-center justify-between gap-2">
+            <span class="text-sm font-black text-ink">
+              {{ $t(`booking.plans.${plan}.title`) }}
+            </span>
+            <Icon
+              name="CircleCheck"
+              :size="18"
+              aria-hidden="true"
+              class="hidden shrink-0 text-primary group-has-[:checked]:block group-has-[:checked]:animate-in group-has-[:checked]:fade-in group-has-[:checked]:zoom-in-50 group-has-[:checked]:duration-200 motion-reduce:animate-none"
+            />
+          </span>
           <span class="mt-0.5 text-[13px] text-ink/70">
             {{ $t(`booking.plans.${plan}.description`) }}
           </span>

@@ -2,15 +2,27 @@
   <div class="flex items-center gap-1.5">
     <button
       type="button"
-      :disabled="props.modelValue <= 0"
+      :aria-disabled="props.modelValue <= 0"
       :aria-label="$t('booking.bins.decrease', { service: props.serviceName })"
-      class="flex h-11 w-11 items-center justify-center rounded-lg border border-ink/25 bg-white text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+      class="flex h-11 w-11 items-center justify-center rounded-lg border border-ink/50 bg-white text-ink transition-all duration-150 motion-safe:not-aria-disabled:active:scale-95 motion-reduce:transition-none hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
       @click="update(-1)"
     >
       <Icon name="Minus" :size="18" aria-hidden="true" />
     </button>
     <p class="w-10 text-center text-lg font-black text-ink" aria-live="polite">
-      <span aria-hidden="true">{{ props.modelValue }}</span>
+      <AnimatePresence :initial="false">
+        <Motion
+          :key="props.modelValue"
+          as="span"
+          aria-hidden="true"
+          :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="STEP_TRANSITION"
+          class="inline-block"
+        >
+          {{ props.modelValue }}
+        </Motion>
+      </AnimatePresence>
       <span class="sr-only">
         {{ props.serviceName }} :
         {{ $t('booking.bins.quantityStatus', { count: props.modelValue }) }}
@@ -18,9 +30,9 @@
     </p>
     <button
       type="button"
-      :disabled="props.modelValue >= props.max"
+      :aria-disabled="props.modelValue >= props.max"
       :aria-label="$t('booking.bins.increase', { service: props.serviceName })"
-      class="flex h-11 w-11 items-center justify-center rounded-lg border border-ink/25 bg-white text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/40 disabled:cursor-not-allowed disabled:opacity-40"
+      class="flex h-11 w-11 items-center justify-center rounded-lg border border-ink/50 bg-white text-ink transition-all duration-150 motion-safe:not-aria-disabled:active:scale-95 motion-reduce:transition-none hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-40"
       @click="update(1)"
     >
       <Icon name="Plus" :size="18" aria-hidden="true" />
@@ -29,6 +41,8 @@
 </template>
 
 <script setup lang="ts">
+import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+
 const props = withDefaults(
   defineProps<{
     modelValue?: number
