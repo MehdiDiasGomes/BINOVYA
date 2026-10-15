@@ -50,6 +50,35 @@ export default {
       wrongType: 'Seules les photos JPEG, PNG ou WebP sont acceptées.',
     },
   },
+  aside: {
+    label: 'Informations sur le devis',
+    steps: {
+      title: 'Un devis en trois étapes',
+      items: {
+        request: {
+          title: 'Vous décrivez votre besoin',
+          text: "Type d'équipements, quantité, adresse et fréquence souhaitée.",
+        },
+        quote: {
+          title: 'Vous recevez un devis',
+          text: 'Nous revenons vers vous sous 48 h avec une proposition chiffrée.',
+        },
+        intervention: {
+          title: 'Nous intervenons sur place',
+          text: 'À la date convenue, avec notre matériel vapeur et notre véhicule électrique.',
+        },
+      },
+    },
+    online: {
+      title: 'Seulement 1 ou 2 bacs roulants ?',
+      text: 'Particuliers comme professionnels, même grille tarifaire : réservez et payez directement en ligne.',
+      cta: 'Réserver en ligne',
+    },
+    contact: {
+      text: 'Une question avant de demander un devis ?',
+      cta: 'Contactez-nous',
+    },
+  },
   errors: {
     contact: 'Vérifiez vos coordonnées : prénom, nom, email et téléphone.',
     address: 'Sélectionnez une adresse dans la liste.',

@@ -26,7 +26,10 @@
       {{ $t(`quote.photos.issues.${issue}`, photoLimits) }}
     </p>
 
-    <ul v-if="previews.length > 0" class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+    <ul
+      v-if="previews.length > 0"
+      class="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4"
+    >
       <li
         v-for="(preview, index) in previews"
         :key="`${preview.file.name}-${preview.file.lastModified}`"

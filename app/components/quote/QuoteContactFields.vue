@@ -29,24 +29,26 @@
         :is-required="false"
         autocomplete="organization"
       />
-      <BookingField
-        id="quote-email"
-        v-model="contact.email"
-        type="email"
-        :label="$t('booking.contact.email')"
-        :placeholder="$t('booking.contact.emailPlaceholder')"
-        :error="errorFor('email')"
-        autocomplete="email"
-      />
-      <BookingPhoneField
-        id="quote-phone"
-        v-model="contact.phone"
-        v-model:country-code="contact.phoneCountryCode"
-        :label="$t('booking.contact.phone')"
-        :country-label="$t('booking.contact.phoneCountry')"
-        :placeholder="$t(`booking.contact.phonePlaceholder.${contact.phoneCountryCode}`)"
-        :error="errorFor('phone')"
-      />
+      <div class="grid items-start gap-5 lg:grid-cols-2">
+        <BookingField
+          id="quote-email"
+          v-model="contact.email"
+          type="email"
+          :label="$t('booking.contact.email')"
+          :placeholder="$t('booking.contact.emailPlaceholder')"
+          :error="errorFor('email')"
+          autocomplete="email"
+        />
+        <BookingPhoneField
+          id="quote-phone"
+          v-model="contact.phone"
+          v-model:country-code="contact.phoneCountryCode"
+          :label="$t('booking.contact.phone')"
+          :country-label="$t('booking.contact.phoneCountry')"
+          :placeholder="$t(`booking.contact.phonePlaceholder.${contact.phoneCountryCode}`)"
+          :error="errorFor('phone')"
+        />
+      </div>
     </div>
   </fieldset>
 </template>

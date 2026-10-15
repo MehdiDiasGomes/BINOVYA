@@ -23,132 +23,138 @@
       </div>
     </section>
 
-    <div :class="HERO_ENTER_CLASS" class="mx-auto max-w-3xl px-4 py-10 delay-200 sm:px-8">
-      <AnimatePresence mode="wait" :initial="false">
-        <Motion
-          v-if="isSent"
-          key="sent"
-          :initial="{ opacity: 0, y: STEP_OFFSET }"
-          :animate="{ opacity: 1, y: 0 }"
-          :exit="{ opacity: 0 }"
-          :transition="STEP_TRANSITION"
-        >
-          <FormSent :title="$t('quote.sent.title')" :text="$t('quote.sent.text')" />
-        </Motion>
-
-        <Motion
-          v-else
-          key="form"
-          :initial="{ opacity: 0, y: STEP_OFFSET }"
-          :animate="{ opacity: 1, y: 0 }"
-          :exit="{ opacity: 0 }"
-          :transition="STEP_TRANSITION"
-        >
-          <form
-            novalidate
-            :aria-label="$t('quote.header.title')"
-            class="space-y-8 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8"
-            @submit.prevent="handleSubmit"
+    <div
+      class="mx-auto grid max-w-[1180px] items-start gap-8 px-4 py-10 sm:px-8 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]"
+    >
+      <div :class="HERO_ENTER_CLASS" class="min-w-0 delay-200">
+        <AnimatePresence mode="wait" :initial="false">
+          <Motion
+            v-if="isSent"
+            key="sent"
+            :initial="{ opacity: 0, y: STEP_OFFSET }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0 }"
+            :transition="STEP_TRANSITION"
           >
-            <QuoteContactFields v-model="form.contact" :show-errors="hasAttempted" />
+            <FormSent :title="$t('quote.sent.title')" :text="$t('quote.sent.text')" />
+          </Motion>
 
-            <Separator />
+          <Motion
+            v-else
+            key="form"
+            :initial="{ opacity: 0, y: STEP_OFFSET }"
+            :animate="{ opacity: 1, y: 0 }"
+            :exit="{ opacity: 0 }"
+            :transition="STEP_TRANSITION"
+          >
+            <form
+              novalidate
+              :aria-label="$t('quote.header.title')"
+              class="space-y-8 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8"
+              @submit.prevent="handleSubmit"
+            >
+              <QuoteContactFields v-model="form.contact" :show-errors="hasAttempted" />
 
-            <section aria-labelledby="quote-address-title">
-              <h2 id="quote-address-title" class="mb-4 text-lg font-black text-ink">
-                {{ $t('quote.sections.address') }}
-              </h2>
-              <BookingAddressSearch
-                id="quote-address"
-                v-model="form.address"
-                :error="visibleError('address')"
-              />
-            </section>
+              <Separator />
 
-            <Separator />
-
-            <QuoteEquipmentField
-              id="quote-equipment"
-              v-model="form.equipment"
-              :error="visibleError('equipment')"
-            />
-
-            <AnimatePresence :initial="false">
-              <Motion
-                v-if="hasBins"
-                key="bins"
-                :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
-                :animate="{ opacity: 1, y: 0 }"
-                :exit="{ opacity: 0, y: -STEP_OFFSET / 2 }"
-                :transition="STEP_TRANSITION"
-                class="space-y-8"
-              >
-                <Separator />
-                <QuoteBinsField
-                  id="quote-bins"
-                  v-model:small-bin-count="form.smallBinCount"
-                  v-model:large-bin-count="form.largeBinCount"
-                  :error="visibleError('bins')"
+              <section aria-labelledby="quote-address-title">
+                <h2 id="quote-address-title" class="mb-4 text-lg font-black text-ink">
+                  {{ $t('quote.sections.address') }}
+                </h2>
+                <BookingAddressSearch
+                  id="quote-address"
+                  v-model="form.address"
+                  :error="visibleError('address')"
                 />
-              </Motion>
-            </AnimatePresence>
+              </section>
 
-            <Separator />
+              <Separator />
 
-            <QuotePlanField v-model="form.plan" />
-
-            <Separator />
-
-            <label for="quote-comment" class="block">
-              <span class="block text-lg font-black text-ink">
-                {{ $t('quote.comment.label') }}
-              </span>
-              <textarea
-                id="quote-comment"
-                v-model="form.comment"
-                rows="5"
-                :maxlength="QUOTE_COMMENT_MAX_LENGTH"
-                :placeholder="$t('quote.comment.placeholder')"
-                class="mt-4 block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60"
+              <QuoteEquipmentField
+                id="quote-equipment"
+                v-model="form.equipment"
+                :error="visibleError('equipment')"
               />
-            </label>
 
-            <Separator />
+              <AnimatePresence :initial="false">
+                <Motion
+                  v-if="hasBins"
+                  key="bins"
+                  :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+                  :animate="{ opacity: 1, y: 0 }"
+                  :exit="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+                  :transition="STEP_TRANSITION"
+                  class="space-y-8"
+                >
+                  <Separator />
+                  <QuoteBinsField
+                    id="quote-bins"
+                    v-model:small-bin-count="form.smallBinCount"
+                    v-model:large-bin-count="form.largeBinCount"
+                    :error="visibleError('bins')"
+                  />
+                </Motion>
+              </AnimatePresence>
 
-            <QuotePhotoPicker v-model="photos" />
+              <Separator />
 
-            <HoneypotField id="quote-website" v-model="form.website" />
+              <QuotePlanField v-model="form.plan" />
 
-            <Separator />
+              <Separator />
 
-            <div class="space-y-4">
-              <p
-                v-if="hasFailed"
-                role="alert"
-                class="flex items-center gap-2 text-sm font-bold text-destructive"
-              >
-                <Icon name="CircleAlert" :size="16" aria-hidden="true" />
-                {{ $t('quote.errors.submit') }}
-              </p>
-              <button
-                type="submit"
-                :aria-disabled="isSubmitting"
-                :aria-busy="isSubmitting"
-                class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
-              >
-                <template v-if="isSubmitting">
-                  <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
-                  {{ $t('quote.actions.submitting') }}
-                </template>
-                <template v-else>
-                  <Icon name="Send" :size="16" aria-hidden="true" />
-                  {{ $t('quote.actions.submit') }}
-                </template>
-              </button>
-            </div>
-          </form>
-        </Motion>
-      </AnimatePresence>
+              <label for="quote-comment" class="block">
+                <span class="block text-lg font-black text-ink">
+                  {{ $t('quote.comment.label') }}
+                </span>
+                <textarea
+                  id="quote-comment"
+                  v-model="form.comment"
+                  rows="5"
+                  :maxlength="QUOTE_COMMENT_MAX_LENGTH"
+                  :placeholder="$t('quote.comment.placeholder')"
+                  class="mt-4 block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60"
+                />
+              </label>
+
+              <Separator />
+
+              <QuotePhotoPicker v-model="photos" />
+
+              <HoneypotField id="quote-website" v-model="form.website" />
+
+              <Separator />
+
+              <div class="space-y-4">
+                <p
+                  v-if="hasFailed"
+                  role="alert"
+                  class="flex items-center gap-2 text-sm font-bold text-destructive"
+                >
+                  <Icon name="CircleAlert" :size="16" aria-hidden="true" />
+                  {{ $t('quote.errors.submit') }}
+                </p>
+                <button
+                  type="submit"
+                  :aria-disabled="isSubmitting"
+                  :aria-busy="isSubmitting"
+                  class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
+                >
+                  <template v-if="isSubmitting">
+                    <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
+                    {{ $t('quote.actions.submitting') }}
+                  </template>
+                  <template v-else>
+                    <Icon name="Send" :size="16" aria-hidden="true" />
+                    {{ $t('quote.actions.submit') }}
+                  </template>
+                </button>
+              </div>
+            </form>
+          </Motion>
+        </AnimatePresence>
+      </div>
+
+      <QuoteAside :class="HERO_ENTER_CLASS" class="delay-300 lg:sticky lg:top-24" />
     </div>
   </div>
 </template>

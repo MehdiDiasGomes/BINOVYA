@@ -50,6 +50,35 @@ export default {
       wrongType: 'Only JPEG, PNG or WebP photos are accepted.',
     },
   },
+  aside: {
+    label: 'About the quote',
+    steps: {
+      title: 'A quote in three steps',
+      items: {
+        request: {
+          title: 'You describe your needs',
+          text: 'Type of equipment, quantity, address and desired frequency.',
+        },
+        quote: {
+          title: 'You receive a quote',
+          text: 'We get back to you within 48 hours with a priced proposal.',
+        },
+        intervention: {
+          title: 'We come on site',
+          text: 'On the agreed date, with our steam equipment and electric vehicle.',
+        },
+      },
+    },
+    online: {
+      title: 'Only 1 or 2 wheelie bins?',
+      text: 'Individuals and businesses, same price list: book and pay directly online.',
+      cta: 'Book online',
+    },
+    contact: {
+      text: 'A question before requesting a quote?',
+      cta: 'Contact us',
+    },
+  },
   errors: {
     contact: 'Check your details: first name, last name, email and phone.',
     address: 'Select an address from the list.',
