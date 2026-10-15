@@ -9,9 +9,16 @@ export default defineNuxtConfig({
   runtimeConfig: {
     resendApiKey: '',
     contactEmailTo: '',
+    mailFrom: '',
     stripeSecretKey: '',
     stripeWebhookSecret: '',
     siteUrl: '',
+  },
+
+  nitro: {
+    experimental: { tasks: true },
+    scheduledTasks:
+      process.env.NODE_ENV === 'production' ? { '0 6 * * *': ['booking:reminders'] } : {},
   },
 
   vite: {

@@ -21,6 +21,7 @@ import {
   sleep,
   waitForStatus,
 } from '../support/db'
+import { waitForSentEmails } from '../support/resend'
 
 const LONG_DATE = (isoDate: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(
@@ -102,6 +103,9 @@ test('1. happy path FR: busy button, Stripe page, success page, paid booking', a
   expect(booking.amount_total_cents).toBe(await readPrice('one_off', 1, 0))
   expect(booking.stripe_checkout_session_id).toMatch(/^cs_test_/)
   expect(booking.stripe_payment_intent_id).toMatch(/^pi_/)
+
+  const confirmations = await waitForSentEmails({ to: email, subjectIncludes: 'est confirmée' })
+  expect(confirmations).toHaveLength(1)
 })
 
 test('2. cancel on Stripe: draft restored, alert, focus, booking expired, repay works', async ({

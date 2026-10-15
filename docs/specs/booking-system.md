@@ -14,7 +14,8 @@ ses réservations et les photos avant/après depuis son espace client.
 3. Il choisit un jour parmi ceux ouverts pour son secteur.
 4. Il saisit ses coordonnées, son espace client est créé automatiquement et il en est informé.
 5. Il paie via Stripe Checkout.
-6. Il reçoit un mail de confirmation, puis un SMS la veille et le jour J.
+6. Il reçoit un mail de confirmation dès le paiement. Un rappel par mail suit entre J-1 et J-2
+   (heure de Paris), puis les SMS (la veille et le jour J).
 7. Après l'intervention, l'admin dépose une photo avant et une photo après. Le client reçoit un
    mail l'informant que ses photos sont disponibles dans son espace client. Le bouton « Voir mes
    photos » est un lien magique qui le connecte en un clic ; un tutoriel pas à pas sert de secours
@@ -112,8 +113,10 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
   active, une nouvelle est refusée.
 - **Paiement tardif** : un paiement reçu après la libération est accepté si le jour est encore
   disponible. Sinon la réservation est annulée et Stripe rembourse automatiquement. Un paiement
-  sur une réservation déjà annulée est aussi remboursé. Le client n'est pas prévenu tant que les
-  mails de l'étape 6 n'existent pas.
+  sur une réservation déjà annulée est aussi remboursé. Dans les deux cas, le client reçoit un
+  mail d'annulation et de remboursement. Aucun mail si la charge était déjà remboursée.
+- **Alerte BINOVYA** : chaque réservation payée envoie aussi un mail à l'adresse de contact de
+  BINOVYA.
 - **Bornes** : délai minimum avant intervention et horizon maximum de réservation, à définir.
 - **Paiement** : la réservation est créée en `pending_payment`, le webhook Stripe la passe en `paid`.
 - **Public** : particuliers et professionnels réservent en ligne sur la même grille tarifaire

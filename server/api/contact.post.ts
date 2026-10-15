@@ -1,5 +1,3 @@
-import { Resend } from 'resend'
-
 import type { ContactResponse, ContactSubject } from '@/types/contact'
 
 import { generateContactEmailHtml } from '@/templates/email/contactEmail'
@@ -32,15 +30,16 @@ export default defineEventHandler(async (event): Promise<ContactResponse> => {
   }
 
   const subjectLabel: string = SUBJECT_LABELS[subject]
-  const { error } = await new Resend(config.resendApiKey).emails.send({
-    from: CONTACT_SENDER,
-    to: [config.contactEmailTo],
-    subject: `Nouveau contact : ${subjectLabel} - ${body.lastName} ${body.firstName}`,
-    html: generateContactEmailHtml({ ...body, subjectLabel }, escapeHtml),
-    replyTo: body.email,
-  })
-  if (error) {
-    console.error('Contact email failed', error)
+  const isSent: boolean = await sendTransactionalEmail(
+    {
+      to: config.contactEmailTo,
+      subject: `Nouveau contact : ${subjectLabel} - ${body.lastName} ${body.firstName}`,
+      html: generateContactEmailHtml({ ...body, subjectLabel }, escapeHtml),
+      replyTo: body.email,
+    },
+    'Contact email',
+  )
+  if (!isSent) {
     throw createError({ statusCode: 502, statusMessage: 'Contact email failed' })
   }
 

@@ -28,6 +28,39 @@ export const emailField = (label: string, value: string): string => `
 export const emailTextBlock = (value: string): string => `<div class="block">${value}</div>`
 
 /**
+ * Renders a heading at the top of an email sent to a customer.
+ * @param text - Heading, already escaped HTML
+ * @returns HTML of the heading
+ */
+export const emailTitle = (text: string): string => `<h1 class="title">${text}</h1>`
+
+/**
+ * Renders a paragraph of an email sent to a customer.
+ * @param text - Paragraph, already escaped HTML
+ * @returns HTML of the paragraph
+ */
+export const emailParagraph = (text: string): string => `<p class="text">${text}</p>`
+
+/**
+ * Renders a call-to-action link styled as a button.
+ * @param label - Button label, trusted text
+ * @param url - Target URL, already escaped
+ * @returns HTML of the button
+ */
+export const emailButton = (label: string, url: string): string =>
+  `<p class="action"><a class="button" href="${url}">${label}</a></p>`
+
+/**
+ * Renders an ordered list of steps.
+ * @param steps - Steps, already escaped HTML
+ * @returns HTML of the list
+ */
+export const emailSteps = (steps: string[]): string => {
+  const items: string = steps.map(step => '<li>' + step + '</li>').join('')
+  return `<ol class="steps">${items}</ol>`
+}
+
+/**
  * Renders the identity and contact fields shared by every notification email.
  * @param contact - Contact details typed by the visitor, as plain text
  * @param escape - Function escaping untrusted text for HTML
@@ -42,14 +75,14 @@ export const emailContactFields = (contact: EmailContact, escape: Escape): strin
   ].join('')
 
 /**
- * Wraps the fields of a notification email sent to BINOVYA in the shared layout.
+ * Wraps the content of an email in the shared layout.
  * @param content - HTML of the fields
  * @param footer - Footer text, trusted
  * @returns Full email document as HTML
  */
 export const renderEmailLayout = (content: string, footer: string): string => `
   <!DOCTYPE html>
-  <html>
+  <html lang="fr">
     <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -62,6 +95,11 @@ export const renderEmailLayout = (content: string, footer: string): string => `
         .value { font-size: 15px; color: #000000; line-height: 1.5; }
         .value a { color: #0b7fb8; }
         .block { white-space: pre-wrap; padding: 16px; background-color: #f9f9f9; border-radius: 4px; line-height: 1.6; }
+        .title { font-size: 22px; color: #000000; margin: 0 0 24px; }
+        .text { font-size: 15px; color: #000000; line-height: 1.6; margin: 0 0 20px; }
+        .action { margin: 28px 0; text-align: center; }
+        .button { display: inline-block; padding: 14px 28px; background-color: #0975ab; color: #ffffff !important; text-decoration: none; border-radius: 6px; font-weight: 600; }
+        .steps { font-size: 15px; color: #000000; line-height: 1.6; padding-left: 20px; margin: 0 0 20px; }
         .footer { padding: 20px 40px; text-align: center; font-size: 12px; color: #999999; border-top: 1px solid #e5e5e5; }
       </style>
     </head>

@@ -13,7 +13,7 @@ export type BookingRow = {
 
 type Credentials = { url: string; key: string }
 
-export const E2E_EMAIL_PATTERN = /^e2e\+.+@binovya\.test$/
+export const E2E_EMAIL_PATTERN = /^(e2e\+.+@binovya\.test|delivered\+e2e-.+@resend\.dev)$/
 
 let envFileCache: string | undefined
 
@@ -37,7 +37,7 @@ const loadCredentials = (): Credentials => ({
   key: readEnv('NUXT_SUPABASE_SECRET_KEY'),
 })
 
-const rest = async (path: string, init: RequestInit = {}): Promise<Response> => {
+export const rest = async (path: string, init: RequestInit = {}): Promise<Response> => {
   const { url, key } = loadCredentials()
   return fetch(`${url}${path}`, {
     ...init,
@@ -92,13 +92,22 @@ export const waitForStatus = async (
   throw new Error(`Booking of ${email} is "${last?.status ?? 'missing'}", expected "${status}"`)
 }
 
+const E2E_EMAIL_FILTERS: string[] = ['e2e%2B%25%40binovya.test', 'delivered%2Be2e-%25%40resend.dev']
+
+const listE2eProfiles = async (): Promise<{ id: string; email: string }[]> => {
+  const lists: { id: string; email: string }[][] = await Promise.all(
+    E2E_EMAIL_FILTERS.map(async filter => {
+      const response: Response = await rest(
+        `/rest/v1/profiles?select=id,email&email=like.${filter}`,
+      )
+      return (await response.json()) as { id: string; email: string }[]
+    }),
+  )
+  return lists.flat().filter(profile => E2E_EMAIL_PATTERN.test(profile.email))
+}
+
 export const cleanupE2eData = async (): Promise<{ bookings: number; users: number }> => {
-  const response: Response = await rest(
-    '/rest/v1/profiles?select=id,email&email=like.e2e%2B%25%40binovya.test',
-  )
-  const profiles = ((await response.json()) as { id: string; email: string }[]).filter(profile =>
-    E2E_EMAIL_PATTERN.test(profile.email),
-  )
+  const profiles = await listE2eProfiles()
   const counts: number[] = await Promise.all(
     profiles.map(async profile => {
       const deleted: Response = await rest(`/rest/v1/bookings?customer_id=eq.${profile.id}`, {
