@@ -160,7 +160,8 @@
 - Mails en français uniquement, quelle que soit la langue du site.
 - Gabarits dans `app/templates/email/` : `layout` (mise en page commune), `labels` (textes),
   `bookingDetails` (bloc récapitulatif), `bookingCustomerEmails` (confirmation, rappel,
-  remboursement), `bookingAdminEmail` (alerte BINOVYA) et `photosAvailableEmail`.
+  remboursement), `bookingAdminEmail` (alerte BINOVYA), `photosAvailableEmail`, `contactEmail`
+  et `quoteEmail`.
 - Logique d'envoi dans `server/utils/bookingEmails.ts` : le client reçoit les mails avec
   `NUXT_CONTACT_EMAIL_TO` en `replyTo`.
 
@@ -182,6 +183,33 @@
 - `sendPhotosAvailableEmail` n'envoie que si le lien de connexion vise l'hôte Supabase ou celui de
   `NUXT_SITE_URL` (`isAllowedLoginUrl`, https sauf `localhost`), pour qu'un lien détourné ne
   parte jamais dans un mail de BINOVYA.
+
+### Habillage BINOVYA
+
+- `renderEmailLayout` (`app/templates/email/layout.ts`) habille tous les mails. Deux variantes :
+  `customer` (défaut, en-tête centré, pour les mails au client) et `notification` (version
+  compacte, avec une note en pied, pour les mails internes : contact, devis, alerte admin).
+- Chaque mail a un préheader (texte d'aperçu de la boîte de réception), échappé comme le reste.
+- Le logo est remplacé par le mot « BINOVYA » en texte. Les polices citent Montserrat et Quicksand
+  puis retombent sur celles du système : aucune police n'est chargée depuis Google Fonts (RGPD).
+- Couleurs : mot-symbole `#135a73`, primaire et bouton `#0975ab`, barre d'accent `#22c0de`, texte
+  secondaire `#4a5d6e` (contraste AA), fond `#f4f9fb`, bloc de détails `#e8f4f8`.
+- Le style tient dans un seul bloc `<style>` dans le code source. `finalizeEmailHtml`
+  (`server/utils/mail.ts`), appelée par `sendTransactionalEmail`, le copie en attributs `style`
+  avec `juice` au moment de l'envoi, car beaucoup de clients mail ignorent `<style>`. La media
+  query (< 620 px) reste dans `<style>` pour les clients qui la gèrent.
+- Pied de page : le marqueur `EMAIL_FOOTER_LINKS_SLOT` est remplacé à l'envoi par les liens tirés
+  de `NUXT_CONTACT_EMAIL_TO` et `NUXT_SITE_URL`. Un lien manquant ou invalide est simplement omis.
+- `parseSecureUrl` et `isPlausibleEmail` (`app/utils/link.ts`) n'autorisent que https, ou http sur
+  `localhost` et `127.0.0.1`. Ils servent au pied de page, au bouton du mail de remboursement, au
+  lien du site dans le mail photos et à `isAllowedLoginUrl`.
+- Protections : `juice.codeBlocks` est vidé et `escapeHtml` échappe aussi `{` et `}`. Un texte de
+  visiteur contenant `{{…}}` ou `JUICE_CODE_BLOCK_n_` provoquait une expansion exponentielle et
+  pouvait faire planter le processus. Ne pas réactiver `codeBlocks`.
+- En production, `NUXT_SITE_URL` doit commencer par `https://`, sinon le lien du site dans le
+  pied de page et le bouton « Réserver une autre date » sont omis.
+- Aperçu : aucun outil de prévisualisation n'est versionné. Le rendu se vérifie dans de vrais
+  clients (Gmail, Outlook, Apple Mail), avec des envois de test `[Aperçu]` faits à la main.
 - Limites connues :
   - Si Resend échoue au moment du paiement, la confirmation est perdue : il n'y a pas de nouvel
     essai.
@@ -398,6 +426,9 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 - Environnement de préproduction (branche `dev`) : oui ou non ?
 - Domaine `binovya.com` à vérifier sur Resend : tant que ce n'est pas fait, l'expéditeur reste
   `contact@dg-zenith.com` (repli de `NUXT_MAIL_FROM`).
+- Incohérence connue : `parseSecureUrl` accepte `http://localhost` même en production, alors que
+  `resolveSiteUrl` (`server/utils/bookingCheckout.ts`) n'accepte http qu'en développement.
+  Alignement reporté.
 
 ## Coûts estimés
 

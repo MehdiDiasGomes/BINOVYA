@@ -67,6 +67,7 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [x] Mail d'annulation et de remboursement (paiement tardif)
 - [x] Alerte admin à chaque réservation payée
 - [x] Mail de rappel avant le passage (tâche `booking:reminders`, J-1 à J-2)
+- [x] Habillage BINOVYA de tous les mails (mise en page commune, CSS inliné à l'envoi)
 - [ ] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée : bouton
       « Voir mes photos » en lien magique (connexion en un clic), tutoriel pas à pas en secours.
       Gabarit prêt (`sendPhotosAvailableEmail`), envoi pas encore branché : lien magique à

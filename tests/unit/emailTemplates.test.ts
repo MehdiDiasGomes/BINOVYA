@@ -83,7 +83,7 @@ describe('generateBookingConfirmationEmail', () => {
   it('shows date, address, bins and plan', () => {
     expect(html).toContain('lundi 19 octobre 2026')
     expect(html).toContain('12 rue de la Gare, 57100 Thionville')
-    expect(html).toContain('1 petit(s) bac(s) + 1 grand(s) bac(s)')
+    expect(html).toContain('1 petit bac + 1 grand bac')
     expect(html).toContain('Ponctuelle')
   })
 

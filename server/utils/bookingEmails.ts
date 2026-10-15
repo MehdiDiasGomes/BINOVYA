@@ -8,6 +8,7 @@ import {
   generateBookingRefundEmail,
 } from '@/templates/email/bookingCustomerEmails'
 import { generatePhotosAvailableEmail } from '@/templates/email/photosAvailableEmail'
+import { parseSecureUrl } from '@/utils/link'
 
 type BookingRow = Database['public']['Tables']['bookings']['Row']
 
@@ -165,7 +166,8 @@ export const sendBookingRefundEmail = async (
       return
     }
     const { siteUrl } = useRuntimeConfig()
-    const bookingUrl: string = siteUrl ? new URL('/booking', siteUrl).toString() : ''
+    const secureSiteUrl: URL | null = parseSecureUrl(siteUrl)
+    const bookingUrl: string = secureSiteUrl ? new URL('/booking', secureSiteUrl).toString() : ''
     await sendToCustomer(
       booking,
       generateBookingRefundEmail({ ...booking, bookingUrl }, escapeHtml),
@@ -175,8 +177,6 @@ export const sendBookingRefundEmail = async (
     console.error(`Booking refund email failed for ${bookingId}`)
   }
 }
-
-const LOCAL_HOSTNAMES: string[] = ['localhost', '127.0.0.1']
 
 const hostOf = (url: string): string | null => {
   try {
@@ -193,15 +193,8 @@ const hostOf = (url: string): string | null => {
  * @returns True when the link is safe to send
  */
 export const isAllowedLoginUrl = (loginUrl: string, allowedHosts: string[]): boolean => {
-  try {
-    const url: URL = new URL(loginUrl)
-    const isSecure: boolean =
-      url.protocol === 'https:' ||
-      (url.protocol === 'http:' && LOCAL_HOSTNAMES.includes(url.hostname))
-    return isSecure && allowedHosts.includes(url.host)
-  } catch {
-    return false
-  }
+  const url: URL | null = parseSecureUrl(loginUrl)
+  return url !== null && allowedHosts.includes(url.host)
 }
 
 /**

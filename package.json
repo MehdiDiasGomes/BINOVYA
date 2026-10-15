@@ -28,6 +28,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "country-flag-icons": "1.6.20",
+    "juice": "^12.2.0",
     "lucide-vue-next": "^0.562.0",
     "motion-v": "^2.6.0",
     "nuxt": "^4.2.2",

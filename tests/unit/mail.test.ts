@@ -58,6 +58,10 @@ describe('escapeHtml', () => {
       '&lt;script&gt;&quot;a&quot; &amp; &#39;b&#39;&lt;/script&gt;',
     )
   })
+
+  it('escapes template braces', () => {
+    expect(escapeHtml('{{a}} {b}')).toBe('&#123;&#123;a&#125;&#125; &#123;b&#125;')
+  })
 })
 
 describe('sendTransactionalEmail', () => {
