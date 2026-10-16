@@ -29,9 +29,10 @@ bun run lint:fix          # Auto-fix errors
 bun run format            # Format all files
 bun run format:check      # Check formatting without changes
 
-# Tests (integration and e2e need `bun run dev` and `stripe listen` running)
+# Tests (integration and e2e start their own test server on port 3001 and their own
+# `stripe listen`; `bun run dev` may keep running, any other `stripe listen` must be stopped)
 bun run test:unit         # Vitest, pure logic, no server
-bun run test:integration  # Vitest, server routes and signed Stripe webhooks
+bun run test:integration  # Vitest, server routes, signed Stripe webhooks, one test per mail template
 bun run test:e2e          # Playwright, real Chromium and Stripe Checkout in test mode
 bun run test              # All three, in that order
 ```
@@ -280,8 +281,9 @@ Rules:
   `SendMessage` instead of respawned, and findings are relayed verbatim.
 - Test pyramid: many unit tests, some integration tests, few end-to-end tests. Unit and
   integration run in CI; E2E through the real Stripe page stays local, before merging to `main`.
-- tester only uses Stripe test keys, `delivered@resend.dev` for mail, and deletes only the rows
-  it created (`e2e+…@binovya.test`). It never edits application code or `.env*`.
+- tester only uses Stripe test keys, never sends real mail (the test server writes mails to
+  `.mail-outbox/test-run/`), never passes a key on a command line, and deletes only the rows it created
+  (`e2e+…@binovya.test`). It never edits application code or `.env*`.
 - A project `PostToolUse` hook (`.claude/settings.json`) runs prettier on every written file.
 - implementer fixes critical, high and medium findings; visual findings go back to
   ui-stylist. The review is re-run at most twice, then open findings go to the user.

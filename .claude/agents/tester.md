@@ -33,16 +33,22 @@ finding.
 
 You MAY write or edit:
 
-- `tests/unit/**` : Vitest specs, one file per module under test (`bookingSchemas.test.ts`…)
-- `tests/integration/**` : one file per route or flow (`stripe-webhook.test.ts`…), shared
-  helpers in `tests/integration/support/`
-- `tests/e2e/**` : one Playwright spec per feature (`booking-payment.spec.ts`…), shared helpers
-  in `tests/e2e/support/`
+- `tests/unit/<domain>/**` : Vitest specs, one file per module under test
+  (`unit/booking/booking-schemas.test.ts`…)
+- `tests/integration/<domain>/**` : one file per route or flow
+  (`integration/booking/stripe-webhook.test.ts`…); one test per mail template in
+  `tests/integration/email/`
+- `tests/e2e/**` : one Playwright spec per feature (`booking-payment.spec.ts`…), browser-only
+  helpers in `tests/e2e/support/`
+- `tests/support/` : helpers shared by every level (`env.ts`, `db.ts`, `outbox.ts`…); reuse them
+  before writing a new one
+- File names in kebab-case everywhere, folders by level then by domain (`account`, `booking`,
+  `contact`, `email`, `shared`, `scripts`)
 - `vitest.config.ts`, `playwright.config.ts` at the project root
 - `package.json` / `bun.lock` only through `bun add -d` of test tooling (`vitest`,
   `@nuxt/test-utils`, `@playwright/test`), and the scripts `test:unit`, `test:integration`,
   `test:e2e`, `test` (all three in order)
-- `.gitignore` : test output folders (`test-results/`, `playwright-report/`, `coverage/`)
+- `.gitignore` : test output folders (`test-results/`, `playwright-report/`, `coverage/`, `.mail-outbox/`, `.nuxt-test/`)
 
 Test helpers read configuration from `process.env` first and fall back to `.env.local` only
 when a variable is missing, so the same tests run unchanged in CI with GitHub secrets.
@@ -51,12 +57,15 @@ You MUST NOT:
 
 - edit application code (`app/`, `server/`, `i18n/`, `supabase/`, `nuxt.config.ts`) even to
   make a test pass: a failing test is a finding for `implementer`
-- edit `.env`, `.env.local` or print any secret. Read a key only inside a command substitution
-  that passes it to a tool, never echo it, never write it to a file or a report
+- edit `.env`, `.env.local` or print any secret. Never read or pass a key yourself: the runner
+  passes keys through environment variables. Never echo a key, write it to a file or a report
 - run anything against a live Stripe key: if `NUXT_STRIPE_SECRET_KEY` does not start with
   `sk_test_`, stop and report ⛔
-- send email to a real person: use `delivered@resend.dev` (Resend test inbox) for any address
-  that receives mail
+- send any real email: the test server writes every mail to `.mail-outbox/test-run/` (one JSON file per
+  mail, read with `tests/support/outbox.ts`); never call Resend's sending or listing API. The
+  only Resend call allowed is the read-only smoke test (`GET /domains`)
+- pass a key on a command line (`--api-key …`): command lines are visible to `ps` and end up in
+  logs. Keys go through environment variables only
 - delete or update database rows you did not create (see "Test data")
 - commit, push or switch branch
 
@@ -67,19 +76,16 @@ You MUST NOT:
    rewrites `.nuxt/` under a running dev server and can make it answer 404: if that happens,
    stop and ask the orchestrator to have the user restart `bun run dev`. Never touch
    `nuxt.config.ts` or any app file to force a reload.
-2. Safety: check that the Stripe key in `.env.local` starts with `sk_test_` without printing it.
-   Unit tests need nothing else and run first; steps 3 and 4 are only for integration and E2E.
-3. Dev server: reuse the one on `http://localhost:3000` if it answers, otherwise start
-   `bun run dev` in the background and wait for it. Note its start time: Nuxt reads `NUXT_*`
-   variables only at startup.
-4. Stripe webhooks: reuse a running `stripe listen` only if it was started with the app key,
-   otherwise start your own in the background:
-   `stripe listen --api-key "$(grep '^NUXT_STRIPE_SECRET_KEY=' .env.local | cut -d= -f2-)" --forward-to localhost:3000/api/stripe/webhook`
-   Compare the fingerprint (`shasum`, first 8 chars, no trailing newline) of
-   `stripe listen --api-key … --print-secret` with `NUXT_STRIPE_WEBHOOK_SECRET`. If they differ,
-   or if the dev server started before `.env.local` was last modified, stop and report ⛔ with
-   the exact manual action: you cannot fix secrets yourself.
-5. Stop only the processes you started, at the end.
+2. Run the tests only through the project runner: `bun run test` (all levels), or
+   `bun run test:unit`, `bun run test:integration`, `bun run test:e2e`. `scripts/test-run.ts`
+   checks that the Stripe key is `sk_test_`, starts its own test server on `TEST_PORT` (3001 by
+   default, mails written to `.mail-outbox/test-run/`) and its own `stripe listen` (key passed through the
+   environment), exports `TEST_BASE_URL`, then stops everything. Never start `stripe listen` or a
+   dev server yourself, and never touch the user's `bun run dev` on port 3000.
+3. If the runner refuses to start (another `stripe listen` running, port in use, Stripe CLI
+   refusing the key), stop and report ⛔ with its message and the manual action for the user.
+4. When checking processes, never print `ps` lines: count matches only, with a pattern that
+   cannot match the grep itself (`ps -axww -o command | grep -c '[s]k_'`).
 
 ## Writing unit tests
 
@@ -95,7 +101,10 @@ You MUST NOT:
 ## Writing integration tests
 
 - Vitest, `tests/integration/**/*.test.ts`, run with `bun run test:integration`, sequential,
-  against `http://localhost:3000` (or `BASE_URL`).
+  against the test server (`BASE_URL` from `tests/support/env.ts`, never a hardcoded port).
+- Mails: only the per-template tests in `tests/integration/email/` assert mail content
+  (recipient, subject, body, links) from the outbox. Other tests assert mails only when the
+  journey needs one (a login link to click) or for idempotency (exactly one mail).
 - Stripe webhooks: build the event payload (`checkout.session.completed`,
   `checkout.session.expired`…) for a booking you created through `POST /api/booking`, sign it
   with `generateTestHeaderString` and `NUXT_STRIPE_WEBHOOK_SECRET`, post it, then assert the row
@@ -105,7 +114,7 @@ You MUST NOT:
 
 ## Writing end-to-end tests
 
-- Playwright test runner, Chromium only, `baseURL: http://localhost:3000`, `locale: 'fr-FR'`,
+- Playwright test runner, Chromium only, `baseURL` from `TEST_BASE_URL`, `locale: 'fr-FR'`,
   screenshots and traces on failure, `workers: 1` (bookings share day capacity).
 - Select elements the way a user perceives them: `getByRole`, `getByLabel`, `getByText` with
   the real FR strings from `i18n/locales/fr/`. Avoid CSS selectors on app pages; if an element
@@ -138,9 +147,9 @@ environment, never printed, always filtered on your own test emails.
 
 ## Test data
 
-- Every email you type is unique and recognisable:
-  `e2e+<feature>-<timestamp>@binovya.test`, except addresses that must receive mail
-  (`delivered@resend.dev`).
+- Every email you type is unique and recognisable, built with the shared helper of
+  `tests/support/` (pattern `e2e+<feature>-<timestamp>@binovya.test`); no mail leaves the
+  machine, so no address needs a real inbox.
 - Pick a booking date far enough ahead that real tests never collide with yours, and a valid
   address inside the service area (read `booking_settings` for the depot and radius).
 - Cleanup at the end, only for your rows: bookings whose customer email matches
@@ -152,7 +161,7 @@ environment, never printed, always filtered on your own test emails.
 ```
 ## tester — <feature>
 Verdict : ✅ Tout passe | ⚠️ Échecs (<n>) | ⛔ Bloqué (<raison>)
-Environnement : serveur dev <réutilisé|démarré>, stripe listen <réutilisé|démarré>, clé sk_test ✅
+Environnement : runner `bun run test` (port de test <n>), clé sk_test ✅
 Fichiers : <specs créées ou modifiées, config>
 
 | Niveau | Tests | Passés | Durée |
