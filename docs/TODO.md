@@ -90,13 +90,8 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
       n'envoie de vrai mail (transport `outbox`). Suite complète au vert, 648 tests sur 648, le
       2026-10-16
 
-- [ ] Jeton d'adresse signé (branche `fix/booking-address-token`, avant l'étape 8) : les
-      coordonnées de la réservation viennent du navigateur (`server/api/booking/index.post.ts`
-      passe `body.address.latitude` et `longitude` à `create_booking`), un client peut donc
-      contourner le rayon de 20 km et le secteur de 15 km d'un jour. Correctif :
-      `/api/address/search` signe chaque suggestion (HMAC-SHA256 sur libellé, code postal, pays, latitude, longitude et
-      expiration, secret `NUXT_ADDRESS_TOKEN_SECRET`), `/api/booking` vérifie le jeton avec
-      `timingSafeEqual`
+- [x] Jeton d'adresse signé sur la recherche d'adresse, vérifié par réservation, devis et
+      disponibilités (voir `technical.md`)
 
 ## 8. Espace BINOVYA Pro
 
@@ -187,6 +182,8 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
 - [ ] Cloudflare : règles de limite de débit par IP sur `/api/auth/login`, `/api/booking`,
       `/api/booking/release`, `/api/contact` et `/api/quote` (vérifier le nombre de règles du plan
       gratuit)
+- [ ] Cloudflare : limite de débit sur `/api/address/search` et `/api/booking/availability`
+- [ ] Définir `NUXT_ADDRESS_TOKEN_SECRET` (production et secrets CI, étape 11)
 - [ ] Cloudflare : évaluer Turnstile sur `/login`, `/booking`, `/contact` et `/quote`
 - [ ] Cloudflare : mode SSL « Full (strict) », certificat d'origine sur Caddy (Let's Encrypt ou
       Origin CA ; défi HTTP-01 ou défi DNS avec le plugin Cloudflare, à trancher)
