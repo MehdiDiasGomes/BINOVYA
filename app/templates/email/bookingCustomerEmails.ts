@@ -20,6 +20,10 @@ type RefundEmailData = BookingEmailData & {
   bookingUrl: string
 }
 
+type ConfirmationEmailData = BookingEmailData & {
+  accountUrl?: string
+}
+
 const greeting = (booking: BookingEmailData, escape: Escape): string =>
   emailParagraph(`Bonjour ${escape(booking.firstName)},`)
 
@@ -27,14 +31,19 @@ const QUESTIONS_PARAGRAPH: string = emailParagraph(
   'Une question ? Répondez simplement à ce mail, nous vous répondrons rapidement.',
 )
 
+const trackingParagraph = (accountUrl: string, escape: Escape): string =>
+  emailParagraph(
+    `Vos réservations et les photos avant/après de vos bacs restent consultables en ligne : <a href="${escape(accountUrl)}">Suivre ma réservation</a>. Indiquez simplement votre adresse mail pour recevoir un lien de connexion.`,
+  )
+
 /**
  * Builds the confirmation sent to the customer once the booking is paid.
- * @param booking - Paid booking and its customer, as plain text
+ * @param booking - Paid booking, its customer and the optional login page URL, as plain text
  * @param escape - Function escaping untrusted text for HTML
  * @returns Subject and HTML body of the email
  */
 export const generateBookingConfirmationEmail = (
-  booking: BookingEmailData,
+  booking: ConfirmationEmailData,
   escape: Escape,
 ): BookingEmailContent => ({
   subject: `Votre réservation BINOVYA du ${bookingDateLabel(booking)} est confirmée`,
@@ -52,6 +61,7 @@ export const generateBookingConfirmationEmail = (
         '<strong>Le jour du passage, vos bacs doivent être vides et accessibles.</strong> Nous passons dans la journée, sans heure fixe.',
       ),
       emailParagraph('Vous recevrez un rappel par mail un ou deux jours avant le passage.'),
+      booking.accountUrl ? trackingParagraph(booking.accountUrl, escape) : '',
       QUESTIONS_PARAGRAPH,
     ].join(''),
   }),

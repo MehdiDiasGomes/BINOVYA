@@ -22,7 +22,8 @@ export default {
     contact: {
       title: 'Your details and address',
       description:
-        'Your customer area is created automatically. You will find your bookings and the before/after photos there.',
+        'You will be able to view your bookings and your before/after photos online, through a login link sent by email.',
+      privacyLink: 'How we use your data',
     },
     bins: {
       title: 'Which bins should we clean?',
@@ -167,7 +168,7 @@ export default {
     lastNamePlaceholder: 'Smith',
     email: 'Email address',
     emailPlaceholder: "john.smith{'@'}example.com",
-    emailHint: 'For the confirmation and access to your customer area.',
+    emailHint: 'For your booking confirmation and your login links to your customer area.',
     phone: 'Mobile phone',
     phoneCountry: 'Country calling code',
     phonePlaceholder: {

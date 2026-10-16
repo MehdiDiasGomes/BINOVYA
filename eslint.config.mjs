@@ -13,7 +13,7 @@ export default withNuxt(
   // IGNORE PATTERNS - Files to skip linting
   // =============================================================================
   {
-    ignores: ['app/components/ui/**'],
+    ignores: ['app/components/ui/**', '.nuxt-test/**', '.mail-outbox/**'],
   },
 
   // =============================================================================

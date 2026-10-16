@@ -22,7 +22,8 @@ export default {
     contact: {
       title: 'Vos coordonnées et votre adresse',
       description:
-        'Votre espace client est créé automatiquement. Vous y retrouverez vos réservations et les photos avant/après.',
+        'Vous pourrez retrouver vos réservations et vos photos avant/après en ligne, grâce à un lien de connexion envoyé par mail.',
+      privacyLink: 'Comment nous utilisons vos données',
     },
     bins: {
       title: 'Quels bacs faut-il nettoyer ?',
@@ -169,7 +170,8 @@ export default {
     lastNamePlaceholder: 'Dupont',
     email: 'Adresse email',
     emailPlaceholder: "jean.dupont{'@'}exemple.fr",
-    emailHint: 'Pour la confirmation et l’accès à votre espace client.',
+    emailHint:
+      'Pour la confirmation de votre réservation et vos liens de connexion à votre espace client.',
     phone: 'Téléphone mobile',
     phoneCountry: 'Indicatif du pays',
     phonePlaceholder: {

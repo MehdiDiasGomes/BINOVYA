@@ -9,6 +9,10 @@
                          Internet
                             │
                      ┌──────▼──────┐
+                     │ Cloudflare  │  DNS proxifié, WAF, DDoS, limites de débit par IP
+                     └──────┬──────┘
+                            │ ports 80/443 ouverts aux seules IP Cloudflare
+                     ┌──────▼──────┐
                      │    Caddy    │  HTTPS automatique, seul service exposé (80/443)
                      └──────┬──────┘
                             │ réseau Docker public
@@ -22,7 +26,7 @@
 
    Prometheus · Loki · Alloy · Grafana · node-exporter · cAdvisor   (réseau interne)
 
-   Services externes : Supabase (UE) · Stripe · Resend · Brevo · Géoplateforme IGN · geoportail.lu
+   Services externes : Cloudflare · Supabase (UE) · Stripe · Resend · Brevo · Géoplateforme IGN · geoportail.lu
 ```
 
 ## Stack
@@ -101,8 +105,8 @@
   le texte du mail). Tout texte saisi est échappé dans le mail. Un échec d'envoi est journalisé
   sans bloquer le client : la demande est déjà en base.
 - Anti-spam : champ piège invisible (`website`, longueur bornée par `HONEYPOT_MAX_LENGTH`),
-  taille de requête plafonnée. Une limite de débit par IP reste à poser sur Caddy au
-  déploiement.
+  taille de requête plafonnée. Une limite de débit par IP reste à poser sur Cloudflare
+  au déploiement (voir « Hébergement »).
 - Accès : seul l'admin lit `quote_requests` (RLS), le public n'a aucun accès direct.
 
 ### Règles de validation partagées
@@ -142,10 +146,11 @@
   `replyTo` sur l'e-mail du client. Toutes
   les valeurs sont échappées en HTML. Contrairement au devis, rien n'est stocké en base : le mail
   est la demande.
-- Erreurs : 503 si `NUXT_RESEND_API_KEY` ou `NUXT_CONTACT_EMAIL_TO` manque, 502 si l'envoi échoue
-  (Resend en erreur ou sans réponse après 5 s). Le client voit donc un échec plutôt qu'un faux
+- Erreurs : 503 si le transport de mail n'est pas prêt (`isMailConfigured()` : clé
+  `NUXT_RESEND_API_KEY` absente avec Resend) ou si `NUXT_CONTACT_EMAIL_TO` manque, 502 si l'envoi
+  échoue (Resend en erreur ou sans réponse après 5 s). Le client voit donc un échec plutôt qu'un faux
   succès.
-- Une limite de débit par IP reste à poser sur Caddy.
+- Une limite de débit par IP reste à poser sur Cloudflare.
 
 ## Mails
 
@@ -160,29 +165,69 @@
 - Mails en français uniquement, quelle que soit la langue du site.
 - Gabarits dans `app/templates/email/` : `layout` (mise en page commune), `labels` (textes),
   `bookingDetails` (bloc récapitulatif), `bookingCustomerEmails` (confirmation, rappel,
-  remboursement), `bookingAdminEmail` (alerte BINOVYA), `photosAvailableEmail`, `contactEmail`
-  et `quoteEmail`.
-- Logique d'envoi dans `server/utils/bookingEmails.ts` : le client reçoit les mails avec
-  `NUXT_CONTACT_EMAIL_TO` en `replyTo`.
+  remboursement), `bookingAdminEmail` (alerte BINOVYA), `photosAvailableEmail`, `accountEmails`
+  (lien de connexion, alerte de suppression), `contactEmail` et `quoteEmail`.
+- Logique d'envoi dans `server/utils/bookingEmails.ts` et `server/utils/accountEmails.ts` : le
+  client reçoit les mails avec `NUXT_CONTACT_EMAIL_TO` en `replyTo`.
 
 | Mail                             | Déclencheur                                            |
 | -------------------------------- | ------------------------------------------------------ |
 | Confirmation au client           | Webhook, `confirm_booking_payment` renvoie `paid`      |
+| Lien de connexion                | `POST /api/auth/login`, adresse connue et sous plafond |
+| Alerte de suppression (admin)    | `POST /api/account/deletion-request`                   |
 | Alerte admin (réservation payée) | Idem, à `NUXT_CONTACT_EMAIL_TO`                        |
 | Annulation et remboursement      | Webhook, `refund_required` ou `not_payable`            |
 | Rappel                           | Tâche `booking:reminders` (voir « Tâches planifiées ») |
-| Photos disponibles               | Gabarit prêt, pas encore appelé                        |
+| Photos disponibles               | Gabarit prêt, pas encore appelé (étape 8)              |
 
 - Pas de mail de remboursement si la charge était déjà remboursée (`charge_already_refunded`) :
   un événement Stripe rejoué ne prévient pas deux fois.
 - Clés d'idempotence Resend `booking-confirmation-<id>`, `booking-admin-alert-<id>`,
-  `booking-refund-<id>`, `booking-reminder-<id>` et `booking-photos-<id>`. Resend les garde 24
-  heures.
-- Le bouton « Réserver une autre date » du mail de remboursement pointe vers `/booking` sur
-  `NUXT_SITE_URL`.
-- `sendPhotosAvailableEmail` n'envoie que si le lien de connexion vise l'hôte Supabase ou celui de
-  `NUXT_SITE_URL` (`isAllowedLoginUrl`, https sauf `localhost`), pour qu'un lien détourné ne
-  parte jamais dans un mail de BINOVYA.
+  `booking-refund-<id>`, `booking-reminder-<id>`, `booking-photos-<id>` et
+  `account-deletion-<id>-<heure de la demande>` (l'heure change après une demande remise à zéro,
+  un nouvel essai envoie donc une nouvelle alerte). Resend les garde 24 heures. Le lien de
+  connexion n'en a pas : chaque lien est unique.
+- Le bouton « Réserver une autre date » du mail de remboursement pointe vers `/booking`, et le
+  lien « Suivre ma réservation » du mail de confirmation vers `/login`, tous deux sur
+  `NUXT_SITE_URL`, par `emailSitePageUrl` (`server/utils/bookingEmails.ts`). Cette fonction ne lève
+  jamais d'erreur : un mail doit partir sans le lien plutôt que pas du tout. Elle passe par
+  `parseSecureUrl` (https, ou http sur `localhost`), alors que `resolveSiteUrl` n'accepte http qu'en
+  développement. La différence est assumée, voir « Points ouverts ».
+- `sendPhotosAvailableEmail` et `isAllowedLoginUrl` (qui autorise l'hôte Supabase ou celui du site)
+  existent encore mais ne sont pas appelés. Le lien du bouton est à décider à l'étape 8 : un
+  simple lien vers `/login`, ou `createLoginLink` hors du plafond `claim_login_link`. Dans les deux
+  cas, `isAllowedLoginUrl` devient inutile.
+
+### Transport des mails
+
+- `NUXT_MAIL_TRANSPORT` vaut `resend` (défaut, valeur vide comprise) ou `outbox`. Avec `outbox`,
+  `sendTransactionalEmail` n'appelle pas Resend : elle écrit le mail dans un dossier local
+  (`NUXT_MAIL_OUTBOX_DIR`, défaut `.mail-outbox`, relatif à la racine du projet). Les tests
+  (qui y pointent par `TEST_MAIL_OUTBOX_DIR`, voir « Tests ») lisent ce dossier au lieu d'envoyer de vrais mails, ce qui supprime le quota Resend, les rebonds et
+  les alertes qui arrivaient à l'adresse réelle.
+- Un fichier JSON par mail (`MailOutboxRecord`) : `to`, `from`, `subject`, `html` (déjà finalisé
+  par `finalizeEmailHtml`, donc tel que Resend le recevrait), `replyTo`, `idempotencyKey`,
+  `logLabel`, `sentAt`. L'écriture est atomique (fichier temporaire puis `link`) : un lecteur ne
+  voit jamais un fichier à moitié écrit.
+- Idempotence : une clé déjà utilisée n'écrit pas un second fichier et l'envoi compte comme
+  réussi, comme chez Resend. Le marqueur est un fichier `.keys/<sha256 de la clé>.key`, créé avec
+  le drapeau `wx` (échec si présent), donc sans course entre deux envois simultanés. Il est
+  supprimé si l'écriture du mail échoue.
+- Le transport `outbox` n'est permis qu'en développement (`import.meta.dev`) ou sous Vitest
+  (`NODE_ENV=test`), voir `isOutboxAllowed`. Nitro remplace `NODE_ENV` par `"production"` à la
+  construction : un build de production ne peut donc jamais l'activer, même par erreur.
+- Valeur inconnue (probablement une faute de frappe de `outbox`) : refusée en développement, où
+  elle enverrait de vrais mails (aucun envoi, `isMailConfigured()` renvoie `false`) ; hors
+  développement, repli sur Resend pour que les mails de production partent quand même, avec un
+  avertissement.
+- `server/plugins/mailTransportCheck.ts` journalise une erreur au démarrage hors développement si
+  `outbox` ou une valeur inconnue est configuré.
+- `isMailConfigured()` (utilisée par le contact et le devis) remplace le contrôle direct de la clé
+  Resend : l'outbox n'a pas besoin de clé.
+- Le dossier `.mail-outbox` est ignoré par git et bloqué par `vite.server.fs.deny`
+  (`**/.mail-outbox/**`) : les mails contiennent des données personnelles et le serveur de dev
+  ne doit jamais les servir. `tests/integration/email/outbox-access.test.ts` le vérifie.
+- `NUXT_MAIL_TRANSPORT` doit être absent en production.
 
 ### Habillage BINOVYA
 
@@ -202,7 +247,7 @@
   de `NUXT_CONTACT_EMAIL_TO` et `NUXT_SITE_URL`. Un lien manquant ou invalide est simplement omis.
 - `parseSecureUrl` et `isPlausibleEmail` (`app/utils/link.ts`) n'autorisent que https, ou http sur
   `localhost` et `127.0.0.1`. Ils servent au pied de page, au bouton du mail de remboursement, au
-  lien du site dans le mail photos et à `isAllowedLoginUrl`.
+  lien du site dans le mail photos, à `emailSitePageUrl` et à `isAllowedLoginUrl`.
 - Protections : `juice.codeBlocks` est vidé et `escapeHtml` échappe aussi `{` et `}`. Un texte de
   visiteur contenant `{{…}}` ou `JUICE_CODE_BLOCK_n_` provoquait une expansion exponentielle et
   pouvait faire planter le processus. Ne pas réactiver `codeBlocks`.
@@ -214,8 +259,8 @@
   - Si Resend échoue au moment du paiement, la confirmation est perdue : il n'y a pas de nouvel
     essai.
   - Un rappel peut partir deux fois si l'écriture de `reminder_sent_at` échoue après l'envoi.
-  - `sendPhotosAvailableEmail` existe mais n'est pas appelé : le lien magique arrive à l'étape 7,
-    le déclenchement à l'étape 8.
+  - `sendPhotosAvailableEmail` existe mais n'est pas appelé : le déclenchement et le choix du lien
+    arrivent à l'étape 8.
 
 ## Paiement
 
@@ -232,7 +277,10 @@ checkoutUrl }`. Le navigateur est ensuite redirigé vers `checkoutUrl`.
   par `booking.plans.<plan>.title`. La description est la date en format long dans la langue du
   client.
 - Retour sur `/booking?checkout=success` ou `?checkout=cancelled` (préfixe `/en` en anglais).
-  `NUXT_SITE_URL` est obligatoire, en https hors développement, sinon 503 « Payment unavailable ».
+  `NUXT_SITE_URL` est obligatoire, en https hors développement : `assertCheckoutSiteUrl`
+  (`server/utils/bookingCheckout.ts`) le vérifie dès le début de la requête, avant de créer quoi
+  que ce soit, sinon 503 « Payment unavailable ». Les URL de retour sont construites par
+  `localizedSiteUrl` (voir « Espace client »).
 - Codes d'erreur : 409 `dayTaken`, 409 `pendingPayment`, 422 `outOfArea`, `quoteRequired`,
   `binsNotConfirmed`. Tout autre refus de `create_booking` donne 400 « Booking rejected ». Le code
   métier est lu par le front dans `data.code`. 502 si la création de la session échoue, 500 si le
@@ -244,7 +292,7 @@ checkoutUrl }`. Le navigateur est ensuite redirigé vers `checkoutUrl`.
   `bookings_customer_id_status_expires_at_idx`.
 - Anti-abus : champ piège `website`. S'il est rempli, l'API renvoie un faux succès qui redirige
   vers `?checkout=cancelled` et ne crée rien. Limite de débit par IP sur `/api/booking` et
-  `/api/booking/release` : à poser sur Caddy (étape 10).
+  `/api/booking/release` : à poser sur Cloudflare (étape 10).
 
 ### Webhook Stripe
 
@@ -276,6 +324,188 @@ checkoutUrl }`. Le navigateur est ensuite redirigé vers `checkoutUrl`.
 - Le `pg_cron` `expire_stale_bookings` rattrape ce que ces mécanismes ratent (voir « Tâches
   planifiées »).
 
+## Espace client
+
+Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, le fonctionnement.
+
+### Parcours et pages
+
+- Pages : `/login` (demande du lien, `useLoginForm.ts`), `/account/confirm` (vérification du
+  lien) et `/account` (réservations, photos, suppression). Les trois ont un en-tête clair, sans
+  bandeau sombre (pages courtes). `/account` et `/account/confirm` sont en `noindex`, et
+  `/account/confirm` envoie `referrer: no-referrer`.
+- Middlewares : `customer` (protège `/account`, renvoie vers `/login`, avec `?session=expired` si
+  la session a dépassé 7 jours) et `guest` (renvoie un client connecté de `/login` vers
+  `/account`).
+- `useCustomerSession` (`app/composables/useCustomerSession.ts`) expose `status` (`none`,
+  `active` ou `expired`, calculé depuis l'`amr` du jeton), `isActive`, `endSession` et
+  `expireSession`. `endSession` déconnecte globalement (`scope: 'global'`, toutes les sessions et
+  jetons de renouvellement) avec un délai maximal de 3 s (`SIGN_OUT_TIMEOUT_MS`), puis se replie
+  sur une déconnexion locale si Supabase ne répond pas. `expireSession` termine la session et
+  mène à `/login?session=expired`. La page `/account` et la demande de suppression l'appellent sur
+  tout `401`.
+- Constantes dans `app/constants/account.ts` : `LOGIN_LINK_LIFETIME_HOURS` (24),
+  `CUSTOMER_SESSION_MAX_AGE_SECONDS` (7 jours), `ACCOUNT_PHOTO_URL_LIFETIME_SECONDS` (10 min),
+  `ACCOUNT_BOOKING_STATUSES` (`paid`, `completed`, `cancelled`).
+- `/account/confirm` lit le fragment `#token_hash=…`, l'efface aussitôt de l'historique, puis
+  appelle `verifyOtp({ token_hash, type: 'email' })` dans le navigateur. Le jeton ne passe donc
+  jamais par un serveur. Sans jeton, un client déjà connecté va à `/account`, sinon la page
+  d'échec explique comment redemander un lien.
+- Champs de formulaire : `describedByIds` (`app/utils/field.ts`) construit l'attribut
+  `aria-describedby` (aide et erreur) de `BookingField` et `BookingPhoneField`.
+- `localeSchema` (`app/utils/bookingValidation.ts`) : `fr` ou `en`, `fr` par défaut. Réservation et
+  connexion s'en servent pour choisir la langue des pages liées dans les mails.
+
+### Routes serveur
+
+- `POST /api/auth/login` (`server/api/auth/login.post.ts`) : corps de 4 Ko, validé par
+  `loginRequestSchema` (e-mail, langue, champ piège `website`). Réponse `{ success: true }`
+  identique que l'adresse existe ou non, que le plafond soit atteint ou non, et pour un champ piège
+  rempli. La RPC `claim_login_link` réserve l'envoi, puis `sendLoginLinkEmail` part en tâche de
+  fond (`event.waitUntil`), pour que le temps de réponse ne distingue pas non plus les cas.
+- `GET /api/account/bookings` : lit le profil et les réservations avec le client Supabase de la
+  session, donc sous RLS, puis signe les photos des interventions terminées. Réponse en
+  `Cache-Control: private, no-store`.
+- `POST /api/account/deletion-request` : contrôle l'`Origin` (`assertSameOrigin`) puis la session,
+  pose `profiles.deletion_requested_at` (une seule fois : une demande déjà posée renvoie sa date),
+  et envoie l'alerte à `NUXT_CONTACT_EMAIL_TO`. Si l'alerte échoue (adresse absente ou Resend en
+  erreur), la date est remise à zéro et la route répond 502 : mieux vaut un échec visible qu'une
+  demande que personne ne verra.
+- Mutations du client : aucune. L'UPDATE client sur `profiles` est retiré (migration `…010000`),
+  seul le serveur écrit.
+
+### Fonctions serveur
+
+- `requireCustomerId(event)` (`server/utils/customerSession.ts`) : renvoie l'identifiant du client
+  depuis le cookie de session vérifié. 401 sans session valide. Si la connexion date de plus de 7
+  jours, 401 et révocation globale des sessions (`auth.admin.signOut(…, 'global')`) lancée en tâche
+  de fond avec `event.waitUntil` : la réponse n'attend pas Supabase et ne dépend pas de son succès.
+- `signInTimestamp` et `isSignInExpired` (`app/utils/customerSession.ts`), partagées par le serveur
+  et le navigateur : l'heure de connexion est la plus ancienne entrée `otp` ou `magiclink` de
+  l'`amr`, qui ne bouge pas au renouvellement du jeton. Sans entrée lisible, la session compte
+  comme expirée. Le navigateur lit le jeton sans le vérifier, uniquement pour masquer l'espace ;
+  le serveur vérifie toujours.
+- `createLoginLink` (`server/utils/loginLink.ts`) : ne génère le lien que si l'utilisateur Auth et
+  la fiche `profiles` portent la même adresse, pour que Supabase ne crée jamais un compte. Elle
+  appelle `generateLink({ type: 'magiclink' })` et construit
+  `<site>/account/confirm#token_hash=…` (fragment limité à `token_hash`). Ne lève jamais d'erreur,
+  renvoie `null`.
+- `sendLoginLinkEmail` (`server/utils/accountEmails.ts`) : envoie ce lien à l'adresse du profil,
+  avec `NUXT_CONTACT_EMAIL_TO` en `replyTo`. `sendDeletionRequestAlert` envoie l'alerte admin.
+  Aucune ne lève d'erreur.
+- `assertSameOrigin` (`server/utils/requestOrigin.ts`) : garde CSRF des routes qui s'authentifient
+  par cookie. L'en-tête `Origin` doit être celui de `NUXT_SITE_URL` (en dev, aussi celui de la
+  requête). Sinon 403.
+- `resolveSiteUrl` et `localizedSiteUrl` (`server/utils/siteUrl.ts`) : l'URL publique (sans `/`
+  final) et l'URL d'une page dans une langue (`/en` en préfixe, le français n'en a pas). Sans
+  `NUXT_SITE_URL`, ou sans https hors développement : 503 « Site URL unavailable ».
+- `loadAccountBookings` (`server/utils/accountBookings.ts`) : réservations puis photos signées.
+  Seules les réservations `completed` ont des photos.
+
+### Base de données et réglages Supabase
+
+- À appliquer dans l'ordre, dans le SQL Editor : `20261016000000_customer_area_profiles`
+  (colonnes `login_link_sent_at` et `deletion_requested_at`), `…010000_login_link_rate_limit`
+  (plafond `claim_login_link`, retrait de l'UPDATE client), `…020000_customer_session_max_age`
+  (`has_recent_sign_in()` et policies) et `…030000_auth_email_hook_and_session_rule`
+  (`suppress_auth_emails`, règle de session sur la plus ancienne connexion).
+- `claim_login_link(p_email)` : une seule instruction `UPDATE` atomique. 60 s entre deux liens, 5
+  liens sur 24 h glissantes. Elle compare `profiles.email` sans conversion, qui **doit donc rester
+  en minuscules** (index unique utilisé). Réservée à `service_role`.
+- `has_recent_sign_in()` : la connexion la plus ancienne (`otp` ou `magiclink`) doit dater de moins
+  de 7 jours. Utilisée par les policies de `profiles`, `bookings`, `intervention_photos` et du
+  bucket `intervention-photos`. `is_admin()` y échappe.
+- `suppress_auth_emails(event)` : renvoie `{}`. Supabase n'envoie plus aucun mail d'auth, les mails
+  partent tous de notre serveur (`generateLink` puis Resend). Cela inclut le futur accès admin.
+- Réglages manuels attendus dans le tableau de bord Supabase :
+  - Auth Hook « Send Email » activé, vers `public.suppress_auth_emails` ;
+  - « Allow new users to sign up » désactivé (aucun compte créé par un lien) ;
+  - Email OTP Expiration = 86 400 s, à garder égal à `LOGIN_LINK_LIFETIME_HOURS` ;
+  - Secure email change et Secure password change activés, limite d'e-mails 2 par heure,
+    détection de réutilisation des jetons de renouvellement activée ;
+  - « Time-box user sessions » : indisponible sur le plan Free, d'où la règle des 7 jours faite
+    par nous.
+- Pourquoi une règle des 7 jours : le cookie `@supabase/ssr` vaut 400 jours et son `maxAge` écrase
+  celui de `@nuxtjs/supabase` (8 h), voir `node_modules/@supabase/ssr/dist/main/cookies.js:230`.
+  Une connexion par mot de passe donnerait `amr=password`, refusée par l'application et la RLS.
+- Limite connue : un refresh token volé et jamais présenté au site reste valide chez GoTrue. Il
+  n'accède plus à aucune donnée après 7 jours (RLS et serveur). Autre risque : un scanner de mail
+  qui exécute le JavaScript peut consommer le lien.
+
+### Mise en place du projet Supabase de production
+
+Le projet de production vit dans l'organisation Supabase du client (étape 12 de `TODO.md`).
+
+> **Attention** : les réglages Auth ci-dessous ne sont dans aucune migration. Si l'un est oublié, la
+> sécurité de l'espace client de l'étape 7 ne tient pas (mails d'auth envoyés par Supabase,
+> comptes créés par un lien, sessions trop longues).
+
+1. Appliquer dans le SQL Editor, dans l'ordre des horodatages, les 10 migrations de
+   `supabase/migrations/` :
+   - `20261010000000_booking_schema`
+   - `20261010010000_profiles_email`
+   - `20261014000000_pricing_grid_and_quotes`
+   - `20261014010000_quote_requests_equipment`
+   - `20261015000000_expire_stale_bookings_cron`
+   - `20261015010000_booking_payment_guards`
+   - `20261016000000_customer_area_profiles`
+   - `20261016010000_login_link_rate_limit`
+   - `20261016020000_customer_session_max_age`
+   - `20261016030000_auth_email_hook_and_session_rule`
+2. Refaire à la main les réglages Auth (posés sur le projet de développement à l'étape 7) :
+   - Auth Hook « Send Email » activé, type Postgres, vers `public.suppress_auth_emails` ;
+   - « Allow new users to sign up » désactivé ;
+   - Secure email change et Secure password change activés ;
+   - Email OTP Expiration = 86 400 s (égal à `LOGIN_LINK_LIFETIME_HOURS`) ;
+   - détection de réutilisation des jetons de renouvellement activée ;
+   - limite d'e-mails au minimum ;
+   - Site URL et Redirect URLs = `https://binovya.com` uniquement (aucune URL de dev) ;
+   - utilisateur admin avec `app_metadata.role = 'admin'` (étape 8) ;
+   - « Time-box user sessions » à 7 jours seulement si le client prend le plan Pro ;
+   - RLS automatique sur les nouvelles tables : le projet de développement a un event trigger
+     `ensure_rls` (`ddl_command_end`) qui appelle `public.rls_auto_enable()` (`security definer`,
+     `search_path` à `pg_catalog`) et active la RLS sur toute table créée dans `public`. Il n'est
+     dans aucune migration (créé hors de nos fichiers, sans doute par une option du tableau de
+     bord Supabase) et n'existera donc pas en production. Activer la même option sur le projet de
+     production, ou le fournir par une migration dédiée : décision à prendre. C'est un filet de
+     sécurité contre une table créée sans RLS, car Supabase donne par défaut tous les droits à
+     `anon` et `authenticated` sur les nouvelles tables de `public`.
+3. Vérifier, en lecture seule, avec les mêmes requêtes que celles de l'étape 7 :
+
+```sql
+-- Droits d'exécution des fonctions : aucune ligne ne doit lister anon ou PUBLIC
+select p.proname, p.proacl
+from pg_proc p
+join pg_namespace n on n.oid = p.pronamespace
+where n.nspname = 'public'
+  and p.proname in ('claim_login_link', 'has_recent_sign_in', 'suppress_auth_emails');
+
+-- Policies qui appliquent la règle des 7 jours : profiles, bookings, intervention_photos
+-- et storage.objects (intervention-photos) doivent toutes apparaître
+select schemaname, tablename, policyname
+from pg_policies
+where qual ilike '%has_recent_sign_in%'
+   or with_check ilike '%has_recent_sign_in%';
+
+-- UPDATE sur profiles : ni anon ni authenticated ne doivent apparaître
+select
+  has_table_privilege('anon', 'public.profiles', 'UPDATE') as anon_update,
+  has_table_privilege('authenticated', 'public.profiles', 'UPDATE') as authenticated_update;
+
+-- RLS automatique : une ligne attendue
+select evtname, evtevent, evtfoid::regproc from pg_event_trigger where evtname = 'ensure_rls';
+```
+
+- Résultats attendus : `claim_login_link` réservée à `service_role`, `has_recent_sign_in` à
+  `authenticated` et `service_role`, `suppress_auth_emails` à `supabase_auth_admin`. La troisième
+  requête renvoie `false` et `false`. La quatrième renvoie une ligne (`ensure_rls`,
+  `ddl_command_end`, `rls_auto_enable`). On n'utilise pas `information_schema.role_table_grants` :
+  elle n'affiche que les droits visibles pour le rôle qui exécute la requête, donc un résultat
+  vide peut être un faux « OK ». `has_table_privilege` répond pour le rôle nommé, quel que soit
+  celui qui interroge.
+- Les réglages Auth ne se lisent pas en SQL : les contrôler dans le tableau de bord, puis tester
+  qu'un lien demandé sur `/login` arrive bien par Resend et jamais par Supabase.
+
 ## Hébergement
 
 **Critères du VPS** : datacenter dans l'UE, au moins 8 Go de RAM (OSRM + supervision), 4 vCPU,
@@ -283,21 +513,101 @@ checkoutUrl }`. Le navigateur est ensuite redirigé vers `checkoutUrl`.
 
 **Docker Compose** :
 
-| Service         | Rôle                               | Exposé                    |
-| --------------- | ---------------------------------- | ------------------------- |
-| `caddy`         | Reverse proxy, certificats HTTPS   | Oui (80/443)              |
-| `nuxt`          | Application                        | Via Caddy                 |
-| `osrm`          | Distances routières                | Non                       |
-| `vroom`         | Optimisation des tournées          | Non                       |
-| `prometheus`    | Métriques                          | Non                       |
-| `loki`          | Logs                               | Non                       |
-| `alloy`         | Collecte des logs Docker vers Loki | Non                       |
-| `grafana`       | Tableaux de bord, alertes          | Non, accès par tunnel SSH |
-| `node-exporter` | Métriques du serveur               | Non                       |
-| `cadvisor`      | Métriques des conteneurs           | Non                       |
+| Service         | Rôle                               | Exposé                      |
+| --------------- | ---------------------------------- | --------------------------- |
+| `caddy`         | Reverse proxy, certificats HTTPS   | Oui (80/443, IP Cloudflare) |
+| `nuxt`          | Application                        | Via Caddy                   |
+| `osrm`          | Distances routières                | Non                         |
+| `vroom`         | Optimisation des tournées          | Non                         |
+| `prometheus`    | Métriques                          | Non                         |
+| `loki`          | Logs                               | Non                         |
+| `alloy`         | Collecte des logs Docker vers Loki | Non                         |
+| `grafana`       | Tableaux de bord, alertes          | Non, accès par tunnel SSH   |
+| `node-exporter` | Métriques du serveur               | Non                         |
+| `cadvisor`      | Métriques des conteneurs           | Non                         |
 
-**Sécurité du serveur** : connexion SSH par clé uniquement, root désactivé, pare-feu `ufw`
-(22, 80, 443), `fail2ban`, mises à jour de sécurité automatiques (`unattended-upgrades`).
+**Sécurité du serveur** : connexion SSH par clé uniquement, root désactivé, pare-feu `ufw`,
+`fail2ban`, mises à jour de sécurité automatiques (`unattended-upgrades`), posés à l'étape 12.
+Le port 22 reste ouvert comme avant. `fail2ban` ne surveille que SSH : derrière Cloudflare il ne
+voit que des IP Cloudflare sur 80 et 443, et bannirait Cloudflare. Les ports 80 et 443 n'acceptent que les plages d'IP publiées par Cloudflare : sinon
+un attaquant qui connaît l'IP du VPS contourne le WAF et les limites de débit en l'appelant
+directement.
+
+### Cloudflare
+
+- Plan gratuit, devant le VPS, avec le DNS proxifié (nuage orange). Cloudflare déchiffre le trafic
+  puis le rechiffre vers Caddy : c'est un sous-traitant RGPD (société américaine), à lister avec
+  son DPA dans la politique de confidentialité.
+- DNS hébergé chez Cloudflare :
+  - `A` `binovya.com` vers l'IPv4 du VPS (proxifié), `AAAA` vers l'IPv6 s'il y en a une
+    (proxifié), `CNAME` `www` vers `binovya.com` (proxifié) ;
+  - enregistrements Resend (TXT SPF et DKIM, `MX send`) et TXT `_dmarc` en « DNS only » : ils ne
+    passent pas par le proxy ;
+  - `CAA` facultatif pour limiter l'émission de certificats ; `MX` de réception seulement si une
+    boîte mail est voulue.
+- Limite de débit par IP, posée en règles Cloudflare (et non plus sur Caddy) sur
+  `/api/auth/login`, `/api/booking`, `/api/booking/release`, `/api/contact` et `/api/quote`. Le
+  nombre de règles du plan gratuit est à vérifier à la pose. Les limites applicatives (par
+  exemple `claim_login_link`) restent : elles protègent même si Cloudflare est contourné.
+- Cloudflare Turnstile (captcha gratuit) à évaluer sur `/login`, `/booking`, `/contact` et
+  `/quote`, en plus du champ piège.
+- DDoS et WAF fournis par Cloudflare.
+- Mode SSL « Full (strict) » : Caddy garde un certificat valide sur l'origine (Let's Encrypt ou
+  Cloudflare Origin CA). Derrière le nuage orange, le défi HTTP-01 fonctionne ; le défi DNS avec
+  le plugin Cloudflare est l'alternative. À trancher à la mise en place.
+- Caddy lit l'IP réelle du visiteur dans `CF-Connecting-IP`, grâce à `trusted_proxies` réglé sur
+  les plages Cloudflare, pour les logs et toute logique liée à l'IP. Sans cela, Caddy ne voit que
+  les IP de Cloudflare.
+
+### Caddyfile cible
+
+Point de départ, écrit et testé en local à l'étape 10, posé sur le serveur à l'étape 12. Sans bloc `rate_limit`, il n'y a pas besoin d'une
+version de Caddy compilée sur mesure. Le réglage `trusted_proxies` / `CF-Connecting-IP` (bloc
+global `servers`) s'y ajoute avec les plages Cloudflare.
+
+```
+{
+	email contact@binovya.com
+}
+
+www.binovya.com {
+	redir https://binovya.com{uri} permanent
+}
+
+binovya.com {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), microphone=(), geolocation=()"
+		Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://<ref>.supabase.co; img-src 'self' data: https://<ref>.supabase.co; frame-ancestors 'none'"
+		-Server
+	}
+
+	reverse_proxy nuxt:3000
+
+	log {
+		output stdout
+		format json
+	}
+}
+```
+
+- HSTS force HTTPS côté navigateur. Les autres en-têtes bloquent le sniffing de type, l'affichage
+  en iframe et les fuites de `Referer`.
+- `camera=(self)` : l'étape 8 prend les photos avant/après depuis le téléphone. Un
+  `<input type="file" accept="image/*" capture="environment">` n'en a même pas besoin, une caméra
+  en direct via `getUserMedia` oui.
+- La CSP démarre en `Report-Only`, puis passe en application une fois vérifiée contre Nuxt et
+  Supabase. Le cookie de session est lisible par le JavaScript : la CSP est la principale parade
+  au vol de session par XSS.
+- Logs en JSON, pour Loki.
+- Le volume `/data` de Caddy doit être persisté : il contient les certificats, et Let's Encrypt
+  limite à 5 les certificats identiques par semaine.
+- Port 80 pour le défi ACME et la redirection http vers https, port 443 pour le service.
 
 ## CI/CD
 
@@ -326,10 +636,32 @@ checkoutUrl }`. Le navigateur est ensuite redirigé vers `checkoutUrl`.
 **Secrets** : stockés dans GitHub Actions et dans un fichier `.env` sur le VPS, jamais dans
 l'image Docker.
 
+**Tests en CI** (décisions du 2026-10-16, à mettre en place) :
+
+- La CI lance `bun scripts/test-run.ts unit integration`, pas `bun run test` : le e2e passe par la
+  vraie page Stripe et reste local. Le script démarre son propre serveur de test sur le port 3001,
+  avec les mails simulés, et son propre `stripe listen` (voir « Tests »). La CI tourne sur une VM
+  neuve à chaque fois : installation de Bun et de la CLI Stripe (téléchargement court), avec le
+  cache du fournisseur (clés basées sur `bun.lock`). Le Chromium de Playwright n'est pas
+  nécessaire.
+- Secrets de la CI : une clé Stripe `sk_test_` (`NUXT_STRIPE_SECRET_KEY` ou `STRIPE_API_KEY`,
+  transmise à la CLI Stripe par l'environnement) et les clés Supabase d'un projet de test
+  DÉDIÉ, jamais celles de la production. Aucune clé Resend : les mails sont simulés et le test
+  de fumée Resend est ignoré sans clé.
+- Garde à ajouter dans les tests : refuser de tourner si l'URL Supabase n'est pas celle du
+  projet de test, comme `assertTestStripeKey` le fait pour Stripe.
+- `concurrency` dans GitHub Actions : deux exécutions de la CI ne tournent jamais en même temps.
+  Elles partagent la base de test et le compte Stripe de test, et le nettoyage des lignes e2e et
+  des événements webhook entrerait en collision.
+- Règle inchangée (`CLAUDE.md`) : tests unitaires et d'intégration en CI ; le parcours de bout
+  en bout via la vraie page Stripe reste local, avant la fusion vers `main`.
+
 ## Supervision
 
 - **Métriques** : Prometheus collecte node-exporter, cAdvisor et les métriques de Nitro.
-- **Logs** : Nitro écrit des logs JSON, Alloy les envoie à Loki.
+- **Logs** : Nitro écrit des logs JSON, Alloy les envoie à Loki. Ils contiennent les IP des
+  visiteurs (donnée personnelle, RGPD) : la durée de rétention dans Loki est à fixer avec
+  l'étape 13 (légal) et à mettre en place à l'étape 12.
 - **Alertes** : Grafana, envoyées par mail (serveur saturé, taux d'erreur, service arrêté).
 - **Disponibilité** : contrôle externe gratuit, car une supervision hébergée sur le VPS ne peut
   pas signaler la panne du VPS.
@@ -338,14 +670,32 @@ l'image Docker.
 
 ## Sauvegardes
 
-Prévues en V2, rien n'est mis en place en V1 pour éviter de complexifier le lancement.
+Décision du 2026-10-16 : les sauvegardes passent de la V2 à l'étape 10 (infrastructure), car la
+base contiendra de vraies réservations payées et des photos de clients. Rien n'est encore en
+place.
 
-Pistes pour la V2 : `pg_dump` de la base et copie du bucket photos vers un stockage objet
-compatible S3 en région UE, chez un fournisseur différent de celui du VPS.
+- **Base** : cron nocturne sur le VPS, script shell qui lance `pg_dump` sur la base Supabase de
+  production. Pas besoin de Python.
+- **Photos** : copie du bucket Storage `intervention-photos`. Le dump ne contient que les
+  chemins des fichiers, pas les fichiers.
+- **Chiffrement** : les dumps sont chiffrés (`age` ou `gpg`) avant de quitter le VPS, car ils
+  contiennent des données personnelles (RGPD).
+- **Copie hors site** : stockage objet compatible S3 en UE, chez un fournisseur différent de
+  celui du VPS (Backblaze B2, Scaleway, OVH). Une sauvegarde qui reste uniquement sur le VPS
+  disparaît avec lui.
+- **Rétention** : à définir, par exemple 7 quotidiennes, 4 hebdomadaires et 12 mensuelles. Une
+  alerte prévient en cas d'échec.
+- **Test de restauration mensuel automatisé** : la dernière sauvegarde est restaurée dans un
+  conteneur Postgres jetable (`docker run --rm postgres:17`). Quelques comptages (nombre de
+  réservations, date de la dernière) sont comparés à la production, en lecture seule, puis le
+  conteneur est détruit. La production n'est jamais modifiée. Une alerte part si les comptages
+  ne correspondent pas : une sauvegarde jamais restaurée n'est pas une garantie.
+- **Plan Supabase** : le plan Free n'offre aucune sauvegarde automatique téléchargeable. Le plan
+  Pro (25 $/mois) est l'alternative à discuter avec le client (voir « Coûts estimés »).
 
-En V1, le VPS se reconstruit à l'identique (code et `docker-compose.yml` dans Git, images
-dans GHCR, cartes OSRM régénérables). Seul le fichier `.env` est à conserver à part, dans un
-gestionnaire de mots de passe.
+Le VPS se reconstruit à l'identique (code et `docker-compose.yml` dans Git, images dans GHCR,
+cartes OSRM régénérables). Seul le fichier `.env` est à conserver à part, dans un gestionnaire
+de mots de passe.
 
 ## Tâches planifiées
 
@@ -377,20 +727,28 @@ Le job `expire-stale-bookings` (`*/5 * * * *`) appelle `public.expire_stale_book
 
 ## Variables d'environnement
 
-| Variable                     | Usage                                                   |
-| ---------------------------- | ------------------------------------------------------- |
-| `NUXT_PUBLIC_SUPABASE_URL`   | URL du projet Supabase                                  |
-| `NUXT_PUBLIC_SUPABASE_KEY`   | Clé publique Supabase                                   |
-| `NUXT_SUPABASE_SECRET_KEY`   | Clé secrète Supabase, serveur uniquement                |
-| `NUXT_RESEND_API_KEY`        | Envoi des mails                                         |
-| `NUXT_MAIL_FROM`             | Expéditeur des mails (repli : `contact@dg-zenith.com`)  |
-| `NUXT_CONTACT_EMAIL_TO`      | Contact, alerte de réservation payée, `replyTo` clients |
-| `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                |
-| `NUXT_STRIPE_WEBHOOK_SECRET` | Vérification des webhooks Stripe                        |
-| `NUXT_SITE_URL`              | URL publique : retour Stripe (https en prod.), mail     |
-| `BREVO_API_KEY`              | Envoi des SMS                                           |
-| `OSRM_URL`                   | URL interne d'OSRM                                      |
-| `VROOM_URL`                  | URL interne de VROOM                                    |
+| Variable                     | Usage                                                     |
+| ---------------------------- | --------------------------------------------------------- |
+| `NUXT_PUBLIC_SUPABASE_URL`   | URL du projet Supabase                                    |
+| `NUXT_PUBLIC_SUPABASE_KEY`   | Clé publique Supabase                                     |
+| `NUXT_SUPABASE_SECRET_KEY`   | Clé secrète Supabase, serveur uniquement                  |
+| `NUXT_RESEND_API_KEY`        | Envoi des mails                                           |
+| `NUXT_MAIL_FROM`             | Expéditeur des mails (repli : `contact@dg-zenith.com`)    |
+| `NUXT_MAIL_TRANSPORT`        | `resend` (défaut) ou `outbox` (dev et tests seulement)    |
+| `NUXT_MAIL_OUTBOX_DIR`       | Dossier de l'outbox (défaut : `.mail-outbox`)             |
+| `TEST_MAIL_OUTBOX_DIR`       | Tests seulement : outbox vidée par le runner (voir Tests) |
+| `NUXT_CONTACT_EMAIL_TO`      | Contact, alerte de réservation payée, `replyTo` clients   |
+| `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                  |
+| `NUXT_STRIPE_WEBHOOK_SECRET` | Vérification des webhooks Stripe                          |
+| `NUXT_SITE_URL`              | URL publique : Stripe, liens des mails, `Origin` (https)  |
+| `BREVO_API_KEY`              | Envoi des SMS                                             |
+| `OSRM_URL`                   | URL interne d'OSRM                                        |
+| `VROOM_URL`                  | URL interne de VROOM                                      |
+
+En production : `NUXT_SITE_URL` en https, clés Stripe LIVE, `NUXT_MAIL_FROM` une fois le domaine
+vérifié, clés du projet Supabase de production. `NUXT_MAIL_TRANSPORT` doit rester absent : le
+serveur refuse `outbox` hors développement et journalise une erreur au démarrage
+(`server/plugins/mailTransportCheck.ts`).
 
 Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`runtimeConfig` dans
 `nuxt.config.ts`), pas à la construction : aucun secret n'est figé dans l'image Docker.
@@ -405,18 +763,70 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 
 ## Tests
 
-- Clients créés par les tests : `delivered+e2e-…@resend.dev`, adresse que Resend accepte toujours,
-  pour que les vrais envois ne rebondissent jamais. Le nettoyage supprime ce motif et l'ancien
-  `e2e+…@binovya.test`.
-- `bun run test:integration` demande `NUXT_RESEND_API_KEY` avec un accès en lecture
-  (`GET /emails`, pour vérifier les mails envoyés) et `NUXT_CONTACT_EMAIL_TO`.
+**Commandes**
+
+- `bun run test` : unitaires, puis intégration, puis e2e. Il est autonome et ne demande ni
+  `bun run dev` ni `stripe listen` lancés à la main. `test:integration` et `test:e2e` passent par
+  le même script (`scripts/test-run.ts`) et démarrent donc leur propre infrastructure.
+  `bun run test:unit` n'a besoin d'aucun serveur. `TEST_PORT=… bun run test` change le port.
+  `scripts/test-run.ts` accepte aussi des étapes en argument (`unit`, `integration`, `e2e`).
+- Le script arrête tout à la fin, y compris sur Ctrl+C. Ton `bun run dev` sur le port 3000 peut
+  continuer à tourner.
+
+**Infrastructure lancée par `scripts/test-run.ts`**
+
+- Un serveur de test sur `TEST_PORT` (3001 par défaut), démarré avec `BINOVYA_TEST_SERVER=1` :
+  `nuxt.config.ts` lui donne son propre dossier de build (`.nuxt-test`) et son propre cache Vite
+  (`node_modules/.cache/vite-test`), pour ne pas gêner le serveur de dev.
+- Variables imposées au serveur : `NUXT_MAIL_TRANSPORT=outbox`, `NUXT_MAIL_OUTBOX_DIR`,
+  `NUXT_CONTACT_EMAIL_TO=admin@binovya.test` et `NUXT_SITE_URL` sur le port de test. Aucun mail ne
+  sort de la machine.
+- Outbox de test : le script lit `TEST_MAIL_OUTBOX_DIR` (défaut `.mail-outbox/test-run`, constante
+  `TEST_OUTBOX_DIR` de `scripts/test-outbox.ts`), pas `NUXT_MAIL_OUTBOX_DIR`. Bun charge
+  `.env.local` dans `process.env` : un réglage d'outbox de développement aurait été vidé par le
+  `rm -rf` du script. Avant tout démarrage, `resolveTestOutboxDir` vérifie que le chemin résolu
+  est strictement dans `<projet>/.mail-outbox/` ; sinon le script s'arrête (code 1). Le dossier
+  est vidé à chaque exécution, puis son chemin absolu est exporté en `NUXT_MAIL_OUTBOX_DIR` vers
+  le serveur de test et les processus de test.
+- Son propre `stripe listen`, avec le secret du webhook lu par `--print-secret`. Si un autre
+  `stripe listen` tourne déjà, le script refuse de démarrer : sinon le serveur de dev recevrait les
+  paiements de test et enverrait de vrais mails. Le script s'arrête aussi si son listener meurt.
+- Clé Stripe (`scripts/stripe-key.ts`) : `STRIPE_API_KEY`, sinon `NUXT_STRIPE_SECRET_KEY`
+  (environnement, puis `.env.local`), uniquement `sk_test_`. Elle est transmise à la CLI par
+  l'environnement, jamais par `--api-key` : une clé de test a déjà fuité dans une sortie de `ps`.
+  Un avertissement s'affiche si les deux clés diffèrent, car elles doivent viser le même compte
+  Stripe.
+- Pour éviter qu'un rechargement de Vite coupe un test en cours, `vite.optimizeDeps.include`
+  liste les dépendances à pré-optimiser et `tests/e2e/global-setup.ts` visite chaque page avant le
+  premier test. Si une étape échoue, le script affiche les événements Vite (`optimized`,
+  `reload`).
+
+**Organisation**
+
+- `tests/{unit,integration,e2e}/<domaine>/` avec les domaines `account`, `booking`, `contact`,
+  `email`, `shared` et `scripts`. Noms de fichiers en kebab-case. Les aides communes sont dans
+  `tests/support/` (`api`, `db`, `seed`, `env`, `dates`, `account`, `outbox`) ; celles propres au
+  e2e dans `tests/e2e/support/`.
+- Un test d'intégration par gabarit de mail, dans `tests/integration/email/` : confirmation,
+  alerte admin de paiement, remboursement après paiement tardif, rappel, lien de connexion,
+  alerte de suppression, contact et devis. Ils lisent l'outbox (`tests/support/outbox.ts`). Le
+  mail « photos disponibles » n'a qu'un test unitaire jusqu'à l'étape 8.
+- Les autres tests ne vérifient pas les mails, sauf les parcours qui en ont besoin (lien de
+  connexion) et l'idempotence.
+- Clients créés par les tests : `e2e+…@binovya.test`. Le nettoyage supprime ce motif.
+- Un seul appel à Resend dans toute la suite : `tests/integration/email/resend-smoke.test.ts`,
+  en lecture seule (`GET /domains`). Il vérifie que la clé est valide et que le domaine de
+  l'expéditeur est vérifié. Il est ignoré sans `NUXT_RESEND_API_KEY`, et n'envoie aucun mail.
 - Le test d'intégration des rappels refuse de tourner s'il existe une vraie réservation payée
-  dans la fenêtre J+1..J+2, car la tâche enverrait un vrai rappel à un vrai client.
+  dans la fenêtre J+1..J+2 : la tâche la traiterait, marquerait son rappel comme envoyé et le
+  client ne le recevrait jamais.
+- Dernier passage complet : 648 tests sur 648 au vert, le 2026-10-16.
 
 ## Légal
 
 - L'hébergeur du VPS et Supabase figurent dans les mentions légales.
-- Toutes les données restent dans l'UE.
+- Toutes les données restent dans l'UE, à une exception près : Cloudflare (société américaine)
+  déchiffre le trafic en transit. Il figure comme sous-traitant, avec son DPA.
 - Un accord de traitement des données (DPA) est signé avec chaque fournisseur.
 
 ## Points ouverts
@@ -427,8 +837,27 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 - Domaine `binovya.com` à vérifier sur Resend : tant que ce n'est pas fait, l'expéditeur reste
   `contact@dg-zenith.com` (repli de `NUXT_MAIL_FROM`).
 - Incohérence connue : `parseSecureUrl` accepte `http://localhost` même en production, alors que
-  `resolveSiteUrl` (`server/utils/bookingCheckout.ts`) n'accepte http qu'en développement.
-  Alignement reporté.
+  `resolveSiteUrl` (`server/utils/siteUrl.ts`) n'accepte http qu'en développement. Elle est
+  assumée pour `emailSitePageUrl` (le mail part sans lien plutôt que pas du tout) mais reste à
+  trancher.
+- `has_recent_sign_in()` accepte un timestamp d'`amr` transmis en chaîne numérique (sa regex ne
+  vérifie pas le type JSON), alors que l'application exige un nombre. À trancher dans une future
+  migration.
+- Sans `NUXT_SITE_URL`, `POST /api/booking` journalise deux fois l'erreur (`assertCheckoutSiteUrl`
+  puis `resolveSiteUrl`). Sans conséquence.
+- `tests/e2e/customer-area.spec.ts` approche la limite de 350 lignes (310) : le découper avant d'y
+  ajouter des tests.
+- La branche « développement » de `isMailConfigured()` (valeur inconnue refusée, outbox permise)
+  n'est pas testable en unitaire : `import.meta.dev` est figé à la construction. Elle n'est
+  couverte que par les tests d'intégration.
+- Réglages par défaut de Supabase : les nouvelles fonctions du schéma `public` sont exécutables par
+  `anon` et `authenticated` (`pg_default_acl`). Chaque migration doit donc retirer l'exécution des
+  fonctions sensibles. Durcissement possible plus tard (idée, non fait) :
+  `alter default privileges … revoke execute on functions from anon, authenticated`.
+- 8 fichiers échouent à `prettier --check` sur `dev`, sans lien avec l'étape en cours :
+  `BeforeAfterSection`, `OffersSection`, `ServicesSection`, `TrustStripSection`,
+  `layouts/footer`, `pages/about`, `i18n/locales/fr/solutions.ts` et `README.md`. À corriger dans
+  un chore dédié.
 
 ## Coûts estimés
 
@@ -481,6 +910,7 @@ mentions légales et le RGPD, et prix proche du moins cher. Contabo reste l'opti
 | OSRM, VROOM, Prometheus, Grafana, Loki | 0 € (open source)                | 0 €                                                  |
 | Géoplateforme IGN                      | 0 €                              | 0 €                                                  |
 | Contrôle de disponibilité externe      | 0 € (offre gratuite)             | 0 €                                                  |
+| Stockage objet des sauvegardes (UE)    | À chiffrer                       | À chiffrer (dépend du volume de photos)              |
 | Domaine `binovya.com`                  | Déjà acquis                      | Renouvellement annuel                                |
 | **Total**                              | **≈ 8 € / mois**                 | **≈ 30 € / mois**                                    |
 

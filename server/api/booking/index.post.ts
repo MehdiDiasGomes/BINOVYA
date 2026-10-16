@@ -69,7 +69,7 @@ const attachCheckout = async (
 export default defineEventHandler(async (event): Promise<BookingResponse> => {
   assertBodySize(event, MAX_BODY_BYTES)
   const body = await readValidatedBody(event, bookingRequestSchema.parse)
-  resolveSiteUrl()
+  assertCheckoutSiteUrl()
   if (body.website) {
     return {
       bookingId: crypto.randomUUID(),

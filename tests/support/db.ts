@@ -1,5 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
-import { resolve as resolvePath } from 'node:path'
+import { readEnv } from './env'
 
 export type BookingRow = {
   id: string
@@ -14,23 +13,6 @@ export type BookingRow = {
 type Credentials = { url: string; key: string }
 
 export const E2E_EMAIL_PATTERN = /^(e2e\+.+@binovya\.test|delivered\+e2e-.+@resend\.dev)$/
-
-let envFileCache: string | undefined
-
-const readEnv = (name: string): string => {
-  const fromProcess: string | undefined = process.env[name]
-  if (fromProcess) {
-    return fromProcess
-  }
-  const path: string = resolvePath(process.cwd(), '.env.local')
-  envFileCache ??= existsSync(path) ? readFileSync(path, 'utf8') : ''
-  const line: string | undefined = envFileCache
-    .split('\n')
-    .find(entry => entry.startsWith(`${name}=`))
-  return (line ?? '').slice(name.length + 1).trim()
-}
-
-export { readEnv }
 
 const loadCredentials = (): Credentials => ({
   url: readEnv('NUXT_PUBLIC_SUPABASE_URL'),
@@ -106,10 +88,36 @@ const listE2eProfiles = async (): Promise<{ id: string; email: string }[]> => {
   return lists.flat().filter(profile => E2E_EMAIL_PATTERN.test(profile.email))
 }
 
+const removePhotoObjects = async (customerId: string): Promise<void> => {
+  const response: Response = await rest(`/rest/v1/bookings?select=id&customer_id=eq.${customerId}`)
+  const ids: string[] = ((await response.json()) as { id: string }[]).map(row => row.id)
+  if (ids.length === 0) {
+    return
+  }
+  await rest('/storage/v1/object/intervention-photos', {
+    method: 'DELETE',
+    body: JSON.stringify({
+      prefixes: ids.flatMap(id =>
+        ['before', 'after'].flatMap(kind => [`${id}/${kind}.png`, `${id}/${kind}.jpg`]),
+      ),
+    }),
+  })
+}
+
+const removeE2eQuoteRequests = async (): Promise<void> => {
+  await Promise.all(
+    E2E_EMAIL_FILTERS.map(filter =>
+      rest(`/rest/v1/quote_requests?email=like.${filter}`, { method: 'DELETE' }),
+    ),
+  )
+}
+
 export const cleanupE2eData = async (): Promise<{ bookings: number; users: number }> => {
+  await removeE2eQuoteRequests()
   const profiles = await listE2eProfiles()
   const counts: number[] = await Promise.all(
     profiles.map(async profile => {
+      await removePhotoObjects(profile.id)
       const deleted: Response = await rest(`/rest/v1/bookings?customer_id=eq.${profile.id}`, {
         method: 'DELETE',
         headers: { Prefer: 'return=representation' },

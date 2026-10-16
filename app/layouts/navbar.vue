@@ -27,6 +27,13 @@
       <!-- CTA + burger -->
       <div class="flex items-center gap-3.5">
         <NuxtLink
+          :to="accountPath"
+          class="hidden h-11 items-center gap-2 rounded-lg px-2 text-[14px] font-semibold text-[#dce8f0] transition-colors duration-150 hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 md:flex"
+        >
+          <Icon name="CircleUser" :size="16" aria-hidden="true" />
+          {{ $t('account.nav') }}
+        </NuxtLink>
+        <NuxtLink
           :to="localePath('/booking')"
           class="hidden items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-all hover:-translate-y-px hover:bg-primary/90 md:flex"
           :aria-label="$t('nav.reserverAriaLabel')"
@@ -41,9 +48,24 @@
           :aria-expanded="mobileMenuOpen"
           @click="mobileMenuOpen = !mobileMenuOpen"
         >
-          <span :class="['block h-0.5 w-5 bg-white transition-all duration-300', mobileMenuOpen && 'translate-y-2 rotate-45']" />
-          <span :class="['block h-0.5 w-5 bg-white transition-all duration-300', mobileMenuOpen && 'opacity-0']" />
-          <span :class="['block h-0.5 w-5 bg-white transition-all duration-300', mobileMenuOpen && '-translate-y-2 -rotate-45']" />
+          <span
+            :class="[
+              'block h-0.5 w-5 bg-white transition-all duration-300',
+              mobileMenuOpen && 'translate-y-2 rotate-45',
+            ]"
+          />
+          <span
+            :class="[
+              'block h-0.5 w-5 bg-white transition-all duration-300',
+              mobileMenuOpen && 'opacity-0',
+            ]"
+          />
+          <span
+            :class="[
+              'block h-0.5 w-5 bg-white transition-all duration-300',
+              mobileMenuOpen && '-translate-y-2 -rotate-45',
+            ]"
+          />
         </button>
       </div>
     </div>
@@ -57,28 +79,36 @@
       leave-from-class="max-h-96 opacity-100"
       leave-to-class="max-h-0 opacity-0"
     >
-    <div
-      v-if="mobileMenuOpen"
-      class="flex flex-col border-t border-white/8 bg-navy-900 px-8 pb-5 pt-2.5 md:hidden"
-    >
-      <a
-        v-for="item in navigationItems"
-        :key="item.labelKey"
-        :href="localePath(item.path) + (item.hash ?? '')"
-        class="border-b border-white/5 py-3 text-[15px] font-semibold text-[#dce8f0] transition-colors hover:text-turquoise"
-        @click.prevent="handleMobileNavClick(item)"
+      <div
+        v-if="mobileMenuOpen"
+        class="flex flex-col border-t border-white/8 bg-navy-900 px-8 pb-5 pt-2.5 md:hidden"
       >
-        {{ $t(item.labelKey) }}
-      </a>
-      <NuxtLink
-        :to="localePath('/booking')"
-        class="mt-4 flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white"
-        @click="mobileMenuOpen = false"
-      >
-        <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
-        {{ $t('nav.reserverAriaLabel') }}
-      </NuxtLink>
-    </div>
+        <a
+          v-for="item in navigationItems"
+          :key="item.labelKey"
+          :href="localePath(item.path) + (item.hash ?? '')"
+          class="border-b border-white/5 py-3 text-[15px] font-semibold text-[#dce8f0] transition-colors hover:text-turquoise"
+          @click.prevent="handleMobileNavClick(item)"
+        >
+          {{ $t(item.labelKey) }}
+        </a>
+        <NuxtLink
+          :to="accountPath"
+          class="flex min-h-11 items-center gap-2 border-b border-white/5 py-3 text-[15px] font-semibold text-[#dce8f0] transition-colors duration-150 hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-white/60"
+          @click="mobileMenuOpen = false"
+        >
+          <Icon name="CircleUser" :size="16" aria-hidden="true" />
+          {{ $t('account.nav') }}
+        </NuxtLink>
+        <NuxtLink
+          :to="localePath('/booking')"
+          class="mt-4 flex items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white"
+          @click="mobileMenuOpen = false"
+        >
+          <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
+          {{ $t('nav.reserverAriaLabel') }}
+        </NuxtLink>
+      </div>
     </Transition>
   </header>
 </template>
@@ -88,6 +118,11 @@ import { navigationItems, type NavItem } from '@/constants/navbar'
 
 const localePath = useLocalePath()
 const mobileMenuOpen = ref<boolean>(false)
+const { isActive: isLoggedIn } = useCustomerSession()
+
+const accountPath: ComputedRef<string> = computed(() =>
+  localePath(isLoggedIn.value ? '/account' : '/login'),
+)
 
 const handleMobileNavClick = async (item: NavItem): Promise<void> => {
   mobileMenuOpen.value = false

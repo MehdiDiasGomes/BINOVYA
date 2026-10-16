@@ -31,6 +31,15 @@ export default {
     content:
       'Your personal data is retained for a maximum period of 3 years from our last contact. After this period, it is deleted from our systems, unless there is a legal obligation to retain it.',
   },
+  customerArea: {
+    title: 'Customer area',
+    legalBasis:
+      'When you book a cleaning, we store your contact details (first and last name, email address, phone), the cleaning address and your bookings. This processing is necessary to perform the contract: it lets us carry out the cleaning, keep you informed and show you the before/after photos of your bins.',
+    access:
+      'Your customer area only opens when you ask for it: there is no password, you access it through a personal login link sent to your email address, valid for {hours} hours and usable only once. The photos of your bins are shown there through temporary links.',
+    deletion:
+      'You can request the deletion of your area and of your data from the customer area, or by writing to us. We handle the request within one month. Paid bookings are kept for as long as our accounting obligations require.',
+  },
   rights: {
     title: 'Your Rights',
     intro:

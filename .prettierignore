@@ -3,6 +3,8 @@ node_modules
 
 # Nuxt
 .nuxt
+.nuxt-test
+.mail-outbox
 .output
 dist
 

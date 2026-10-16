@@ -1,4 +1,5 @@
 import about from './fr/about'
+import account from './fr/account'
 import booking from './fr/booking'
 import contact from './fr/contact'
 import faq from './fr/faq'
@@ -141,6 +142,7 @@ export default {
   contact,
   about,
   booking,
+  account,
   quote,
   ...solutions,
   common: {

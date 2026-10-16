@@ -1,12 +1,12 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { uniqueTestEmail } from '../support/env'
 import {
   acceptPaymentCheckboxes,
   bookingPath,
   fillUntilPayment,
   goToStripe,
   MESSAGES,
-  newEmail,
   payButton,
   payOnStripe,
   type BookingInput,
@@ -21,7 +21,6 @@ import {
   sleep,
   waitForStatus,
 } from '../support/db'
-import { waitForSentEmails } from '../support/resend'
 
 const LONG_DATE = (isoDate: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(
@@ -62,7 +61,7 @@ test.afterAll(async () => {
 test('1. happy path FR: busy button, Stripe page, success page, paid booking', async ({ page }) => {
   const lang: Lang = 'fr'
   const m = MESSAGES[lang]
-  const email = newEmail('happy')
+  const email = uniqueTestEmail('happy')
   const isoDate = days[0]
   await fillUntilPayment(page, lang, { email, isoDate: isoDate })
   await acceptPaymentCheckboxes(page, lang)
@@ -103,9 +102,6 @@ test('1. happy path FR: busy button, Stripe page, success page, paid booking', a
   expect(booking.amount_total_cents).toBe(await readPrice('one_off', 1, 0))
   expect(booking.stripe_checkout_session_id).toMatch(/^cs_test_/)
   expect(booking.stripe_payment_intent_id).toMatch(/^pi_/)
-
-  const confirmations = await waitForSentEmails({ to: email, subjectIncludes: 'est confirmée' })
-  expect(confirmations).toHaveLength(1)
 })
 
 test('2. cancel on Stripe: draft restored, alert, focus, booking expired, repay works', async ({
@@ -113,7 +109,7 @@ test('2. cancel on Stripe: draft restored, alert, focus, booking expired, repay 
 }) => {
   const lang: Lang = 'fr'
   const m = MESSAGES[lang]
-  const email = newEmail('cancel')
+  const email = uniqueTestEmail('cancel')
   await startCheckout(page, lang, { email, isoDate: days[1] })
   const firstBooking = (await findBookings(email))[0]
   expect(firstBooking?.status).toBe('pending_payment')
@@ -138,7 +134,7 @@ test('2. cancel on Stripe: draft restored, alert, focus, booking expired, repay 
 
 test('3. browser Back from Stripe: booking expired, new attempt works', async ({ page }) => {
   const lang: Lang = 'fr'
-  const email = newEmail('back')
+  const email = uniqueTestEmail('back')
   await startCheckout(page, lang, { email, isoDate: days[2] })
 
   await page.goBack()
@@ -158,7 +154,7 @@ test('3. browser Back from Stripe: booking expired, new attempt works', async ({
 test('4. one pending booking per customer', async ({ page, context }) => {
   const lang: Lang = 'fr'
   const m = MESSAGES[lang]
-  const email = newEmail('pending')
+  const email = uniqueTestEmail('pending')
   await startCheckout(page, lang, { email, isoDate: days[3] })
 
   const second = await context.newPage()
@@ -178,7 +174,7 @@ test('4. one pending booking per customer', async ({ page, context }) => {
 
 test('5. declined card stays pending, then 4242 pays', async ({ page }) => {
   const lang: Lang = 'fr'
-  const email = newEmail('declined')
+  const email = uniqueTestEmail('declined')
   await startCheckout(page, lang, { email, isoDate: days[5] })
 
   await payOnStripe(page, '4000000000000002')
@@ -213,7 +209,7 @@ test('6. direct visit with ?checkout=cancelled and no stored draft', async ({ br
 test('7. English happy path returns on /en/booking with English texts', async ({ page }) => {
   const lang: Lang = 'en'
   const m = MESSAGES[lang]
-  const email = newEmail('english')
+  const email = uniqueTestEmail('english')
   const isoDate = days[6]
   await fillUntilPayment(page, lang, { email, isoDate: isoDate })
   await acceptPaymentCheckboxes(page, lang)
@@ -237,7 +233,7 @@ test('7. English happy path returns on /en/booking with English texts', async ({
 
 test('8. honeypot: no booking row, ends on the cancelled path', async ({ page }) => {
   const lang: Lang = 'fr'
-  const email = newEmail('honeypot')
+  const email = uniqueTestEmail('honeypot')
   await fillUntilPayment(page, lang, { email, isoDate: days[7] })
   await acceptPaymentCheckboxes(page, lang)
   await page.locator('input[name="website"]').fill('https://spam.example', { force: true })

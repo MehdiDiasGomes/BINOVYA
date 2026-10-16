@@ -57,8 +57,10 @@ export const notifyQuoteRequest = async (
   quote: QuoteNotification,
 ): Promise<void> => {
   const config = useRuntimeConfig()
-  if (!config.resendApiKey || !config.contactEmailTo) {
-    console.warn('Quote email skipped: NUXT_RESEND_API_KEY or NUXT_CONTACT_EMAIL_TO is not set')
+  if (!isMailConfigured() || !config.contactEmailTo) {
+    console.warn(
+      'Quote email skipped: mail transport not configured or NUXT_CONTACT_EMAIL_TO not set',
+    )
     return
   }
 

@@ -1,8 +1,11 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from '@tailwindcss/vite'
 
+const isTestServer: boolean = process.env.BINOVYA_TEST_SERVER === '1'
+
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
+  buildDir: isTestServer ? '.nuxt-test' : '.nuxt',
   devtools: { enabled: true },
   css: ['~/assets/css/tailwind.css'],
 
@@ -10,6 +13,8 @@ export default defineNuxtConfig({
     resendApiKey: '',
     contactEmailTo: '',
     mailFrom: '',
+    mailTransport: '',
+    mailOutboxDir: '',
     stripeSecretKey: '',
     stripeWebhookSecret: '',
     siteUrl: '',
@@ -23,6 +28,28 @@ export default defineNuxtConfig({
 
   vite: {
     plugins: [tailwindcss()],
+    cacheDir: isTestServer ? 'node_modules/.cache/vite-test' : undefined,
+    optimizeDeps: {
+      include: [
+        '@vue/devtools-core',
+        '@vue/devtools-kit',
+        'motion-v',
+        'lucide-vue-next',
+        'vue-sonner',
+        'clsx',
+        'tailwind-merge',
+        'zod',
+        '@vueuse/core',
+        'country-flag-icons/string/3x2',
+        'reka-ui',
+        '@internationalized/date',
+      ],
+    },
+    server: {
+      fs: {
+        deny: ['.env', '.env.*', '*.{crt,pem}', '**/.git/**', '**/.mail-outbox/**'],
+      },
+    },
   },
   modules: [
     'shadcn-nuxt',
