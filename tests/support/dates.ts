@@ -1,6 +1,6 @@
 import { listActiveBookingDates } from './db'
+import { BASE_URL } from './env'
 
-const BASE_URL: string = process.env.TEST_BASE_URL ?? 'http://localhost:3000'
 const IN_AREA_POINT = { latitude: 49.3595, longitude: 6.1685 }
 
 type AvailabilityDay = { date: string; status: string }

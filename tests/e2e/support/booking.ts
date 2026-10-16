@@ -7,9 +7,6 @@ export type Lang = 'fr' | 'en'
 
 export const MESSAGES = { fr: frBooking, en: enBooking }
 
-export const newEmail = (tag: string): string =>
-  `delivered+e2e-payment-${tag}-${Date.now()}-${crypto.randomUUID().slice(0, 8)}@resend.dev`
-
 export const bookingPath = (lang: Lang): string => (lang === 'fr' ? '/booking' : '/en/booking')
 
 const monthOf = (isoDate: string): string => isoDate.slice(0, 7)
