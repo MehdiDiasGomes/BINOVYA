@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { THIONVILLE_ADDRESS } from '../../support/api'
+import { signedAddress, THIONVILLE_ADDRESS } from '../../support/address'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { BASE_URL, adminMailbox, uniqueTestEmail } from '../../support/env'
 import { htmlToText, normalizeSpaces, waitForOneMail } from '../../support/outbox'
@@ -19,7 +19,7 @@ const quotePayload = (): Record<string, unknown> => ({
     email: EMAIL,
     phone: '+33612345678',
   },
-  address: THIONVILLE_ADDRESS,
+  address: signedAddress(THIONVILLE_ADDRESS),
   equipment: ['bins', 'pav'],
   smallBinCount: 2,
   largeBinCount: 1,

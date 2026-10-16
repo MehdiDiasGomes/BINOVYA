@@ -1,8 +1,11 @@
 import Stripe from 'stripe'
 import { expect } from 'vitest'
 
+import { signedAddress, THIONVILLE_ADDRESS } from './address'
 import { findBookings, type BookingRow } from './db'
 import { BASE_URL, readEnv, uniqueTestEmail } from './env'
+
+import type { AddressDetails } from '../../app/types/booking'
 
 /** Maximum number of active bookings per day. */
 export const DAY_CAPACITY: number = 3
@@ -23,29 +26,11 @@ export type BookingOverrides = Partial<{
   firstName: string
   lastName: string
   locale: string
-  address: Record<string, unknown>
+  address: AddressDetails
 }>
 
-export const THIONVILLE_ADDRESS: Record<string, unknown> = {
-  label: '12 rue de la Gare, 57100 Thionville',
-  city: 'Thionville',
-  postcode: '57100',
-  countryCode: 'FR',
-  latitude: 49.3595,
-  longitude: 6.1685,
-}
-
-export const PARIS_ADDRESS: Record<string, unknown> = {
-  label: '1 rue de Rivoli, 75001 Paris',
-  city: 'Paris',
-  postcode: '75001',
-  countryCode: 'FR',
-  latitude: 48.8606,
-  longitude: 2.3376,
-}
-
 export const bookingBody = (overrides: BookingOverrides = {}): Record<string, unknown> => ({
-  address: overrides.address ?? THIONVILLE_ADDRESS,
+  address: signedAddress(overrides.address ?? THIONVILLE_ADDRESS),
   plan: overrides.plan ?? 'one_off',
   smallBinCount: overrides.smallBinCount ?? 1,
   largeBinCount: overrides.largeBinCount ?? 0,
