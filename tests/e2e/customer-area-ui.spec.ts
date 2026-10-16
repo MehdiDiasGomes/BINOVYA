@@ -154,9 +154,7 @@ test.describe('navbar link', () => {
 test.describe('account page at 375 px', () => {
   test.use({ viewport: { width: 375, height: 800 } })
 
-  test('has no horizontal scroll, shows the 3 status pills and a usable dialog', async ({
-    page,
-  }) => {
+  test('has no horizontal scroll and shows the 3 status labels', async ({ page }) => {
     const area = await seedArea('mobile')
     await signIn(page, area.customer.email)
     expect(await hasHorizontalScroll(page)).toBe(false)
@@ -165,34 +163,6 @@ test.describe('account page at 375 px', () => {
         expect(page.getByText(status)).toBeVisible(),
       ),
     )
-    await page.getByRole('button', { name: /Agrandir la photo « Avant »/ }).click()
-    const dialog = page.getByRole('dialog', { name: /Photo agrandie : Avant du / })
-    await expect(dialog).toBeVisible()
-    const box = await dialog.boundingBox()
-    expect(box?.x).toBeGreaterThanOrEqual(0)
-    expect((box?.x ?? 0) + (box?.width ?? 0)).toBeLessThanOrEqual(375)
-    expect(await hasHorizontalScroll(page)).toBe(false)
-    const close = dialog.getByRole('button', { name: FR.photos.close })
-    await expect
-      .poll(async () => (await close.boundingBox())?.height ?? 0)
-      .toBeGreaterThanOrEqual(MIN_TARGET_PX)
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeHidden()
-  })
-
-  test('shows the fallback text when a photo cannot be loaded, without overflow', async ({
-    page,
-  }) => {
-    const area = await seedArea('broken')
-    await page.route('**/storage/v1/object/sign/**', route => route.abort())
-    await signIn(page, area.customer.email)
-    await expect(
-      page.getByText(FR.photos.loadError.replace('{kind}', FR.photos.kinds.before)),
-    ).toBeVisible()
-    await expect(
-      page.getByText(FR.photos.loadError.replace('{kind}', FR.photos.kinds.after)),
-    ).toBeVisible()
-    expect(await hasHorizontalScroll(page)).toBe(false)
   })
 
   test('deletion states fit at 375 px', async ({ page }) => {

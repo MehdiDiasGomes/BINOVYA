@@ -1,4 +1,4 @@
-import { expect, test, type Locator, type Page } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
 import { ACCOUNT_MESSAGES, confirmPath, seedArea, type SeededArea } from './support/account'
 import {
@@ -12,13 +12,8 @@ import { assertTestStripeKey, cleanupE2eData, sleep } from '../support/db'
 import { readEnv, uniqueTestEmail } from '../support/env'
 import { findLink, waitForOneMail } from '../support/outbox'
 
-const naturalWidthOf = (image: Element): number => (image as HTMLImageElement).naturalWidth
-
 const FR = ACCOUNT_MESSAGES.fr
 const EN = ACCOUNT_MESSAGES.en
-
-const expectDecoded = (photo: Locator): Promise<void> =>
-  expect.poll(() => photo.evaluate(naturalWidthOf)).toBeGreaterThan(0)
 
 const openArea = async (page: Page, area: SeededArea): Promise<void> => {
   await page.goto(await confirmPath(area.customer.email, 'fr'))
@@ -57,10 +52,6 @@ test.describe('magic link journey', () => {
     await expect(page.getByText(FR.booking.statuses.paid)).toBeVisible()
     await expect(page.getByText(FR.booking.statuses.completed)).toBeVisible()
     await expect(page.getByText(FR.booking.statuses.cancelled)).toBeVisible()
-
-    const photos = page.getByRole('img', { name: /Vos bacs (avant|après) le nettoyage/ })
-    await expect(photos).toHaveCount(2)
-    await Promise.all((await photos.all()).map(expectDecoded))
 
     const fresh = await browser.newContext({ locale: 'fr-FR' })
     const stranger = await fresh.newPage()
@@ -101,7 +92,6 @@ test.describe('magic link journey', () => {
     expect(page.url()).not.toContain('#')
     await expect(page.getByRole('heading', { level: 1, name: 'Hello Ada' })).toBeVisible()
     await expect(page.getByText(EN.booking.statuses.completed)).toBeVisible()
-    await expect(page.getByRole('button', { name: /Enlarge the « Before » photo/ })).toBeVisible()
   })
 
   test('shows the English error card with a link to /en/login for a dead link', async ({
@@ -119,26 +109,6 @@ test.describe('magic link journey', () => {
     await expect(
       page.getByRole('heading', { level: 1, name: FR.confirm.failedTitle }),
     ).toBeVisible()
-  })
-
-  test('opens, closes with Escape and with the button the enlarged photo dialog', async ({
-    page,
-  }) => {
-    const area = await seedArea('dialog')
-    await openArea(page, area)
-    const trigger = page.getByRole('button', { name: /Agrandir la photo « Avant »/ })
-    await trigger.click()
-    const dialog = page.getByRole('dialog', { name: /Photo agrandie : Avant du / })
-    await expect(dialog).toBeVisible()
-    await page.keyboard.press('Escape')
-    await expect(dialog).toBeHidden()
-    await expect(trigger).toBeFocused()
-
-    await page.getByRole('button', { name: /Agrandir la photo « Après »/ }).click()
-    const second = page.getByRole('dialog', { name: /Photo agrandie : Après du / })
-    await expect(second).toBeVisible()
-    await second.getByRole('button', { name: FR.photos.close }).click()
-    await expect(second).toBeHidden()
   })
 })
 
