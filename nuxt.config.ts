@@ -18,6 +18,7 @@ export default defineNuxtConfig({
     stripeSecretKey: '',
     stripeWebhookSecret: '',
     siteUrl: '',
+    addressTokenSecret: '',
   },
 
   nitro: {
