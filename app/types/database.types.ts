@@ -8,6 +8,7 @@ type PhotoKind = 'before' | 'after'
 type QuoteStatus = 'new' | 'answered' | 'closed'
 type QuoteEquipment = 'bins' | 'pav' | 'urban_furniture' | 'signage'
 type CountryCode = 'FR' | 'LU'
+type Json = string | number | boolean | null | Json[] | { [key: string]: Json }
 
 type Table<Row, Required extends keyof Row = never> = {
   Row: Row
@@ -22,6 +23,10 @@ type ProfileRow = {
   first_name: string
   last_name: string
   phone: string
+  login_link_sent_at: string | null
+  deletion_requested_at: string | null
+  login_link_count: number
+  login_link_window_start: string | null
   created_at: string
 }
 
@@ -186,6 +191,18 @@ export type Database = {
           p_amount_cents: number
         }
         Returns: 'paid' | 'already_paid' | 'refund_required' | 'not_payable' | 'not_found'
+      }
+      has_recent_sign_in: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      claim_login_link: {
+        Args: { p_email: string }
+        Returns: string | null
+      }
+      suppress_auth_emails: {
+        Args: { event: Json }
+        Returns: Json
       }
       expire_stale_bookings: {
         Args: Record<string, never>
