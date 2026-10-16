@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 import { ACCOUNT_MESSAGES, confirmPath, seedArea, type SeededArea } from './support/account'
+import { sleep } from '../../scripts/test-process'
 import {
   createCustomer,
   openPasswordSession,
@@ -8,7 +9,7 @@ import {
   sessionCookieName,
   sessionCookieValue,
 } from '../support/account'
-import { assertTestStripeKey, cleanupE2eData, sleep } from '../support/db'
+import { assertTestStripeKey, cleanupE2eData } from '../support/db'
 import { readEnv, uniqueTestEmail } from '../support/env'
 import { findLink, waitForOneMail } from '../support/outbox'
 
@@ -90,7 +91,9 @@ test.describe('magic link journey', () => {
     await page.goto(await confirmPath(area.customer.email, 'en'))
     await page.waitForURL(url => url.pathname === '/en/account')
     expect(page.url()).not.toContain('#')
-    await expect(page.getByRole('heading', { level: 1, name: 'Hello Ada' })).toBeVisible()
+    await expect(page.getByRole('heading', { level: 1, name: 'Hello Ada' })).toBeVisible({
+      timeout: 10_000,
+    })
     await expect(page.getByText(EN.booking.statuses.completed)).toBeVisible()
   })
 

@@ -2,7 +2,8 @@ import { expect, test, type Locator, type Page } from '@playwright/test'
 
 import { ACCOUNT_MESSAGES, confirmPath, seedArea, type Lang } from './support/account'
 import { formatFullDate } from '../../app/utils/date'
-import { assertTestStripeKey, cleanupE2eData, sleep } from '../support/db'
+import { sleep } from '../../scripts/test-process'
+import { assertTestStripeKey, cleanupE2eData } from '../support/db'
 
 const FR = ACCOUNT_MESSAGES.fr
 const EN = ACCOUNT_MESSAGES.en
