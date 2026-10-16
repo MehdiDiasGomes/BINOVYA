@@ -12,7 +12,6 @@
 
     <Motion
       v-if="requestedAt"
-      key="done"
       :initial="{ opacity: 0, y: STEP_OFFSET }"
       :animate="{ opacity: 1, y: 0 }"
       :transition="STEP_TRANSITION"
@@ -39,7 +38,7 @@
       <button
         ref="requestButtonRef"
         type="button"
-        class="mt-4 flex h-11 items-center justify-center gap-2 rounded-lg border border-destructive px-5 text-sm font-bold text-red-700 transition-all duration-150 hover:bg-red-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+        class="mt-4 flex h-11 items-center justify-center gap-2 rounded-lg border border-destructive px-5 text-sm font-bold text-red-700 transition-all duration-press ease-brand hover:bg-red-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
         @click="askConfirmation"
       >
         <Icon name="Trash2" :size="16" aria-hidden="true" />
@@ -49,7 +48,6 @@
 
     <Motion
       v-else
-      key="confirm"
       role="group"
       aria-labelledby="account-deletion-confirm-title"
       :initial="{ opacity: 0, y: STEP_OFFSET }"
@@ -81,7 +79,7 @@
           type="button"
           :aria-disabled="step === 'submitting'"
           :aria-busy="step === 'submitting'"
-          class="flex h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-5 text-sm font-bold text-white transition-all duration-150 hover:bg-red-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:active:scale-100"
+          class="flex h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-5 text-sm font-bold text-white transition-all duration-press ease-brand hover:bg-red-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:active:scale-100"
           @click="confirmDeletion"
         >
           <Icon
@@ -98,7 +96,7 @@
         </button>
         <button
           type="button"
-          class="flex h-11 items-center justify-center rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-150 hover:border-primary hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+          class="flex h-11 items-center justify-center rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
           @click="cancelConfirmation"
         >
           {{ $t('account.deletion.cancel') }}

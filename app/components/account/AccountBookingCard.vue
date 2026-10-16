@@ -1,57 +1,51 @@
 <template>
-  <article
-    :aria-labelledby="titleId"
-    class="rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6"
-  >
-    <h3 :id="titleId" class="text-lg font-black text-ink">
-      {{ $t('account.booking.title', { date: dateLabel }) }}
-    </h3>
-    <dl
-      class="mt-4 grid gap-x-6 gap-y-0.5 text-sm sm:grid-cols-[max-content_1fr] sm:items-center sm:gap-y-3 [&>dt:not(:first-child)]:mt-3 sm:[&>dt:not(:first-child)]:mt-0"
-    >
-      <dt class="font-bold text-ink/70">{{ $t('account.booking.status') }}</dt>
-      <dd>
-        <span
-          :class="
-            cn(
-              'inline-flex items-center gap-2 rounded-full px-3 py-1 font-bold',
-              props.booking.status === 'paid' && 'bg-paper-2 text-ink',
-              props.booking.status === 'completed' && 'bg-green-50 text-green-700',
-              props.booking.status === 'cancelled' && 'bg-red-50 text-ink',
-            )
-          "
-        >
-          <Icon :name="ACCOUNT_STATUS_ICONS[props.booking.status]" :size="16" aria-hidden="true" />
-          {{ $t(`account.booking.statuses.${props.booking.status}`) }}
-        </span>
-      </dd>
-      <dt class="font-bold text-ink/70">{{ $t('account.booking.date') }}</dt>
-      <dd class="text-ink">{{ dateLabel }}</dd>
-      <dt class="font-bold text-ink/70">{{ $t('account.booking.address') }}</dt>
-      <dd class="break-words text-ink">{{ props.booking.address }}</dd>
-      <dt class="font-bold text-ink/70">{{ $t('account.booking.services') }}</dt>
-      <dd class="text-ink">{{ servicesLabel }}</dd>
-      <dt class="font-bold text-ink/70">{{ $t('account.booking.plan') }}</dt>
-      <dd class="text-ink">{{ $t(`booking.plans.${props.booking.plan}.title`) }}</dd>
-      <dt class="font-bold text-ink/70">{{ $t('account.booking.amount') }}</dt>
-      <dd class="font-bold text-ink">
-        {{ formatPrice(props.booking.amountTotalCents, locale) }}
-      </dd>
+  <MediaCard :title="dateLabel" :subtitle="props.booking.address" :tone="view.tone" interactive>
+    <template #eyebrow>
+      <Icon :name="view.icon" :size="16" :stroke-width="2.5" aria-hidden="true" class="shrink-0" />
+      <p>{{ $t(view.statusKey) }}</p>
+    </template>
+
+    <dl class="grid gap-1 text-[15px]">
+      <div class="flex justify-between gap-3">
+        <dt class="text-white/80">{{ $t('account.booking.services') }}</dt>
+        <dd class="text-right font-semibold">{{ servicesLabel }}</dd>
+      </div>
+      <div class="flex justify-between gap-3">
+        <dt class="text-white/80">{{ $t('account.booking.plan') }}</dt>
+        <dd class="text-right font-semibold">
+          {{ $t(`booking.plans.${props.booking.plan}.title`) }}
+        </dd>
+      </div>
     </dl>
-    <AccountPhotos
-      v-if="props.booking.status === 'completed'"
-      :booking-id="props.booking.id"
-      :date-label="dateLabel"
-      :photos="props.booking.photos"
-    />
-  </article>
+
+    <template #footer>
+      <dl class="flex items-baseline justify-between gap-3 text-sm text-white/80">
+        <dt>{{ $t(view.amountKey) }}</dt>
+        <dd class="font-heading text-lg font-bold tabular-nums text-white">
+          {{ formatPrice(props.booking.amountTotalCents, locale) }}
+        </dd>
+      </dl>
+    </template>
+
+    <template #action>
+      <div class="flex flex-col gap-4.5">
+        <AccountBookingReminder v-if="view.showReminder" />
+        <NuxtLink
+          :to="localePath(`/account/bookings/${props.booking.id}`)"
+          class="block min-h-12 w-full rounded-full bg-white px-5 py-3.5 text-center font-heading text-base font-bold text-ink transition-all duration-press ease-brand hover:-translate-y-px hover:bg-paper-2 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-turquoise focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900"
+        >
+          {{ $t('account.booking.view') }}
+          <span class="sr-only">{{ $t('account.booking.viewContext', { date: linkDate }) }}</span>
+        </NuxtLink>
+      </div>
+    </template>
+  </MediaCard>
 </template>
 
 <script setup lang="ts">
-import type { AccountBooking } from '@/types/account'
+import type { AccountBooking, AccountBookingCardView } from '@/types/account'
 
-import { ACCOUNT_STATUS_ICONS } from '@/constants/account'
-import { cn } from '@/lib/utils'
+import { bookingCardView, bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'
 import { formatFullDate } from '@/utils/date'
 import { formatPrice } from '@/utils/pricing'
 
@@ -63,22 +57,17 @@ const props = withDefaults(
 )
 
 const { t, locale } = useI18n()
+const localePath = useLocalePath()
 
-const titleId: ComputedRef<string> = computed(() => `account-booking-${props.booking.id}`)
+const view: ComputedRef<AccountBookingCardView> = computed(() => bookingCardView(props.booking))
 
 const dateLabel: ComputedRef<string> = computed(() =>
+  bookingDateLabel(props.booking.scheduledDate, locale.value),
+)
+
+const linkDate: ComputedRef<string> = computed(() =>
   formatFullDate(props.booking.scheduledDate, locale.value),
 )
 
-const servicesLabel: ComputedRef<string> = computed(() =>
-  [
-    { quantity: props.booking.smallBinCount, serviceKey: 'booking.bins.small.title' },
-    { quantity: props.booking.largeBinCount, serviceKey: 'booking.bins.large.title' },
-  ]
-    .filter(line => line.quantity > 0)
-    .map(line =>
-      t('booking.summary.line', { quantity: line.quantity, service: t(line.serviceKey) }),
-    )
-    .join(' + '),
-)
+const servicesLabel: ComputedRef<string> = computed(() => bookingServicesLabel(props.booking, t))
 </script>
