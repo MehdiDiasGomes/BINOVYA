@@ -12,16 +12,17 @@ ses réservations et les photos avant/après depuis son espace client.
 1. Le client saisit son adresse, puis choisit une ou plusieurs prestations et leur quantité.
 2. Il indique le ou les jours de collecte de ses bacs (ou « je ne sais pas »).
 3. Il choisit un jour parmi ceux ouverts pour son secteur.
-4. Il saisit ses coordonnées, son espace client est créé automatiquement et il en est informé.
+4. Il saisit ses coordonnées. Une mention l'informe que ses données servent à exécuter la
+   réservation et qu'il pourra ouvrir son espace client via un lien qu'il demande lui-même.
 5. Il paie via Stripe Checkout.
-6. Il reçoit un mail de confirmation dès le paiement. Un rappel par mail suit entre J-1 et J-2
-   (heure de Paris), puis les SMS (la veille et le jour J).
+6. Il reçoit un mail de confirmation dès le paiement, avec un lien « Suivre ma réservation » vers
+   `/login`. Un rappel par mail suit entre J-1 et J-2 (heure de Paris), puis les SMS (la veille et
+   le jour J).
 7. Après l'intervention, l'admin dépose une photo avant et une photo après. Le client reçoit un
-   mail l'informant que ses photos sont disponibles dans son espace client. Le bouton « Voir mes
-   photos » est un lien magique qui le connecte en un clic ; un tutoriel pas à pas sert de secours
-   si le lien a expiré.
-8. Le client se connecte à son espace pour consulter ses réservations et ses photos, aussi
-   souvent qu'il le souhaite.
+   mail l'informant que ses photos sont disponibles dans son espace client, avec un tutoriel pas
+   à pas pour s'y connecter. Le lien du bouton est à décider à l'étape 8 (voir `TODO.md`).
+8. Le client demande un lien de connexion sur `/login`, puis consulte ses réservations et ses
+   photos aussi souvent qu'il le souhaite, pendant 7 jours après chaque clic sur un lien.
 
 ## Services retenus
 
@@ -54,6 +55,10 @@ email                         small_bin_count (0 à 2)
 first_name                    large_bin_count (0 à 2)
 last_name                     price_cents
 phone                         (combinaison absente = devis)
+login_link_sent_at
+login_link_count
+login_link_window_start
+deletion_requested_at
 
 bookings                              intervention_photos
 --------                              -------------------
@@ -91,7 +96,8 @@ max_bookings (0 = fermé)      max_bookings (0 = fermé)      service_area_radiu
 Fonctions réservées au serveur : `get_availability` (statut de chaque jour pour une adresse),
 `create_booking` (contrôle, calcul du prix et blocage de la place en une transaction),
 `confirm_booking_payment` (confirme un paiement reçu, sous le verrou du jour),
-`expire_stale_bookings` (libère les réservations non payées).
+`expire_stale_bookings` (libère les réservations non payées), `claim_login_link` (plafond d'envoi
+des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
 
 ## Règles
 
@@ -134,12 +140,46 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
   est calculé côté serveur.
 - **Montant** : figé dans `amount_total_cents` au moment du paiement.
 - **Photos** : bucket privé, URL signées temporaires créées à chaque consultation de l'espace.
-- **Espace client** : créé automatiquement à la réservation, sans mot de passe. Le client en
-  est informé au moment de la réservation et peut demander sa suppression.
-- **Accès** : RLS, un client ne lit que ses données, seul l'admin écrit photos et statuts.
+- **Espace client (décision RGPD « option C »)** : la réservation crée la fiche client
+  (`profiles`), nécessaire au contrat. L'espace ne s'ouvre que lorsque le client clique sur un lien
+  de connexion qu'il a lui-même demandé. Pas de mot de passe, pas de mail de bienvenue, aucune
+  mention « compte créé » dans l'interface ni dans les mails. La mention à la réservation et la
+  section « Espace client » de la page de confidentialité l'expliquent.
+- **Contenu de l'espace** (`/account`) : réservations `paid`, `completed` et `cancelled`, les plus
+  récentes d'abord, et photos avant/après des interventions terminées (URL signées de 10 minutes,
+  recréées à chaque chargement). Le client ne modifie rien : aucun UPDATE client sur `profiles`
+  (une modification des coordonnées passera plus tard par une route serveur).
+- **Accès** : RLS, un client ne lit que ses données, seul l'admin écrit photos et statuts. La RLS
+  de lecture client exige aussi une connexion de moins de 7 jours (`has_recent_sign_in()`).
 - **Rôle admin** : stocké dans `app_metadata` (jamais `user_metadata`, modifiable par
   l'utilisateur), lu dans les policies via `auth.jwt() -> 'app_metadata' ->> 'role'`.
-- **Connexion** : lien magique par mail, sans mot de passe, pour les clients comme pour l'admin.
+- **Connexion par lien magique** : sur `/login`, le client saisit son adresse e-mail.
+  `POST /api/auth/login` répond toujours la même chose, que l'adresse soit connue ou non, pour ne
+  pas révéler quels clients existent, et ne crée jamais de compte. Si l'adresse correspond à une
+  fiche, le serveur envoie le lien par Resend (mise en page BINOVYA, français uniquement). Supabase
+  n'envoie lui-même aucun mail d'auth.
+- **Le lien** : `/account/confirm#token_hash=…`. Le jeton est dans le fragment, qui n'est jamais
+  envoyé à un serveur ni journalisé. Le fragment ne contient que `token_hash` ; les anciens liens
+  avec `&type=magiclink` restent acceptés. La vérification se fait dans le navigateur avec
+  `verifyOtp({ type: 'email' })` ; la méthode enregistrée reste `otp` (`amr`). Valable 24 h, à
+  usage unique. En cas d'échec, la page explique comment redemander un lien.
+- **Plafond d'envoi** : 60 secondes entre deux liens et 5 liens sur 24 h glissantes par client,
+  tenus en base (`claim_login_link`). Au-delà, la réponse reste identique et rien n'est envoyé.
+- **Session absolue de 7 jours** : comptée depuis le clic sur le lien, sans prolongation par le
+  renouvellement du jeton. Elle est appliquée à trois endroits : côté serveur (`401` et
+  révocation globale des sessions en tâche de fond), côté navigateur (middlewares `customer` et
+  `guest`, puis retour vers `/login?session=expired` sur tout `401` de l'espace, au chargement
+  comme à la suppression) et en RLS. Raison : le cookie `@supabase/ssr` dure 400 jours et son
+  `maxAge` écrase les 8 h de `@nuxtjs/supabase` ; sans règle propre, la session ne finirait
+  jamais. Un mot de passe ne peut pas ouvrir l'espace : sa méthode (`password`) est refusée par
+  l'application et par la RLS.
+- **Suppression** : bouton « Demander la suppression » dans l'espace. La demande est traitée à la
+  main « sous un mois » (délai RGPD). BINOVYA reçoit une alerte par mail ; si l'alerte échoue, la
+  demande est remise à zéro et le client voit une erreur, pour qu'il puisse réessayer. Les
+  réservations payées sont conservées pour la comptabilité. La requête est refusée si son
+  `Origin` n'est pas celui du site.
+- **Connexion admin (étape 8)** : une route serveur utilisera `generateLink`, puisque Supabase
+  n'envoie plus aucun mail d'auth. `is_admin()` n'est pas soumis à la règle des 7 jours.
 - **SMS** : tâche quotidienne (`pg_cron`), les colonnes `*_sent_at` empêchent les doublons.
 - **Confidentialité** : téléphone, photos des locaux et durée de conservation des données
   client à mentionner dans la page dédiée. Suppression des données sur simple demande.
@@ -154,12 +194,23 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
   France pourrait réserver. D'où la limite de 30 km.
 
 - **Anti-abus** : champ piège et une seule réservation en attente par client pour l'instant. La
-  limite de débit par IP sur `/api/booking` et `/api/booking/release` (Caddy) est reportée à
-  l'étape 10.
+  limite de débit par IP sur `/api/booking` et `/api/booking/release` (Cloudflare) est reportée
+  à l'étape 12.
 - **Libération par identifiant** : `/api/booking/release` n'est protégé que par l'uuid de la
   réservation, impossible à deviner. Un jeton de libération dédié reste possible.
 - **Réservations abandonnées** : elles et leurs comptes ne sont ni purgés ni anonymisés. La durée
   de conservation se décide à l'étape 13.
+- **Lien magique et scanners de mail** : un antivirus ou un scanner de boîte mail qui exécute le
+  JavaScript peut consommer le lien (usage unique) avant le client. Il redemande alors un lien.
+- **Jeton de renouvellement non présenté** : sans « Time-box user sessions » (indisponible sur le
+  plan Free), un refresh token volé et jamais présenté au site reste valide chez Supabase. Il
+  n'ouvre plus aucune donnée après 7 jours, la RLS et le serveur refusant la session.
+- **Alerte de suppression en double** : si Resend accepte le mail mais répond trop tard, la demande
+  est remise à zéro et un second clic peut envoyer une deuxième alerte.
+- **Utilisateur Auth orphelin** : si l'insertion du profil échoue après la création de
+  l'utilisateur Auth (comportement antérieur), il reste un utilisateur sans fiche.
+- **Modifications futures du profil** : une édition de profil par l'admin devra passer par une
+  route serveur, un client n'ayant aucun droit d'écriture sur `profiles`.
 - **Écran de confirmation** : il affiche « Paiement reçu » dès le retour de Stripe, avant que le
   webhook ait confirmé. C'est voulu.
 
