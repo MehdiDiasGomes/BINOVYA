@@ -2,17 +2,17 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseEnv } from 'node:util'
 
-const ENV_FILE = '.env.local'
+const ENV_FILE: string = '.env.local'
 
-const TEST_KEY_PREFIX = 'sk_test_'
+const TEST_KEY_PREFIX: string = 'sk_test_'
 
-const NOT_TEST_KEY_MESSAGE =
+const NOT_TEST_KEY_MESSAGE: string =
   'La clé Stripe trouvée (STRIPE_API_KEY ou NUXT_STRIPE_SECRET_KEY) n’est pas une clé de test `sk_test_…` : les tests refusent de tourner avec une autre clé.'
 
-const NOT_TEST_SERVER_KEY_MESSAGE =
+const NOT_TEST_SERVER_KEY_MESSAGE: string =
   'La clé Stripe du serveur de test (NUXT_STRIPE_SECRET_KEY) n’est pas une clé de test `sk_test_…` : les tests refusent de tourner avec une autre clé.'
 
-const KEY_MISMATCH_WARNING =
+const KEY_MISMATCH_WARNING: string =
   '⚠ STRIPE_API_KEY et NUXT_STRIPE_SECRET_KEY sont différentes : elles doivent viser le même compte Stripe, sinon le listener ne reçoit pas les paiements créés par le serveur.'
 
 const nonEmpty = (value: string | undefined): string | undefined =>
