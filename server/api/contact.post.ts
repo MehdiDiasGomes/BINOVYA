@@ -24,8 +24,10 @@ export default defineEventHandler(async (event): Promise<ContactResponse> => {
   }
 
   const config = useRuntimeConfig()
-  if (!config.resendApiKey || !config.contactEmailTo) {
-    console.warn('Contact email skipped: NUXT_RESEND_API_KEY or NUXT_CONTACT_EMAIL_TO is not set')
+  if (!isMailConfigured() || !config.contactEmailTo) {
+    console.warn(
+      'Contact email skipped: mail transport not configured or NUXT_CONTACT_EMAIL_TO not set',
+    )
     throw createError({ statusCode: 503, statusMessage: 'Contact form unavailable' })
   }
 

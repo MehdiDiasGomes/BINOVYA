@@ -29,3 +29,22 @@ export type ReminderRunResult = {
   sent: number
   failed: number
 }
+
+export type MailTransport = 'resend' | 'outbox'
+
+export type MailOutboxRecord = {
+  id: string
+  to: string
+  from: string
+  subject: string
+  html: string
+  replyTo: string | null
+  idempotencyKey: string | null
+  logLabel: string
+  sentAt: string
+}
+
+export type MailTransportEnvironment = {
+  isDev: boolean
+  nodeEnv: string | undefined
+}
