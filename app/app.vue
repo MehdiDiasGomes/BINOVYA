@@ -1,5 +1,6 @@
 <template>
   <div>
+    <NuxtRouteAnnouncer />
     <MotionConfig reduced-motion="user">
       <NuxtLayout>
         <NuxtPage />

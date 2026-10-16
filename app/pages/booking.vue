@@ -70,6 +70,13 @@
             </h2>
             <p class="mb-7 mt-1.5 text-[15px] leading-relaxed text-ink/70">
               {{ $t(`booking.headings.${currentStep}.description`) }}
+              <NuxtLink
+                v-if="currentStep === 'contact'"
+                :to="localePath('/privacy')"
+                class="rounded-sm font-bold text-ink underline underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                {{ $t('booking.headings.contact.privacyLink') }}
+              </NuxtLink>
             </p>
 
             <AnimatePresence mode="wait" :initial="false">
@@ -164,6 +171,7 @@ definePageMeta({
 })
 
 const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 const { draft, totalQuantity, resetDraft } = useBookingDraft()
 const { reset: resetAvailability } = useBookingAvailability()

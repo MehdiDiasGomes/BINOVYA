@@ -31,6 +31,15 @@ export default {
     content:
       'Vos données personnelles sont conservées pendant une durée maximale de 3 ans à compter de notre dernier contact. Passé ce délai, elles sont supprimées de nos systèmes, sauf obligation légale de conservation.',
   },
+  customerArea: {
+    title: 'Espace client',
+    legalBasis:
+      'Lorsque vous réservez une intervention, nous enregistrons vos coordonnées (nom, prénom, adresse mail, téléphone), l’adresse d’intervention et vos réservations. Ce traitement est nécessaire à l’exécution du contrat : il nous permet de réaliser l’intervention, de vous tenir informé et de vous montrer les photos avant/après de vos bacs.',
+    access:
+      'Votre espace client ne s’ouvre que lorsque vous le demandez : sans mot de passe, vous y accédez par un lien de connexion personnel envoyé à votre adresse mail, valable {hours} heures et utilisable une seule fois. Les photos de vos bacs y sont affichées par des liens temporaires.',
+    deletion:
+      'Vous pouvez demander la suppression de votre espace et de vos données depuis l’espace client, ou en nous écrivant. Nous traitons la demande dans un délai d’un mois. Les réservations payées sont conservées le temps imposé par nos obligations comptables.',
+  },
   rights: {
     title: 'Vos droits',
     intro:

@@ -105,6 +105,19 @@ export const sendToCustomer = (
     `Booking ${kind} email for ${booking.id}`,
   )
 
+/**
+ * Builds the absolute URL of a French page of the site for a link in an email. Unlike
+ * `resolveSiteUrl`, it never throws: an email must still be sent without the link, so an unsafe or
+ * missing `NUXT_SITE_URL` only omits it. It follows `parseSecureUrl`, like the footer links of
+ * every email (https, or http on localhost only).
+ * @param path - Path of the page, starting with a slash
+ * @returns Page URL, or an empty string when `NUXT_SITE_URL` is missing or not safe to link
+ */
+export const emailSitePageUrl = (path: string): string => {
+  const secureSiteUrl: URL | null = parseSecureUrl(useRuntimeConfig().siteUrl)
+  return secureSiteUrl ? new URL(path, secureSiteUrl).toString() : ''
+}
+
 const sendAdminAlert = async (booking: BookingEmailData): Promise<void> => {
   const { contactEmailTo } = useRuntimeConfig()
   if (!contactEmailTo) {
@@ -140,7 +153,10 @@ export const sendBookingPaidEmails = async (
     await Promise.all([
       sendToCustomer(
         booking,
-        generateBookingConfirmationEmail(booking, escapeHtml),
+        generateBookingConfirmationEmail(
+          { ...booking, accountUrl: emailSitePageUrl('/login') },
+          escapeHtml,
+        ),
         'confirmation',
       ),
       sendAdminAlert(booking),
@@ -165,12 +181,12 @@ export const sendBookingRefundEmail = async (
     if (!booking) {
       return
     }
-    const { siteUrl } = useRuntimeConfig()
-    const secureSiteUrl: URL | null = parseSecureUrl(siteUrl)
-    const bookingUrl: string = secureSiteUrl ? new URL('/booking', secureSiteUrl).toString() : ''
     await sendToCustomer(
       booking,
-      generateBookingRefundEmail({ ...booking, bookingUrl }, escapeHtml),
+      generateBookingRefundEmail(
+        { ...booking, bookingUrl: emailSitePageUrl('/booking') },
+        escapeHtml,
+      ),
       'refund',
     )
   } catch {
