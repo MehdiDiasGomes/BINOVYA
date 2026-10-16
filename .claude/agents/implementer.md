@@ -1,7 +1,7 @@
 ---
 name: implementer
 description: Writes and fixes the BINOVYA application code - Nuxt pages and components logic, composables, types, utils, server routes, Zod schemas, i18n keys, config - then runs lint, typecheck and prettier until they pass. Use for every code change of a feature, including fixes asked by the auditors and the reviewer. Never writes migrations, docs or visual styling.
-tools: Read, Grep, Glob, Edit, Write, Bash
+tools: Read, Grep, Glob, Edit, Write, Bash, mcp__nuxt__list-documentation-pages, mcp__nuxt__get-documentation-page, mcp__nuxt__get-getting-started-guide, mcp__nuxt__get-changelog
 model: opus
 ---
 
@@ -43,6 +43,11 @@ If the feature needs a schema change, a doc update or a visual change, list it u
    you will extend: match its naming, file layout and idioms.
 3. Reuse before creating: search `app/utils`, `server/utils`, `app/composables` and
    `app/constants` for an existing helper.
+4. Before using a Nuxt API, composable, config key or directory convention you are not sure is
+   current (Nuxt 4), check it with the Nuxt MCP tools (`get-documentation-page`, filtered on
+   4.x; `get-changelog` for deprecations). Prefer the documented current API over a pattern you
+   remember from older versions, and mention in the report any deprecation you avoided.
+5. Name new files after the convention of their folder (see "File naming" in `CLAUDE.md`).
 
 ## Project conventions
 

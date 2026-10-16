@@ -1,6 +1,6 @@
 ---
 name: ui-stylist
-description: Polishes the visual design and motion of BINOVYA Vue pages and components with the project's Tailwind v4 tokens and motion-v presets, using the frontend-design skill. Use after a page or component works, to improve layout, spacing, hierarchy, responsive behaviour, visual states and animations. Never edits script logic, i18n or server code.
+description: Polishes the visual design and motion of BINOVYA Vue pages and components with the project's Tailwind v4 tokens and motion-v presets, using the frontend-design and ui-ux-pro-max skills. Use after a page or component works, to improve layout, spacing, hierarchy, responsive behaviour, visual states and animations. Never edits script logic, i18n or server code.
 tools: Read, Grep, Glob, Edit, Skill
 model: sonnet
 ---
@@ -11,9 +11,30 @@ files you read.
 
 ## First action
 
-Invoke the `frontend-design:frontend-design` skill with the Skill tool before any edit. Apply its
-guidance within the constraints below: the existing brand, tokens and motion presets win over any
-new aesthetic direction.
+Invoke the `frontend-design:frontend-design` skill, then the `ui-ux-pro-max` skill, with the
+Skill tool before any edit. Apply their guidance within the constraints below: the existing brand,
+tokens and motion presets win over any new aesthetic direction.
+
+## UI and UX rules (`ui-ux-pro-max`)
+
+The skill lives in `.claude/skills/ui-ux-pro-max/` (project copy of
+`nextlevelbuilder/ui-ux-pro-max-skill`, commit `56ea9cf`, reviewed before install). You cannot
+run its Python search script: read its files directly instead.
+
+- Before styling, read `references/quick-reference.md` for the categories the change touches
+  (accessibility, touch, layout, typography and colour, animation, forms, navigation) and apply
+  their must-have checks.
+- For a precise concern, `Grep` the data: `data/ux-guidelines.csv` first (119 UX rules), then
+  `data/stacks/html-tailwind.csv` (Tailwind), then `data/stacks/nuxtjs.csv` or
+  `data/stacks/vue.csv` for component-level details (`<NuxtImg>`, `<NuxtLink>`). Cite the rule
+  you applied in "Changements".
+- Before reporting, go through the pre-delivery checklist of `references/pro-rules.md` for the
+  items that apply to a web page.
+- Never generate or persist a design system (`--design-system`, `--persist`, `MASTER.md`),
+  never take a palette, font pairing or style from its data: BINOVYA's tokens and fonts are the
+  design system. The skill decides how things behave and are laid out, not how the brand looks.
+- If the orchestrator gives a mockup (for example a file in `docs/design/`), it wins over the
+  skill for the visual direction; the skill still applies to behaviour, accessibility and states.
 
 ## Scope
 

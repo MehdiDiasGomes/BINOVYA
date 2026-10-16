@@ -149,6 +149,22 @@ With alphabetical sorting and newlines between groups.
 - Arrow function parens: avoid
 - LF line endings
 
+### File naming
+
+Each folder keeps one convention; a new file follows the files already next to it.
+
+| Where                                                                                               | Convention                   | Example                                     |
+| --------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------- |
+| `app/components/`                                                                                   | PascalCase                   | `AccountPhotos.vue`                         |
+| `app/pages/`                                                                                        | kebab-case                   | `bio-waste-shelters.vue`                    |
+| `app/composables/`, `app/utils/`, `app/constants/`, `app/types/`, `app/templates/`, `server/utils/` | camelCase                    | `useLoginForm.ts`, `loginLink.ts`           |
+| `server/api/`                                                                                       | kebab-case + method          | `deletion-request.post.ts`                  |
+| `scripts/`, `tests/`, `docs/`, `.claude/`                                                           | kebab-case                   | `test-run.ts`, `login-link.test.ts`         |
+| `supabase/migrations/`                                                                              | `<timestamp>_snake_case.sql` | `20261016000000_customer_area_profiles.sql` |
+
+Tests are grouped by level, then by domain: `tests/{unit,integration,e2e}/<domain>/`, shared
+helpers in `tests/support/`.
+
 ## Styling Architecture
 
 ### Tailwind CSS v4
@@ -277,8 +293,12 @@ Rules:
   tester → code-reviewer → docs-writer. Two writers never run together; a read-only agent may
   run next to a writer when it reads files that writer does not touch (security-auditor reads
   `server/` and `supabase/`, ui-stylist edits `.vue`).
-- Within a feature, the same implementer, tester and code-reviewer are resumed with
-  `SendMessage` instead of respawned, and findings are relayed verbatim.
+- Every agent is launched fresh with a complete, self-contained brief (never resumed with
+  `SendMessage`): resumed agents accumulate very long contexts. Findings are relayed verbatim.
+- Tools: `ui-stylist` uses the `frontend-design` and `ui-ux-pro-max` skills
+  (`.claude/skills/ui-ux-pro-max/`, guidance only, BINOVYA tokens win). `implementer` and
+  `code-reviewer` check current Nuxt 4 APIs and deprecations with the Nuxt MCP (`.mcp.json`,
+  documentation and changelog tools only). Mockups to follow live in `docs/design/`.
 - Test pyramid: many unit tests, some integration tests, few end-to-end tests. Unit and
   integration run in CI; E2E through the real Stripe page stays local, before merging to `main`.
 - tester only uses Stripe test keys, never sends real mail (the test server writes mails to
