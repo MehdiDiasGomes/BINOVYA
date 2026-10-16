@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import { contactSchema, honeypotSchema } from '@/utils/bookingValidation'
+import { contactSchema, honeypotSchema, localeSchema } from '@/utils/bookingValidation'
 
 const latitude = z.coerce.number().min(-90).max(90)
 const longitude = z.coerce.number().min(-180).max(180)
@@ -36,7 +36,7 @@ export const bookingRequestSchema = z.object({
   binsReadyConfirmed: z.literal(true),
   date: z.string().date(),
   contact: contactSchema,
-  locale: z.enum(['fr', 'en']).default('fr'),
+  locale: localeSchema,
   website: honeypotSchema,
 })
 

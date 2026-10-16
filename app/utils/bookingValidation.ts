@@ -19,6 +19,8 @@ export const contactSchema = z.object({
 
 export const honeypotSchema = z.string().max(HONEYPOT_MAX_LENGTH)
 
+export const localeSchema = z.enum(['fr', 'en']).default('fr')
+
 /**
  * Validates the contact details of a booking.
  * @param contact - Contact details typed by the customer

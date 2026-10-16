@@ -28,17 +28,17 @@ export type BookingCheckoutInput = {
 }
 
 /**
- * Returns the public site URL used for the Checkout return pages. Refuses to run without it, and
- * outside development without https.
- * @returns Site URL without trailing slash
+ * Checks that the site URL needed for the Checkout return pages is configured, before anything is
+ * created for a booking.
+ * @throws 503 « Payment unavailable » when `NUXT_SITE_URL` is missing or not https
  */
-export const resolveSiteUrl = (): string => {
-  const { siteUrl } = useRuntimeConfig()
-  if (!siteUrl || (!import.meta.dev && !siteUrl.startsWith('https://'))) {
+export const assertCheckoutSiteUrl = (): void => {
+  try {
+    resolveSiteUrl()
+  } catch {
     console.error('Checkout unavailable: NUXT_SITE_URL is missing or not https')
     throw createError({ statusCode: 503, statusMessage: 'Payment unavailable' })
   }
-  return siteUrl.endsWith('/') ? siteUrl.slice(0, -1) : siteUrl
 }
 
 /**
@@ -47,10 +47,8 @@ export const resolveSiteUrl = (): string => {
  * @param outcome - Whether the payment succeeded or was cancelled
  * @returns Absolute return URL
  */
-export const bookingPageUrl = (locale: BookingLocale, outcome: CheckoutOutcome): string => {
-  const localePrefix: string = locale === 'fr' ? '' : `/${locale}`
-  return `${resolveSiteUrl()}${localePrefix}/booking?checkout=${outcome}`
-}
+export const bookingPageUrl = (locale: BookingLocale, outcome: CheckoutOutcome): string =>
+  localizedSiteUrl(locale, `/booking?checkout=${outcome}`)
 
 /**
  * Opens a Stripe Checkout session for a booking that holds its slot. The session expires before
