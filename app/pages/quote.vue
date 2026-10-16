@@ -112,7 +112,7 @@
                   rows="5"
                   :maxlength="QUOTE_COMMENT_MAX_LENGTH"
                   :placeholder="$t('quote.comment.placeholder')"
-                  class="mt-4 block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60"
+                  class="mt-4 block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-press ease-brand motion-reduce:transition-none placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60"
                 />
               </label>
 
@@ -137,7 +137,7 @@
                   type="submit"
                   :aria-disabled="isSubmitting"
                   :aria-busy="isSubmitting"
-                  class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
+                  class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
                 >
                   <template v-if="isSubmitting">
                     <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
