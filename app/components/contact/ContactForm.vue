@@ -74,11 +74,7 @@
           class="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-ink/70"
         />
       </span>
-      <span
-        v-if="visibleError('subject')"
-        id="contact-subject-error"
-        class="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive"
-      >
+      <span v-if="visibleError('subject')" id="contact-subject-error" :class="FIELD_ERROR_CLASS">
         <Icon name="CircleAlert" :size="14" aria-hidden="true" />
         {{ visibleError('subject') }}
       </span>
@@ -97,11 +93,7 @@
         :aria-describedby="visibleError('message') ? 'contact-message-error' : undefined"
         class="block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60 aria-invalid:border-destructive"
       />
-      <span
-        v-if="visibleError('message')"
-        id="contact-message-error"
-        class="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive"
-      >
+      <span v-if="visibleError('message')" id="contact-message-error" :class="FIELD_ERROR_CLASS">
         <Icon name="CircleAlert" :size="14" aria-hidden="true" />
         {{ visibleError('message') }}
       </span>
@@ -137,7 +129,7 @@
 <script setup lang="ts">
 import type { ContactField, ContactForm, ContactFormErrors } from '@/types/contact'
 
-import { COMPANY_MAX_LENGTH, CONTACT_NAME_LIMITS } from '@/constants/booking'
+import { COMPANY_MAX_LENGTH, CONTACT_NAME_LIMITS, FIELD_ERROR_CLASS } from '@/constants/booking'
 import {
   CONTACT_MESSAGE_MAX_LENGTH,
   CONTACT_MESSAGE_MIN_LENGTH,

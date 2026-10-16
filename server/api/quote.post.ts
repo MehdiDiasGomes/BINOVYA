@@ -1,5 +1,6 @@
 import type { Database } from '@/types/database.types'
 import type { QuotePayload, QuoteResponse } from '@/types/quote'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type { MultiPartData } from 'h3'
 
 import { serverSupabaseServiceRole } from '#supabase/server'
@@ -34,8 +35,9 @@ export default defineEventHandler(async (event): Promise<QuoteResponse> => {
     return { quoteId }
   }
 
-  const photos = extractQuotePhotos(parts)
-  const client = serverSupabaseServiceRole<Database>(event)
+  requireSignedAddress(payload.address)
+  const photos: QuotePhoto[] = extractQuotePhotos(parts)
+  const client: SupabaseClient<Database> = serverSupabaseServiceRole<Database>(event)
   const photoPaths: string[] = await uploadQuotePhotos(client, quoteId, photos)
 
   const { contact, address } = payload

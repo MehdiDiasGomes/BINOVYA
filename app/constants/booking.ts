@@ -13,6 +13,10 @@ import { toSvgDataUri } from '@/utils/svg'
 
 export const COUNTRY_CODES: CountryCode[] = ['FR', 'LU']
 
+export const BOOKING_ADDRESS_INPUT_ID: string = 'booking-address'
+
+export const BOOKING_CHECKOUT_STORAGE_KEY: string = 'binovya-booking-checkout'
+
 export const COUNTRY_DIAL_CODES: Record<CountryCode, string> = { FR: '+33', LU: '+352' }
 
 export const COUNTRY_FLAG_SOURCES: Record<CountryCode, string> = {
@@ -22,6 +26,9 @@ export const COUNTRY_FLAG_SOURCES: Record<CountryCode, string> = {
 
 export const INPUT_GROUP_FRAME_CLASS =
   'col-span-2 col-start-1 row-start-2 rounded-lg border border-ink/50 bg-white transition-shadow group-has-[:focus-visible]:border-primary group-has-[:focus-visible]:ring-[3px] group-has-[:focus-visible]:ring-primary/60 group-has-[[aria-invalid=true]]:border-destructive'
+
+export const FIELD_ERROR_CLASS: string =
+  'mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive'
 
 export const BOOKING_SERVICES: BookingService[] = [
   {
@@ -74,4 +81,5 @@ export const BOOKING_SUBMIT_ERROR_KEYS: Record<BookingErrorCode, string> = {
   outOfArea: 'booking.errors.outOfArea',
   quoteRequired: 'booking.errors.quoteRequired',
   binsNotConfirmed: 'booking.errors.binsReady',
+  invalidAddress: 'booking.errors.invalidAddress',
 }

@@ -65,6 +65,23 @@
 - Le client choisit le pays à côté du champ adresse. Un seul endpoint serveur
   (`/api/address/search?q=…&country=FR|LU`) interroge le service de ce pays. Le front ne
   connaît pas les fournisseurs.
+- **Jeton d'adresse** : les coordonnées viennent du navigateur, un client pourrait sinon les
+  falsifier pour contourner le rayon de 20 km et le secteur du jour. `/api/address/search`
+  renvoie donc un `token` par suggestion (`server/utils/addressToken.ts`) ; les suggestions qui
+  ne passent pas le schéma d'adresse sont écartées. Format `<expiresAt>.<mac>` : expiration en
+  secondes Unix (24 h), puis HMAC-SHA256 en base64url de libellé, ville, code postal, pays,
+  latitude, longitude et expiration, avec le contexte `binovya-address-v1`. La comparaison se
+  fait avec `timingSafeEqual`.
+- `requireSignedAddress` est appelé par `POST /api/booking`, `POST /api/quote` et
+  `POST /api/booking/availability` : jeton absent, modifié ou expiré donne 400 `invalidAddress`.
+- Disponibilités : `POST /api/booking/availability` (corps JSON, l'adresse signée, 4 Ko max).
+  L'ancienne route GET est supprimée et répond 404 : un GET aurait mis les coordonnées dans l'URL
+  et les journaux.
+- Risque accepté (RGPD, décision de l'utilisateur du 2026-10-16, non planifié) :
+  `get_availability` compare l'adresse à la position exacte de la première réservation du jour,
+  la réponse `available` ou `outOfSector` sert d'oracle de distance (quelques dizaines de
+  requêtes par cible, jeton signé requis). Un point d'ancrage arrondi a été jugé trop lourd.
+  Atténué par la règle de limitation de débit Cloudflare de l'étape 12.
 - Le téléphone a aussi un sélecteur de pays (+33, +352) : le client saisit son numéro national,
   le serveur reçoit et enregistre le format international (`+33612345678`).
 - Avec 20 km à vol d'oiseau autour d'Uckange, seule une petite partie du Luxembourg est
@@ -282,7 +299,8 @@ checkoutUrl }`. Le navigateur est ensuite redirigé vers `checkoutUrl`.
   que ce soit, sinon 503 « Payment unavailable ». Les URL de retour sont construites par
   `localizedSiteUrl` (voir « Espace client »).
 - Codes d'erreur : 409 `dayTaken`, 409 `pendingPayment`, 422 `outOfArea`, `quoteRequired`,
-  `binsNotConfirmed`. Tout autre refus de `create_booking` donne 400 « Booking rejected ». Le code
+  `binsNotConfirmed`, et 400 `invalidAddress` (jeton d'adresse refusé, aussi sur `/api/quote`).
+  Tout autre refus de `create_booking` donne 400 « Booking rejected ». Le code
   métier est lu par le front dans `data.code`. 502 si la création de la session échoue, 500 si le
   rattachement de la session à la réservation échoue : dans les deux cas la session est expirée
   et la réservation libérée.
@@ -787,6 +805,7 @@ Le job `expire-stale-bookings` (`*/5 * * * *`) appelle `public.expire_stale_book
 | `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                  |
 | `NUXT_STRIPE_WEBHOOK_SECRET` | Vérification des webhooks Stripe                          |
 | `NUXT_SITE_URL`              | URL publique : Stripe, liens des mails, `Origin` (https)  |
+| `NUXT_ADDRESS_TOKEN_SECRET`  | Signature des adresses (32 caractères minimum)            |
 | `BREVO_API_KEY`              | Envoi des SMS                                             |
 | `OSRM_URL`                   | URL interne d'OSRM                                        |
 | `VROOM_URL`                  | URL interne de VROOM                                      |
@@ -795,6 +814,10 @@ En production : `NUXT_SITE_URL` en https, clés Stripe LIVE, `NUXT_MAIL_FROM` un
 vérifié, clés du projet Supabase de production. `NUXT_MAIL_TRANSPORT` doit rester absent : le
 serveur refuse `outbox` hors développement et journalise une erreur au démarrage
 (`server/plugins/mailTransportCheck.ts`).
+
+`NUXT_ADDRESS_TOKEN_SECRET` : génération par `openssl rand -base64 48`. Absent ou trop court, la
+recherche d'adresse, les disponibilités, la réservation et le devis répondent 500, et le journal
+serveur nomme la variable (jamais sa valeur).
 
 Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`runtimeConfig` dans
 `nuxt.config.ts`), pas à la construction : aucun secret n'est figé dans l'image Docker.
@@ -905,8 +928,8 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
   `dayTaken`, aucune ligne créée. Refus de secteur (plus de 15 km de la première réservation du
   jour) avec de vraies communes (Thionville, Cattenom, Woippy), accepté un autre jour. Cinq
   requêtes simultanées sur la dernière place, sur trois dates : une seule réussit.
-- Dernier passage complet : environ 7 min 30 s, le 2026-10-16 : 586 tests unitaires, 160
-  d'intégration, 60 e2e (environ 5 min).
+- Dernier passage complet : environ 8 min, le 2026-10-16 (branche `fix/booking-address-token`) :
+  623 tests unitaires, 182 d'intégration, 61 e2e.
 - Limites connues, laissées volontairement : `bun run test:server` lancé pendant qu'un run à froid
   démarre encore Nuxt affiche le message « autre `stripe listen` » au lieu de celui du verrou ;
   une course très rare sur un verrou périmé sous forte charge ; `TEST_PORT` au-dessus de 65535 ou

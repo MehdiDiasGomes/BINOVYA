@@ -62,9 +62,9 @@
                   {{ $t('quote.sections.address') }}
                 </h2>
                 <BookingAddressSearch
-                  id="quote-address"
+                  :id="QUOTE_ADDRESS_INPUT_ID"
                   v-model="form.address"
-                  :error="visibleError('address')"
+                  :error="addressError"
                 />
               </section>
 
@@ -164,7 +164,7 @@ import type { BookingContact, ContactErrors } from '@/types/booking'
 import type { QuoteField } from '@/types/quote'
 
 import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
-import { QUOTE_COMMENT_MAX_LENGTH } from '@/constants/quote'
+import { QUOTE_ADDRESS_INPUT_ID, QUOTE_COMMENT_MAX_LENGTH } from '@/constants/quote'
 import { focusFirstElement } from '@/utils/focus'
 
 type ContactFieldId = [keyof BookingContact | 'company', string]
@@ -182,14 +182,24 @@ const REACH_FIELD_IDS: ContactFieldId[] = [
 ]
 
 const SECTION_FIELD_IDS: Record<Exclude<QuoteField, 'contact'>, string> = {
-  address: 'quote-address',
+  address: QUOTE_ADDRESS_INPUT_ID,
   equipment: 'quote-equipment',
   bins: 'quote-bins',
 }
 
 const { t } = useI18n()
-const { form, photos, errors, hasAttempted, isSubmitting, isSent, hasFailed, submit } =
-  useQuoteForm()
+const {
+  form,
+  photos,
+  errors,
+  hasAttempted,
+  isSubmitting,
+  isSent,
+  hasFailed,
+  addressErrorKey,
+  focusAddress,
+  submit,
+} = useQuoteForm()
 
 const hasBins: ComputedRef<boolean> = computed(() => form.value.equipment.includes('bins'))
 
@@ -207,6 +217,10 @@ const visibleError = (field: QuoteField): string => {
   return key ? t(key) : ''
 }
 
+const addressError: ComputedRef<string> = computed(() =>
+  addressErrorKey.value ? t(addressErrorKey.value) : visibleError('address'),
+)
+
 const invalidFieldIds = (): string[] => {
   const contactErrors: ContactErrors = validateContact(form.value.contact)
   const orderedFields: ContactFieldId[] = [...NAME_FIELD_IDS, COMPANY_FIELD_ID, ...REACH_FIELD_IDS]
@@ -223,6 +237,10 @@ const invalidFieldIds = (): string[] => {
 
 const handleSubmit = async (): Promise<void> => {
   await submit()
+  if (addressErrorKey.value) {
+    await focusAddress()
+    return
+  }
   if (Object.keys(errors.value).length > 0) {
     await nextTick()
     focusFirstElement(invalidFieldIds())

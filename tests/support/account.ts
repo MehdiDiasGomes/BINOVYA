@@ -1,5 +1,6 @@
 import { deflateSync } from 'node:zlib'
 
+import { THIONVILLE_ADDRESS } from './address'
 import { rest } from './db'
 import { readEnv } from './env'
 
@@ -116,11 +117,11 @@ export const seedAccountBooking = async (seed: AccountBookingSeed): Promise<stri
     body: JSON.stringify({
       customer_id: seed.customerId,
       scheduled_date: seed.scheduledDate,
-      address: '12 rue de la Gare, 57100 Thionville',
-      city: 'Thionville',
+      address: THIONVILLE_ADDRESS.label,
+      city: THIONVILLE_ADDRESS.city,
       postcode: '57100',
-      latitude: 49.3595,
-      longitude: 6.1685,
+      latitude: THIONVILLE_ADDRESS.latitude,
+      longitude: THIONVILLE_ADDRESS.longitude,
       status: seed.status,
       plan: 'one_off',
       small_bin_count: 1,

@@ -1,7 +1,6 @@
+import { signedAddress, THIONVILLE_ADDRESS } from './address'
 import { listActiveBookingDates } from './db'
 import { BASE_URL } from './env'
-
-const IN_AREA_POINT = { latitude: 49.3595, longitude: 6.1685 }
 
 type AvailabilityDay = { date: string; status: string }
 
@@ -13,11 +12,11 @@ type AvailabilityDay = { date: string; status: string }
  * @returns ISO dates, latest first
  */
 export const pickFreeDates = async (count: number): Promise<string[]> => {
-  const query = new URLSearchParams({
-    latitude: String(IN_AREA_POINT.latitude),
-    longitude: String(IN_AREA_POINT.longitude),
+  const response: Response = await fetch(`${BASE_URL}/api/booking/availability`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(signedAddress(THIONVILLE_ADDRESS)),
   })
-  const response: Response = await fetch(`${BASE_URL}/api/booking/availability?${query}`)
   const body = (await response.json()) as { days: AvailabilityDay[] }
   const booked: Set<string> = await listActiveBookingDates()
   const free: string[] = body.days

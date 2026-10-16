@@ -1,12 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import {
-  bookingBody,
-  createBooking,
-  PARIS_ADDRESS,
-  postJson,
-  releaseBooking,
-} from '../../support/api'
+import { PARIS_ADDRESS } from '../../support/address'
+import { bookingBody, createBooking, postJson, releaseBooking } from '../../support/api'
 import { pickFreeDates } from '../../support/dates'
 import { assertTestStripeKey, cleanupE2eData, findBookings } from '../../support/db'
 import { uniqueTestEmail } from '../../support/env'

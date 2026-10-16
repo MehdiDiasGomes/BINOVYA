@@ -1,5 +1,3 @@
-import { FetchError } from 'ofetch'
-
 import type {
   BookingCheckoutState,
   BookingDraft,
@@ -8,9 +6,7 @@ import type {
   StoredCheckout,
 } from '@/types/booking'
 
-import { BOOKING_SUBMIT_ERROR_KEYS } from '@/constants/booking'
-
-const STORAGE_KEY = 'binovya-booking-checkout'
+import { BOOKING_CHECKOUT_STORAGE_KEY, BOOKING_SUBMIT_ERROR_KEYS } from '@/constants/booking'
 
 const isStoredCheckout = (value: unknown): value is StoredCheckout =>
   typeof value === 'object' &&
@@ -24,11 +20,6 @@ const isStoredCheckout = (value: unknown): value is StoredCheckout =>
 const isBookingErrorCode = (value: unknown): value is BookingErrorCode =>
   typeof value === 'string' && Object.hasOwn(BOOKING_SUBMIT_ERROR_KEYS, value)
 
-const readNested = (value: unknown, key: string): unknown =>
-  typeof value === 'object' && value !== null && key in value
-    ? (value as Record<string, unknown>)[key]
-    : undefined
-
 /**
  * Keeps the booking draft across the redirection to Stripe Checkout and back.
  * @returns Helpers to store the draft, read it back once, release an abandoned booking and read
@@ -40,7 +31,7 @@ export const useBookingCheckout = (): BookingCheckoutState => {
 
   const rememberCheckout = (bookingId: string, draft: BookingDraft): boolean => {
     try {
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify({ bookingId, draft }))
+      sessionStorage.setItem(BOOKING_CHECKOUT_STORAGE_KEY, JSON.stringify({ bookingId, draft }))
       return true
     } catch {
       return false
@@ -49,8 +40,8 @@ export const useBookingCheckout = (): BookingCheckoutState => {
 
   const takeCheckout = (): StoredCheckout | null => {
     try {
-      const stored: string | null = sessionStorage.getItem(STORAGE_KEY)
-      sessionStorage.removeItem(STORAGE_KEY)
+      const stored: string | null = sessionStorage.getItem(BOOKING_CHECKOUT_STORAGE_KEY)
+      sessionStorage.removeItem(BOOKING_CHECKOUT_STORAGE_KEY)
       const parsed: unknown = stored ? JSON.parse(stored) : null
       return isStoredCheckout(parsed) ? parsed : null
     } catch {
@@ -73,10 +64,7 @@ export const useBookingCheckout = (): BookingCheckoutState => {
   const waitForRelease = (): Promise<void> => pendingRelease
 
   const readErrorCode = (error: unknown): BookingErrorCode | null => {
-    if (!(error instanceof FetchError)) {
-      return null
-    }
-    const code: unknown = readNested(readNested(error.data, 'data'), 'code')
+    const code: unknown = readFetchErrorCode(error)
     return isBookingErrorCode(code) ? code : null
   }
 

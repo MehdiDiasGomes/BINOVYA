@@ -46,6 +46,20 @@ export const findBookings = async (email: string): Promise<BookingRow[]> => {
   return (await response.json()) as BookingRow[]
 }
 
+export const countQuoteRequests = async (email: string): Promise<number> => {
+  const response: Response = await rest(
+    `/rest/v1/quote_requests?select=id&email=eq.${encodeURIComponent(email)}`,
+  )
+  return ((await response.json()) as unknown[]).length
+}
+
+export const countProfiles = async (email: string): Promise<number> => {
+  const response: Response = await rest(
+    `/rest/v1/profiles?select=id&email=eq.${encodeURIComponent(email)}`,
+  )
+  return ((await response.json()) as unknown[]).length
+}
+
 export const readPrice = async (plan: string, small: number, large: number): Promise<number> => {
   const response: Response = await rest(
     `/rest/v1/price_grid?select=price_cents&plan=eq.${plan}&small_bin_count=eq.${small}&large_bin_count=eq.${large}`,

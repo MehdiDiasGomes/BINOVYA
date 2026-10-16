@@ -26,11 +26,15 @@ export type BookingService = {
 
 export type CountryCode = 'FR' | 'LU'
 
-export type BookingAddress = GeoPoint & {
+export type AddressDetails = GeoPoint & {
   label: string
   city: string
   postcode: string
   countryCode: CountryCode
+}
+
+export type BookingAddress = AddressDetails & {
+  token: string
 }
 
 export type AddressSearchResponse = {
@@ -113,6 +117,7 @@ export type BookingErrorCode =
   | 'outOfArea'
   | 'quoteRequired'
   | 'binsNotConfirmed'
+  | 'invalidAddress'
 
 export type BookingReleaseResponse = {
   isReleased: boolean

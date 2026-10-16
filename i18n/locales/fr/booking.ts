@@ -64,6 +64,8 @@ export default {
     dayTaken: "Ce jour vient d'être réservé par quelqu'un d'autre. Choisissez-en un autre.",
     pendingPayment:
       'Un paiement est déjà en cours pour cette adresse email. Terminez-le ou réessayez dans quelques minutes.',
+    invalidAddress:
+      "Votre adresse n'a pas pu être vérifiée ou sa sélection a expiré. Choisissez-la à nouveau dans la liste.",
     submit: "La réservation n'a pas pu être enregistrée. Réessayez dans un instant.",
   },
   countries: {

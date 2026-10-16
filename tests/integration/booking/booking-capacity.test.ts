@@ -1,12 +1,12 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { THIONVILLE_ADDRESS } from '../../support/address'
 import {
   type ApiResult,
   createBooking,
   DAY_CAPACITY,
   fillDay,
   newPendingBooking,
-  THIONVILLE_ADDRESS,
 } from '../../support/api'
 import { pickFreeDates } from '../../support/dates'
 import {
@@ -17,11 +17,13 @@ import {
 } from '../../support/db'
 import { uniqueTestEmail } from '../../support/env'
 
+import type { AddressDetails } from '../../../app/types/booking'
+
 const RACE_DAYS: number = 3
 const RACE_ATTEMPTS: number = 5
 const OTHER_TESTS_DAYS: number = 3
 
-const CATTENOM_ADDRESS: Record<string, unknown> = {
+const CATTENOM_ADDRESS: AddressDetails = {
   ...THIONVILLE_ADDRESS,
   label: 'Rue de la Gare, 57570 Cattenom',
   city: 'Cattenom',
@@ -30,7 +32,7 @@ const CATTENOM_ADDRESS: Record<string, unknown> = {
   longitude: 6.2339,
 }
 
-const WOIPPY_ADDRESS: Record<string, unknown> = {
+const WOIPPY_ADDRESS: AddressDetails = {
   ...THIONVILLE_ADDRESS,
   label: 'Rue de Metz, 57140 Woippy',
   city: 'Woippy',

@@ -31,12 +31,7 @@
     <span v-if="props.hint" :id="`${props.id}-hint`" class="mt-1.5 block text-[13px] text-ink/70">
       {{ props.hint }}
     </span>
-    <span
-      v-if="props.error"
-      :id="`${props.id}-error`"
-      role="alert"
-      class="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive"
-    >
+    <span v-if="props.error" :id="`${props.id}-error`" role="alert" :class="FIELD_ERROR_CLASS">
       <Icon name="CircleAlert" :size="14" aria-hidden="true" />
       {{ props.error }}
     </span>
@@ -46,7 +41,7 @@
 <script setup lang="ts">
 import type { CountryCode } from '@/types/booking'
 
-import { INPUT_GROUP_FRAME_CLASS } from '@/constants/booking'
+import { FIELD_ERROR_CLASS, INPUT_GROUP_FRAME_CLASS } from '@/constants/booking'
 import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(

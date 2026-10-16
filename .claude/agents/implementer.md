@@ -52,6 +52,9 @@ Each one was caught by a review. Check your change against this list before repo
 - Duplication: the same logic in two pages (extract a composable), the same class string in two
   components (export a constant), a constant copied into a test or script (export and import),
   a framework type rewritten by hand (import it, e.g. `AsyncDataRequestStatus`, `FetchError`).
+  Before writing field markup or state resets, grep what exists: `describedByIds`
+  (`app/utils/field.ts`), field error class strings (`BookingField.vue`), reset helpers in the
+  composable that owns the state (`useBookingAvailability`).
 - A static `key` on a `<Motion>` that is not a direct child of `<AnimatePresence>`.
 - Raw motion values (`duration-150`, `ease-out`, inline transitions): use the tokens and presets.
   Tailwind v4 `translate-*` sets the CSS `translate` property: transition `translate`, not

@@ -78,6 +78,8 @@ export default defineEventHandler(async (event): Promise<BookingResponse> => {
     }
   }
 
+  requireSignedAddress(body.address)
+
   const client = serverSupabaseServiceRole<Database>(event)
   const customerId: string = await findOrCreateCustomer(client, body.contact)
 

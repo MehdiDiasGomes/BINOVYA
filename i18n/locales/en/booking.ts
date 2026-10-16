@@ -63,6 +63,8 @@ export default {
     dayTaken: 'This day has just been booked by someone else. Please choose another one.',
     pendingPayment:
       'A payment is already in progress for this email address. Complete it or try again in a few minutes.',
+    invalidAddress:
+      'Your address could not be verified or its selection has expired. Choose it again from the list.',
     submit: 'The booking could not be saved. Try again in a moment.',
   },
   countries: {

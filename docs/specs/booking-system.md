@@ -107,6 +107,11 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
 - **Secteur du jour** : la première réservation d'un jour fixe son secteur. Le jour ne reste
   ouvert qu'aux adresses situées à moins de **15 km** de ce point. L'admin peut aussi
   imposer à l'avance le secteur d'un jour.
+- **Adresse signée** : seule une adresse choisie dans la recherche est acceptée, son jeton
+  valant 24 h. Si le serveur refuse le jeton (expiré, par exemple un brouillon restauré plus de
+  24 h après, ou adresse modifiée), le client revient à l'étape des coordonnées : le champ
+  adresse est vidé, marqué invalide, reçoit le focus et affiche le message. Il doit rechoisir
+  son adresse. Le formulaire de devis fait de même.
 - **Zone desservie** : **30 km** autour du dépôt (Uckange, 57270) pour commencer, au-delà la réservation est
   refusée. Les deux rayons sont des valeurs de configuration, modifiables sans redéploiement.
 - **Jour de collecte** : règle souple. Le jour de collecte et le lendemain sont mis en avant
