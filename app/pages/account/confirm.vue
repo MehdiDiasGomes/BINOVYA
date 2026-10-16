@@ -6,12 +6,11 @@
     <div class="mx-auto max-w-[640px] px-4 py-16 sm:px-8">
       <Motion
         v-if="hasFailed"
-        key="failed"
         as="section"
         aria-labelledby="confirm-failed-title"
-        :initial="{ opacity: 0, y: STEP_OFFSET }"
+        :initial="{ opacity: 0, y: CONTENT_ENTER_OFFSET }"
         :animate="{ opacity: 1, y: 0 }"
-        :transition="STEP_TRANSITION"
+        :transition="CONTENT_ENTER_TRANSITION"
         class="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8"
       >
         <h1
@@ -40,7 +39,7 @@
         </ol>
         <NuxtLink
           :to="localePath('/login')"
-          class="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+          class="mt-6 inline-flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
         >
           <Icon name="Send" :size="16" aria-hidden="true" />
           {{ $t('account.confirm.loginCta') }}
@@ -62,7 +61,7 @@
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION } from '@/constants/motion'
 
 definePageMeta({
   layout: 'default',

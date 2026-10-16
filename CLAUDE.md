@@ -155,7 +155,7 @@ Each folder keeps one convention; a new file follows the files already next to i
 
 | Where                                                                                               | Convention                   | Example                                     |
 | --------------------------------------------------------------------------------------------------- | ---------------------------- | ------------------------------------------- |
-| `app/components/`                                                                                   | PascalCase                   | `AccountPhotos.vue`                         |
+| `app/components/`                                                                                   | PascalCase                   | `MediaCard.vue`                             |
 | `app/pages/`                                                                                        | kebab-case                   | `bio-waste-shelters.vue`                    |
 | `app/composables/`, `app/utils/`, `app/constants/`, `app/types/`, `app/templates/`, `server/utils/` | camelCase                    | `useLoginForm.ts`, `loginLink.ts`           |
 | `server/api/`                                                                                       | kebab-case + method          | `deletion-request.post.ts`                  |
@@ -284,18 +284,20 @@ Full pipeline: `/feature <description>` (`.claude/commands/feature.md`).
 | `security-auditor` | opus   | nothing (read-only)                                                                                                     | `server/`, `supabase/`, auth, payments, input |
 | `a11y-auditor`     | sonnet | nothing (read-only)                                                                                                     | `.vue` or `i18n/` changed                     |
 | `tester`           | sonnet | unit (`tests/unit/`), integration (`tests/integration/`), Playwright E2E (`tests/e2e/`); runs them, checks the DB       | after fixes, before the final review          |
-| `code-reviewer`    | opus   | nothing (read-only)                                                                                                     | always, last before commit                    |
+| `code-reviewer`    | opus   | nothing (read-only)                                                                                                     | after every code pass, and final review       |
 | `docs-writer`      | sonnet | `docs/` only                                                                                                            | end of feature                                |
 
 Rules:
 
+- Every pass that changes code (implementer or ui-stylist) is followed by a fresh `code-reviewer`
+  on that pass's delta before the next step; its findings go to a fresh implementer or ui-stylist.
 - Order: db-migrator → implementer → ui-stylist ∥ security-auditor → a11y-auditor → fixes →
   tester → code-reviewer → docs-writer. Two writers never run together; a read-only agent may
   run next to a writer when it reads files that writer does not touch (security-auditor reads
   `server/` and `supabase/`, ui-stylist edits `.vue`).
 - Every agent is launched fresh with a complete, self-contained brief (never resumed with
   `SendMessage`): resumed agents accumulate very long contexts. Findings are relayed verbatim.
-- Tools: `ui-stylist` uses the `frontend-design` and `ui-ux-pro-max` skills
+- Tools: `ui-stylist` uses the `ui-ux-pro-max` skill
   (`.claude/skills/ui-ux-pro-max/`, guidance only, BINOVYA tokens win). `implementer` and
   `code-reviewer` check current Nuxt 4 APIs and deprecations with the Nuxt MCP (`.mcp.json`,
   documentation and changelog tools only). Mockups to follow live in `docs/design/`.

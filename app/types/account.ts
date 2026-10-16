@@ -1,13 +1,22 @@
 import type { BookingLocale, BookingPlan } from '@/types/booking'
+import type { MediaCardTone } from '@/types/mediaCard'
 import type { ComputedRef } from 'vue'
 
 export type AccountBookingStatus = 'paid' | 'completed' | 'cancelled'
 
 export type AccountPhotoKind = 'before' | 'after'
 
-export type AccountPhoto = {
-  kind: AccountPhotoKind
-  url: string
+export type AccountTranslate = (key: string, named: Record<string, unknown>) => string
+
+export type AccountStatusIcon = 'CalendarDays' | 'CircleCheck' | 'CircleX'
+
+export type AccountBookingCardView = {
+  tone: MediaCardTone
+  icon: AccountStatusIcon
+  statusKey: string
+  amountKey: string
+  showReminder: boolean
+  showRebook: boolean
 }
 
 export type AccountBooking = {
@@ -19,7 +28,15 @@ export type AccountBooking = {
   largeBinCount: number
   amountTotalCents: number
   status: AccountBookingStatus
-  photos: AccountPhoto[]
+}
+
+export type AccountBookingDetail = {
+  booking: AccountBooking
+}
+
+export type AccountDetailRow = {
+  labelKey: string
+  value: string
 }
 
 export type AccountOverview = {

@@ -4,18 +4,16 @@ import {
   createCustomer,
   openSession,
   seedAccountBooking,
-  seedPhoto,
   sessionCookie,
   type AccountCustomer,
 } from '../../support/account'
-import { assertTestStripeKey, cleanupE2eData, rest } from '../../support/db'
+import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { BASE_URL, uniqueTestEmail } from '../../support/env'
 
 type OverviewBooking = {
   id: string
   scheduledDate: string
   status: string
-  photos: { kind: string; url: string }[]
 }
 
 type Overview = {
@@ -79,16 +77,6 @@ beforeAll(async () => {
       scheduledDate: '2027-02-01',
     }),
   }
-  await seedPhoto({ bookingId: ids.completedOld as string, kind: 'before' })
-  await seedPhoto({ bookingId: ids.completedOld as string, kind: 'after' })
-  await rest('/rest/v1/intervention_photos', {
-    method: 'POST',
-    body: JSON.stringify({
-      booking_id: ids.paidFuture,
-      kind: 'before',
-      storage_path: `${ids.paidFuture}/before.png`,
-    }),
-  })
   cookie = sessionCookie((await openSession(owner.email)).raw)
 })
 
@@ -154,38 +142,25 @@ describe('GET /api/account/bookings: with a session', () => {
     ])
   })
 
-  it('returns photos for the completed booking only, never for a paid one', async () => {
-    const body = (await (await getOverview(cookie)).json()) as Overview
-    const byId = new Map(body.bookings.map(booking => [booking.id, booking]))
-    expect(
-      byId
-        .get(ids.completedOld as string)
-        ?.photos.map(photo => photo.kind)
-        .sort(),
-    ).toEqual(['after', 'before'])
-    expect(byId.get(ids.paidFuture as string)?.photos).toEqual([])
+  it('returns no photos property on any booking', async () => {
+    const raw = (await (await getOverview(cookie)).json()) as { bookings: object[] }
+    expect(raw.bookings.length).toBeGreaterThan(0)
+    raw.bookings.forEach(booking => expect(booking).not.toHaveProperty('photos'))
   })
 
-  it('returns signed URLs that the browser can fetch as an image', async () => {
+  it('returns the public booking shape', async () => {
     const body = (await (await getOverview(cookie)).json()) as Overview
-    const photo = body.bookings.find(booking => booking.id === ids.completedOld)?.photos[0]
-    expect(photo?.url).toMatch(/\/storage\/v1\/object\/sign\/intervention-photos\/.+token=/)
-    const image = await fetch(photo?.url ?? '')
-    expect(image.status).toBe(200)
-    expect(image.headers.get('content-type')).toContain('image/png')
-  })
-
-  it('signs URLs that live about 600 seconds', async () => {
-    const body = (await (await getOverview(cookie)).json()) as Overview
-    const url = body.bookings.find(booking => booking.id === ids.completedOld)?.photos[0]?.url
-    const token = new URL(url ?? '').searchParams.get('token') ?? ''
-    const claims = JSON.parse(Buffer.from(token.split('.')[1] ?? '', 'base64url').toString()) as {
-      exp: number
-      iat?: number
-    }
-    const remaining = claims.exp - Math.floor(Date.now() / 1000)
-    expect(remaining).toBeGreaterThan(500)
-    expect(remaining).toBeLessThanOrEqual(600)
+    const paid = body.bookings.find(booking => booking.id === ids.paidFuture)
+    expect(paid).toEqual({
+      id: ids.paidFuture,
+      scheduledDate: '2027-03-10',
+      address: '12 rue de la Gare, 57100 Thionville',
+      plan: 'one_off',
+      smallBinCount: 1,
+      largeBinCount: 0,
+      amountTotalCents: 1990,
+      status: 'paid',
+    })
   })
 
   it('never exposes another customer booking, even through the other customer session', async () => {

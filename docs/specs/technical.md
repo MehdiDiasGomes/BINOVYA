@@ -331,9 +331,29 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
 ### Parcours et pages
 
 - Pages : `/login` (demande du lien, `useLoginForm.ts`), `/account/confirm` (vérification du
-  lien) et `/account` (réservations, photos, suppression). Les trois ont un en-tête clair, sans
-  bandeau sombre (pages courtes). `/account` et `/account/confirm` sont en `noindex`, et
-  `/account/confirm` envoie `referrer: no-referrer`.
+  lien), `/account` (cartes de réservation, suppression) et `/account/bookings/[id]` (détail d'une
+  réservation). Elles ont un en-tête clair, sans bandeau sombre (pages courtes). `/account`,
+  `/account/bookings/[id]` et `/account/confirm` sont en `noindex`, et `/account/confirm` envoie
+  `referrer: no-referrer`.
+- Carte de réservation (`AccountBookingCard.vue`, d'après la maquette validée
+  `docs/design/account-booking-card.html`) : bâtie sur `MediaCard`, ligne de statut avec icône et
+  texte, rappel ambre `AccountBookingReminder.vue` pour une réservation à venir, un seul lien
+  « Voir la réservation ». Les calculs d'affichage sont dans `app/utils/accountBookingCard.ts`.
+- Page `/account/bookings/[id]` : résumé, `AccountBookingDocuments.vue` (emplacements photos,
+  masqués si annulée, et facture « Bientôt disponible »), « Réserver une autre date » si annulée,
+  « Réservation introuvable » sur un 404 ou un identifiant invalide. Photos et facture sont des
+  emplacements vides : l'étape 8 les remplit.
+- Composants partagés : `MediaCard.vue` (tons `success`, `info`, `neutral`, image facultative via
+  `NuxtImg`, prop `interactive` : seules les cartes cliquables se soulèvent au survol, coque
+  commune `MEDIA_CARD_SHELL_CLASS`), `MediaCardSkeleton.vue` et `SkeletonBlock.vue`.
+- Squelettes de chargement : `aria-hidden`, de la même hauteur que le contenu réel (`h-lh`), avec
+  une seule région `sr-only` en `aria-live` qui reste dans le DOM (une région ajoutée en même temps
+  que son texte n'est pas annoncée). `/account` en affiche 2 sur mobile, 4 dès `sm`
+  (`ACCOUNT_SKELETON_MOBILE_CARD_COUNT`, `ACCOUNT_SKELETON_CARD_COUNT`).
+- `useAccountPageState` (`app/composables/useAccountPageState.ts`), commun aux deux pages
+  `/account` : état de chargement, `401` vers `expireSession`, focus sur le `h1` une seule fois
+  après le premier chargement (aussi au retour arrière), et `reload` pour « Réessayer » : le focus
+  va au contenu chargé si le rechargement réussit, il reste sur le bouton si l'erreur persiste.
 - Middlewares : `customer` (protège `/account`, renvoie vers `/login`, avec `?session=expired` si
   la session a dépassé 7 jours) et `guest` (renvoie un client connecté de `/login` vers
   `/account`).
@@ -345,8 +365,10 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   mène à `/login?session=expired`. La page `/account` et la demande de suppression l'appellent sur
   tout `401`.
 - Constantes dans `app/constants/account.ts` : `LOGIN_LINK_LIFETIME_HOURS` (24),
-  `CUSTOMER_SESSION_MAX_AGE_SECONDS` (7 jours), `ACCOUNT_PHOTO_URL_LIFETIME_SECONDS` (10 min),
-  `ACCOUNT_BOOKING_STATUSES` (`paid`, `completed`, `cancelled`).
+  `CUSTOMER_SESSION_MAX_AGE_SECONDS` (7 jours), `ACCOUNT_BOOKING_STATUSES` (`paid`, `completed`,
+  `cancelled`), `ACCOUNT_STATUS_ICONS` et `ACCOUNT_STATUS_TONES` (icône et ton de `MediaCard` par
+  statut), `ACCOUNT_PHOTO_KINDS` (`before`, `after`), `ACCOUNT_SKELETON_CARD_COUNT` (4) et
+  `ACCOUNT_SKELETON_MOBILE_CARD_COUNT` (2). `ACCOUNT_PHOTO_URL_LIFETIME_SECONDS` n'existe plus.
 - `/account/confirm` lit le fragment `#token_hash=…`, l'efface aussitôt de l'historique, puis
   appelle `verifyOtp({ token_hash, type: 'email' })` dans le navigateur. Le jeton ne passe donc
   jamais par un serveur. Sans jeton, un client déjà connecté va à `/account`, sinon la page
@@ -364,8 +386,16 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   rempli. La RPC `claim_login_link` réserve l'envoi, puis `sendLoginLinkEmail` part en tâche de
   fond (`event.waitUntil`), pour que le temps de réponse ne distingue pas non plus les cas.
 - `GET /api/account/bookings` : lit le profil et les réservations avec le client Supabase de la
-  session, donc sous RLS, puis signe les photos des interventions terminées. Réponse en
-  `Cache-Control: private, no-store`.
+  session, donc sous RLS. Elle ne renvoie plus de photos (retour à l'étape 8). Réponse en
+  `Cache-Control: private, no-store`. 500 « Bookings unavailable » si la lecture du profil échoue,
+  404 « Account not found » si la fiche manque.
+- `GET /api/account/bookings/[id]` (`server/api/account/bookings/[id].get.ts`) : réponse
+  `{ booking }`, en `Cache-Control: private, no-store` posé en premier. 401 sans session, contrôlé
+  avant le 400 (identifiant qui n'est pas un UUID, `accountBookingParamsSchema` dans
+  `server/utils/accountSchemas.ts`). 404 « Booking not found » identique pour une réservation
+  inexistante, d'un autre client ou d'un autre statut : rien ne permet de deviner l'existence d'un
+  identifiant. 500 « Booking unavailable » si la lecture échoue. Nitro remplace l'en-tête par
+  `no-cache` sur un 404, ce qui reste privé.
 - `POST /api/account/deletion-request` : contrôle l'`Origin` (`assertSameOrigin`) puis la session,
   pose `profiles.deletion_requested_at` (une seule fois : une demande déjà posée renvoie sa date),
   et envoie l'alerte à `NUXT_CONTACT_EMAIL_TO`. Si l'alerte échoue (adresse absente ou Resend en
@@ -399,8 +429,24 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
 - `resolveSiteUrl` et `localizedSiteUrl` (`server/utils/siteUrl.ts`) : l'URL publique (sans `/`
   final) et l'URL d'une page dans une langue (`/en` en préfixe, le français n'en a pas). Sans
   `NUXT_SITE_URL`, ou sans https hors développement : 503 « Site URL unavailable ».
-- `loadAccountBookings` (`server/utils/accountBookings.ts`) : réservations puis photos signées.
-  Seules les réservations `completed` ont des photos.
+- `loadAccountBookings` et `loadAccountBooking` (`server/utils/accountBookings.ts`) : la liste
+  (plus récentes d'abord) et une réservation (`null` si absente, d'un autre client ou d'un statut
+  hors espace). Elles partagent les mêmes colonnes et le même convertisseur de ligne. Plus aucune
+  photo signée : les photos reviennent à l'étape 8.
+
+### Motion
+
+- Source unique : `app/constants/motion.ts`, reprise dans les jetons de `app/assets/css/tailwind.css`.
+  Le mouvement doit être identique partout.
+- Jetons Tailwind : `ease-brand` (courbe `0.22, 1, 0.36, 1`), `duration-press` (200 ms, survol et
+  appui), `duration-lift` (300 ms, soulèvement d'une carte), `duration-enter` (600 ms,
+  apparition).
+- Préréglages TypeScript : `MOTION_EASE`, `REVEAL_DURATION` (0,6 s), `REVEAL_MAX_STAGGER_STEPS`,
+  `CONTENT_ENTER_TRANSITION` et `CONTENT_ENTER_OFFSET` pour tout contenu qui apparaît,
+  `HERO_ENTER_CLASS` (600 ms, 24 px, `ease-brand`). `STEP_OFFSET` et `STEP_TRANSITION` ne servent
+  qu'aux formulaires à étapes et aux échanges de formulaire en place.
+- `tests/unit/shared/motion-tokens.test.ts` vérifie que les deux sources donnent les mêmes valeurs.
+  Modifier l'une sans l'autre fait échouer le test.
 
 ### Base de données et réglages Supabase
 
@@ -820,7 +866,16 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 - Le test d'intégration des rappels refuse de tourner s'il existe une vraie réservation payée
   dans la fenêtre J+1..J+2 : la tâche la traiterait, marquerait son rappel comme envoyé et le
   client ne le recevrait jamais.
-- Dernier passage complet : 648 tests sur 648 au vert, le 2026-10-16.
+- Dernier passage complet : 648 tests sur 648 au vert, le 2026-10-16 (avant la branche
+  `feat/account-booking-cards`, qui ajoute des tests : cartes, routes, page détail, jetons de
+  mouvement).
+
+**Process des agents** (`.claude/agents/`)
+
+- `ui-stylist` n'utilise que la skill `ui-ux-pro-max` (`frontend-design` est retirée).
+- Chaque passage de code est suivi d'un `code-reviewer` neuf.
+- Les fiches des agents ont une liste « Mistakes already made, do not repeat », tenue par
+  l'orchestrateur.
 
 ## Légal
 
@@ -858,6 +913,18 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
   `BeforeAfterSection`, `OffersSection`, `ServicesSection`, `TrustStripSection`,
   `layouts/footer`, `pages/about`, `i18n/locales/fr/solutions.ts` et `README.md`. À corriger dans
   un chore dédié.
+- E2E instable, `booking-payment.spec.ts` n° 2 : le bouton « Payer » sort de la fenêtre sur la
+  page Stripe (3 échecs sur environ 6 passages). À traiter dans une branche dédiée (taille de la
+  fenêtre, défilement jusqu'au bouton).
+- E2E instable, `booking-payment.spec.ts` n° 8 : délai dépassé de l'API d'adresse externe.
+- Délai dépassé ponctuel du nettoyage Supabase dans le `beforeAll` de
+  `tests/integration/account/account-deletion.test.ts` (une fois).
+- Environ 81 durées de survol et d'appui du site ne passent pas encore par les jetons de mouvement
+  (`duration-press`, `duration-lift`). Branche dédiée prévue.
+- `hasLoaded` de `useAccountPageState` reprend les conditions du gabarit (faible).
+- `NuxtImg` : ajouter `sizes` dès qu'une `MediaCard` affiche réellement une image.
+- Des textes promettent encore des « photos avant/après » (description SEO de `/login`, sous-titre
+  du tableau de bord) : conservés volontairement jusqu'à l'étape 8.
 
 ## Coûts estimés
 

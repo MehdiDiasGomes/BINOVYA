@@ -62,14 +62,14 @@
           {{ $t('account.login.sent.noBooking') }}
           <NuxtLink
             :to="localePath('/booking')"
-            class="rounded-sm font-bold text-ink underline underline-offset-4 transition-colors duration-150 hover:text-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
+            class="rounded-sm font-bold text-ink underline underline-offset-4 transition-colors duration-press ease-brand hover:text-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             {{ $t('account.login.sent.bookingCta') }}
           </NuxtLink>
         </p>
         <button
           type="button"
-          class="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-150 hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
+          class="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
           @click="showLoginForm"
         >
           <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
@@ -116,7 +116,7 @@
           type="submit"
           :aria-disabled="isSubmitting"
           :aria-busy="isSubmitting"
-          class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
+          class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
         >
           <Icon
             :name="isSubmitting ? 'Loader2' : 'Send'"

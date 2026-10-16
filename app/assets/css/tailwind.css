@@ -5,6 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
+  --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
+  --transition-duration-press: 200ms;
+  --transition-duration-lift: 300ms;
+  --transition-duration-enter: 600ms;
   --font-heading: 'Montserrat', sans-serif;
   --font-subheading: 'Montserrat', sans-serif;
   --font-body: 'Quicksand', sans-serif;

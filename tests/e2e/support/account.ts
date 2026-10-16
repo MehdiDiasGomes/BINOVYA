@@ -4,7 +4,6 @@ import {
   createCustomer,
   generateTokenHash,
   seedAccountBooking,
-  seedPhoto,
   type AccountCustomer,
 } from '../../support/account'
 import { uniqueTestEmail } from '../../support/env'
@@ -21,7 +20,7 @@ export type SeededArea = {
 }
 
 /**
- * Creates a customer with a paid, a completed (with before and after photos) and a cancelled
+ * Creates a customer with a paid, a completed and a cancelled
  * booking, as the area shows them.
  * @param tag - Short label put in the email
  * @returns Customer and booking identifiers
@@ -46,8 +45,6 @@ export const seedArea = async (tag: string): Promise<SeededArea> => {
     status: 'cancelled',
     scheduledDate: '2026-12-01',
   })
-  await seedPhoto({ bookingId: completedId, kind: 'before' })
-  await seedPhoto({ bookingId: completedId, kind: 'after' })
   return { customer, paidId, completedId, cancelledId }
 }
 

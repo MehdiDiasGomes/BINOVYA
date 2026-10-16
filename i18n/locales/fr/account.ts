@@ -76,36 +76,54 @@ export default {
     },
   },
   booking: {
-    title: 'Passage du {date}',
-    date: 'Jour de passage',
-    address: 'Adresse',
     services: 'Prestation',
     plan: 'Formule',
     amount: 'Montant payé',
-    status: 'Statut',
+    refunded: 'Remboursé',
     statuses: {
-      paid: 'Confirmée, passage à venir',
-      completed: 'Intervention réalisée',
-      cancelled: 'Annulée',
+      paid: 'À venir',
+      completed: 'Réalisée',
+      cancelled: 'Annulée et remboursée',
     },
+    reminder: {
+      title: 'Videz vos bacs la veille',
+      text: 'Nous ne pouvons pas nettoyer un bac plein. Un rappel vous sera envoyé par mail.',
+    },
+    view: 'Voir la réservation',
+    viewContext: 'du {date}',
   },
-  photos: {
-    title: 'Photos avant/après',
-    pending: 'Vos photos avant/après seront bientôt disponibles.',
-    kinds: {
-      before: 'Avant',
-      after: 'Après',
+  detail: {
+    seo: {
+      title: 'Ma réservation - BINOVYA',
     },
-    alt: {
-      before: 'Vos bacs avant le nettoyage du {date}',
-      after: 'Vos bacs après le nettoyage du {date}',
+    back: 'Retour à mes réservations',
+    eyebrow: 'Espace client',
+    titleFallback: 'Ma réservation',
+    title: 'Ma réservation du {date}',
+    loading: 'Chargement de votre réservation…',
+    loadError: 'Votre réservation n’a pas pu être chargée.',
+    retry: 'Réessayer',
+    notFound: {
+      title: 'Réservation introuvable',
+      text: 'Cette réservation n’existe pas ou n’est pas rattachée à votre espace client.',
     },
-    enlarge: 'Agrandir la photo « {kind} » du {date}',
-    dialogLabel: 'Photo agrandie : {kind} du {date}',
-    loadError: 'La photo « {kind} » n’a pas pu s’afficher. Rechargez la page pour réessayer.',
-    close: 'Fermer la photo',
-    expiryHint:
-      'Les photos sont affichées via un lien temporaire : rechargez la page s’il a expiré.',
+    summaryTitle: 'Récapitulatif',
+    date: 'Date',
+    address: 'Adresse',
+    photos: {
+      title: 'Photos avant/après',
+      text: 'BINOVYA ajoutera ici les photos de vos bacs après l’intervention.',
+      kinds: {
+        before: 'Photo avant',
+        after: 'Photo après',
+      },
+      placeholder: 'Pas encore de photo',
+    },
+    invoice: {
+      title: 'Facture',
+      soon: 'Bientôt disponible',
+    },
+    rebook: 'Réserver une autre date',
   },
   deletion: {
     title: 'Supprimer mon espace client',

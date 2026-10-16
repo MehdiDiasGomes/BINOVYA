@@ -139,16 +139,27 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
   19,90 € puis 9,90 €, grands bacs 39,90 € puis 29,90 €), appliqué par prestation. Le total
   est calculé côté serveur.
 - **Montant** : figé dans `amount_total_cents` au moment du paiement.
-- **Photos** : bucket privé, URL signées temporaires créées à chaque consultation de l'espace.
+- **Photos** : bucket privé, URL signées temporaires, à brancher dans l'espace à l'étape 8.
 - **Espace client (décision RGPD « option C »)** : la réservation crée la fiche client
   (`profiles`), nécessaire au contrat. L'espace ne s'ouvre que lorsque le client clique sur un lien
   de connexion qu'il a lui-même demandé. Pas de mot de passe, pas de mail de bienvenue, aucune
   mention « compte créé » dans l'interface ni dans les mails. La mention à la réservation et la
   section « Espace client » de la page de confidentialité l'expliquent.
-- **Contenu de l'espace** (`/account`) : réservations `paid`, `completed` et `cancelled`, les plus
-  récentes d'abord, et photos avant/après des interventions terminées (URL signées de 10 minutes,
-  recréées à chaque chargement). Le client ne modifie rien : aucun UPDATE client sur `profiles`
-  (une modification des coordonnées passera plus tard par une route serveur).
+- **Contenu de l'espace** (`/account`) : une carte par réservation `paid`, `completed` ou
+  `cancelled`, les plus récentes d'abord. Le statut s'affiche en ligne colorée avec icône et texte
+  (« À venir », « Réalisée », « Annulée et remboursée »), sans pastille ni numéro de référence. La
+  carte donne le détail, le montant (« Montant payé », ou « Remboursé » si annulée) et un seul lien,
+  « Voir la réservation » (la date fait partie de son nom accessible). Une réservation à venir
+  porte le rappel « Videz vos bacs la veille ».
+- **Page d'une réservation** (`/account/bookings/[id]`) : résumé, emplacements photos (masqués si
+  annulée), emplacement facture « Bientôt disponible » et, pour une annulée, « Réserver une autre
+  date ». Un identifiant inconnu, invalide ou appartenant à un autre client donne le même écran
+  « Réservation introuvable ».
+- **Photos et facture** : pas encore visibles dans l'espace (aucune URL signée pour l'instant),
+  elles arrivent à l'étape 8. Les factures seront réelles plus tard : les mentions légales
+  françaises sont à fixer avec le client.
+- Le client ne modifie rien : aucun UPDATE client sur `profiles` (une modification des coordonnées
+  passera plus tard par une route serveur).
 - **Accès** : RLS, un client ne lit que ses données, seul l'admin écrit photos et statuts. La RLS
   de lecture client exige aussi une connexion de moins de 7 jours (`has_recent_sign_in()`).
 - **Rôle admin** : stocké dans `app_metadata` (jamais `user_metadata`, modifiable par
