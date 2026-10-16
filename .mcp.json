@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "nuxt": {
+      "type": "http",
+      "url": "https://nuxt.com/mcp",
+      "headers": {
+        "X-MCP-Tools": "list-documentation-pages,get-documentation-page,get-getting-started-guide,get-changelog"
+      }
+    }
+  }
+}

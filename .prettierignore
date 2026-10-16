@@ -34,3 +34,5 @@ bun.lock
 
 # Shadcnui
 app/components/ui
+# Third-party Claude skill, kept as published
+.claude/skills/ui-ux-pro-max
