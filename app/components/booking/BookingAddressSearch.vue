@@ -36,11 +36,7 @@
     <p :id="`${props.id}-hint`" class="mt-1.5 text-[13px] text-ink/70">
       {{ $t('booking.address.hint') }}
     </p>
-    <p
-      v-if="props.error"
-      :id="`${props.id}-error`"
-      class="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive"
-    >
+    <p v-if="props.error" :id="`${props.id}-error`" :class="FIELD_ERROR_CLASS">
       <Icon name="CircleAlert" :size="14" aria-hidden="true" />
       {{ props.error }}
     </p>
@@ -93,8 +89,13 @@ import { useDebounceFn } from '@vueuse/core'
 
 import type { BookingAddress, CountryCode } from '@/types/booking'
 
-import { INPUT_GROUP_FRAME_CLASS } from '@/constants/booking'
+import {
+  BOOKING_ADDRESS_INPUT_ID,
+  FIELD_ERROR_CLASS,
+  INPUT_GROUP_FRAME_CLASS,
+} from '@/constants/booking'
 import { cn } from '@/lib/utils'
+import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(
   defineProps<{
@@ -103,7 +104,7 @@ const props = withDefaults(
     error?: string
   }>(),
   {
-    id: 'booking-address',
+    id: BOOKING_ADDRESS_INPUT_ID,
     modelValue: null,
     error: '',
   },
@@ -114,6 +115,8 @@ const emit = defineEmits<{
 }>()
 
 const SEARCH_DELAY_MS = 500
+
+const { t } = useI18n()
 
 const countryCode: Ref<CountryCode> = ref(props.modelValue?.countryCode ?? 'FR')
 const { suggestions, isLoading, hasError, hasSearched, search, clear } =
@@ -133,8 +136,8 @@ const activeOptionId: ComputedRef<string | undefined> = computed(() =>
     : undefined,
 )
 
-const describedBy: ComputedRef<string> = computed(() =>
-  props.error ? `${props.id}-hint ${props.id}-error` : `${props.id}-hint`,
+const describedBy: ComputedRef<string | undefined> = computed((): string | undefined =>
+  describedByIds(props.id, t('booking.address.hint'), props.error),
 )
 
 const hasNoResult: ComputedRef<boolean> = computed(
@@ -144,6 +147,15 @@ const hasNoResult: ComputedRef<boolean> = computed(
 const debouncedSearch = useDebounceFn(
   (text: string): Promise<void> => search(text),
   SEARCH_DELAY_MS,
+)
+
+watch(
+  () => props.modelValue,
+  (address: BookingAddress | null, previous: BookingAddress | null): void => {
+    if (!address && previous && query.value === previous.label) {
+      query.value = ''
+    }
+  },
 )
 
 const handleInput = (): void => {

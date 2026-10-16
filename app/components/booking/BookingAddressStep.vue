@@ -1,6 +1,11 @@
 <template>
   <div class="space-y-4">
-    <BookingAddressSearch :model-value="draft.address" @update:model-value="handleAddress" />
+    <BookingAddressSearch
+      :id="BOOKING_ADDRESS_INPUT_ID"
+      :model-value="draft.address"
+      :error="addressErrorKey ? $t(addressErrorKey) : ''"
+      @update:model-value="handleAddress"
+    />
 
     <p
       v-if="draft.address && state === 'loading'"
@@ -76,6 +81,7 @@
 <script setup lang="ts">
 import type { BookingAddress } from '@/types/booking'
 
+import { BOOKING_ADDRESS_INPUT_ID } from '@/constants/booking'
 import { cn } from '@/lib/utils'
 
 const localePath = useLocalePath()
@@ -86,17 +92,19 @@ const {
   serviceAreaRadiusKm,
   load: loadAvailability,
   reset: resetAvailability,
+  changeAddress,
 } = useBookingAvailability()
+const { errorKey: addressErrorKey, clear: clearAddressError } =
+  useAddressError(BOOKING_ADDRESS_INPUT_ID)
 
 const checkAddress = (): void => {
   loadAvailability().catch(() => resetAvailability())
 }
 
 const handleAddress = (address: BookingAddress | null): void => {
-  draft.value.address = address
-  draft.value.date = null
-  resetAvailability()
+  changeAddress(address)
   if (address) {
+    clearAddressError()
     checkAddress()
   }
 }

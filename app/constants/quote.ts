@@ -8,6 +8,8 @@ export const QUOTE_MAX_BIN_COUNT = 50
 
 export const QUOTE_COMMENT_MAX_LENGTH = 2000
 
+export const QUOTE_ADDRESS_INPUT_ID: string = 'quote-address'
+
 export const QUOTE_PHOTO_MIME_TYPES: string[] = ['image/jpeg', 'image/png', 'image/webp']
 
 export const QUOTE_PHOTOS_BUCKET = 'quote-photos'

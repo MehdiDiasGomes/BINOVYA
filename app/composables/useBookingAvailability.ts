@@ -5,6 +5,8 @@ import type {
   DayAvailability,
 } from '@/types/booking'
 
+import { BOOKING_ADDRESS_INPUT_ID } from '@/constants/booking'
+
 type BookingAvailability = {
   state: Ref<AvailabilityState>
   isInServiceArea: ComputedRef<boolean>
@@ -13,6 +15,7 @@ type BookingAvailability = {
   nextAvailable: ComputedRef<DayAvailability | null>
   load: () => Promise<void>
   reset: () => void
+  changeAddress: (address: BookingAddress | null) => void
 }
 
 /**
@@ -21,6 +24,7 @@ type BookingAvailability = {
  */
 export const useBookingAvailability = (): BookingAvailability => {
   const { draft, collectionWeekdays } = useBookingDraft()
+  const { catchInvalidAddress } = useAddressError(BOOKING_ADDRESS_INPUT_ID)
   const response: Ref<AvailabilityResponse | null> = useState<AvailabilityResponse | null>(
     'booking-availability',
     () => null,
@@ -35,6 +39,12 @@ export const useBookingAvailability = (): BookingAvailability => {
     state.value = 'idle'
   }
 
+  const changeAddress = (address: BookingAddress | null): void => {
+    draft.value.address = address
+    draft.value.date = null
+    reset()
+  }
+
   const load = async (): Promise<void> => {
     const address: BookingAddress | null = draft.value.address
     if (!address) {
@@ -44,15 +54,16 @@ export const useBookingAvailability = (): BookingAvailability => {
 
     state.value = 'loading'
     try {
-      const result = await $fetch<AvailabilityResponse>('/api/booking/availability', {
-        query: { latitude: address.latitude, longitude: address.longitude },
-      })
+      const result: AvailabilityResponse = await $fetch<AvailabilityResponse>(
+        '/api/booking/availability',
+        { method: 'POST', body: address },
+      )
       if (draft.value.address?.label === address.label) {
         response.value = result
         state.value = 'ready'
       }
-    } catch {
-      if (draft.value.address?.label === address.label) {
+    } catch (error) {
+      if (draft.value.address?.label === address.label && !catchInvalidAddress(error)) {
         state.value = 'error'
       }
     }
@@ -84,5 +95,14 @@ export const useBookingAvailability = (): BookingAvailability => {
     return available.find(day => day.isRecommended) ?? available[0] ?? null
   })
 
-  return { state, isInServiceArea, serviceAreaRadiusKm, days, nextAvailable, load, reset }
+  return {
+    state,
+    isInServiceArea,
+    serviceAreaRadiusKm,
+    days,
+    nextAvailable,
+    load,
+    reset,
+    changeAddress,
+  }
 }

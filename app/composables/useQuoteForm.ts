@@ -1,4 +1,7 @@
+import type { BookingAddress } from '@/types/booking'
 import type { QuoteErrors, QuoteForm, QuotePayload } from '@/types/quote'
+
+import { QUOTE_ADDRESS_INPUT_ID } from '@/constants/quote'
 
 type QuoteFormState = {
   form: Ref<QuoteForm>
@@ -8,6 +11,8 @@ type QuoteFormState = {
   isSubmitting: Ref<boolean>
   isSent: Ref<boolean>
   hasFailed: Ref<boolean>
+  addressErrorKey: Ref<string | null>
+  focusAddress: () => Promise<void>
   submit: () => Promise<void>
 }
 
@@ -17,6 +22,13 @@ type QuoteFormState = {
  */
 export const useQuoteForm = (): QuoteFormState => {
   const { draft } = useBookingDraft()
+  const {
+    errorKey: addressErrorKey,
+    catchInvalidAddress,
+    focusAddress,
+    clear: clearAddressError,
+  } = useAddressError(QUOTE_ADDRESS_INPUT_ID)
+  clearAddressError()
 
   const form: Ref<QuoteForm> = ref({
     contact: { ...draft.value.contact, company: '' },
@@ -35,6 +47,15 @@ export const useQuoteForm = (): QuoteFormState => {
   const hasFailed: Ref<boolean> = ref(false)
 
   const errors: ComputedRef<QuoteErrors> = computed(() => validateQuote(form.value))
+
+  watch(
+    () => form.value.address,
+    (address: BookingAddress | null): void => {
+      if (address) {
+        clearAddressError()
+      }
+    },
+  )
 
   const buildBody = (address: NonNullable<QuoteForm['address']>): FormData => {
     const hasBins: boolean = form.value.equipment.includes('bins')
@@ -66,12 +87,27 @@ export const useQuoteForm = (): QuoteFormState => {
     try {
       await $fetch('/api/quote', { method: 'POST', body: buildBody(address) })
       isSent.value = true
-    } catch {
-      hasFailed.value = true
+    } catch (error) {
+      if (catchInvalidAddress(error)) {
+        form.value.address = null
+      } else {
+        hasFailed.value = true
+      }
     } finally {
       isSubmitting.value = false
     }
   }
 
-  return { form, photos, errors, hasAttempted, isSubmitting, isSent, hasFailed, submit }
+  return {
+    form,
+    photos,
+    errors,
+    hasAttempted,
+    isSubmitting,
+    isSent,
+    hasFailed,
+    addressErrorKey,
+    focusAddress,
+    submit,
+  }
 }

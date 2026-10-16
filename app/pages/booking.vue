@@ -79,7 +79,7 @@
               </NuxtLink>
             </p>
 
-            <AnimatePresence mode="wait" :initial="false">
+            <AnimatePresence mode="wait" :initial="false" @exit-complete="handleStepExit">
               <Motion
                 :key="currentStep"
                 :initial="{ opacity: 0, x: STEP_OFFSET }"
@@ -163,7 +163,12 @@ import type {
   BookingStepId,
 } from '@/types/booking'
 
-import { BOOKING_SERVICES, BOOKING_STEPS, BOOKING_SUBMIT_ERROR_KEYS } from '@/constants/booking'
+import {
+  BOOKING_ADDRESS_INPUT_ID,
+  BOOKING_SERVICES,
+  BOOKING_STEPS,
+  BOOKING_SUBMIT_ERROR_KEYS,
+} from '@/constants/booking'
 import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 definePageMeta({
@@ -174,9 +179,15 @@ const { t, locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const { draft, totalQuantity, resetDraft } = useBookingDraft()
-const { reset: resetAvailability } = useBookingAvailability()
+const { reset: resetAvailability, changeAddress } = useBookingAvailability()
 const { priceCents } = useBookingPrice()
 const { errorFor } = useBookingValidation()
+const {
+  errorKey: addressErrorKey,
+  catchInvalidAddress,
+  focusAddress,
+  clear: clearAddressError,
+} = useAddressError(BOOKING_ADDRESS_INPUT_ID)
 const checkout: BookingCheckoutState = useBookingCheckout()
 const { rememberCheckout, readOutcome, waitForRelease, readErrorCode } = checkout
 
@@ -196,6 +207,7 @@ const isSubmitting: Ref<boolean> = ref(false)
 const submitErrorKey: Ref<string | null> = ref(null)
 const website: Ref<string> = ref('')
 const stepTitleRef: Ref<HTMLElement | null> = ref(null)
+const isAddressFocusPending: Ref<boolean> = ref(false)
 
 const currentIndex: ComputedRef<number> = computed(() => BOOKING_STEPS.indexOf(currentStep.value))
 const isLastStep: ComputedRef<boolean> = computed(
@@ -236,7 +248,35 @@ const buildRequest = (): BookingRequest | null => {
   }
 }
 
+const showAddressError = async (): Promise<void> => {
+  changeAddress(null)
+  submitErrorKey.value = null
+  hasAttempted.value = false
+  if (currentStep.value === 'contact') {
+    await focusAddress()
+    return
+  }
+  isAddressFocusPending.value = true
+  currentStep.value = 'contact'
+}
+
+const handleStepExit = async (): Promise<void> => {
+  if (isAddressFocusPending.value) {
+    isAddressFocusPending.value = false
+    await focusAddress()
+  }
+}
+
+watch(addressErrorKey, (key: string | null): void => {
+  if (key) {
+    showAddressError().catch(() => undefined)
+  }
+})
+
 const handleSubmitError = async (error: unknown): Promise<void> => {
+  if (catchInvalidAddress(error)) {
+    return
+  }
   const code: BookingErrorCode | null = readErrorCode(error)
   if (code === 'dayTaken') {
     draft.value.date = null
@@ -292,6 +332,7 @@ const goBack = async (): Promise<void> => {
 const restart = async (): Promise<void> => {
   resetDraft()
   resetAvailability()
+  clearAddressError()
   isConfirmed.value = false
   await showStep('contact')
 }
@@ -304,6 +345,8 @@ const preselectService = (): void => {
     draft.value.quantities[requested.slug] = 1
   }
 }
+
+clearAddressError()
 
 if (!readOutcome()) {
   preselectService()
