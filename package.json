@@ -14,9 +14,9 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test:unit": "vitest run --project unit",
-    "test:integration": "vitest run --project integration",
-    "test:e2e": "playwright test",
-    "test": "bun run test:unit && bun run test:integration && bun run test:e2e"
+    "test:integration": "bun scripts/test-run.ts integration",
+    "test:e2e": "bun scripts/test-run.ts e2e",
+    "test": "bun scripts/test-run.ts"
   },
   "dependencies": {
     "@internationalized/date": "^3.10.1",
