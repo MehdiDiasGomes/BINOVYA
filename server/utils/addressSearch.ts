@@ -1,4 +1,4 @@
-import type { BookingAddress, CountryCode } from '@/types/booking'
+import type { AddressDetails, CountryCode } from '@/types/booking'
 
 type FranceFeature = {
   geometry: { coordinates: [number, number] }
@@ -21,7 +21,7 @@ const LUXEMBOURG_POSTCODE_PATTERN = /^\d{4}$/
 const SUGGESTION_LIMIT = 5
 const REQUEST_TIMEOUT_MS = 5000
 
-const searchFrance = async (query: string): Promise<BookingAddress[]> => {
+const searchFrance = async (query: string): Promise<AddressDetails[]> => {
   const response = await $fetch<FeatureCollection<FranceFeature>>(FRANCE_ENDPOINT, {
     query: {
       q: query,
@@ -42,7 +42,7 @@ const searchFrance = async (query: string): Promise<BookingAddress[]> => {
   }))
 }
 
-const toLuxembourgAddress = (feature: LuxembourgFeature): BookingAddress | null => {
+const toLuxembourgAddress = (feature: LuxembourgFeature): AddressDetails | null => {
   const { label } = feature.properties
   const markerIndex: number = label.lastIndexOf(LUXEMBOURG_POSTCODE_MARKER)
   if (markerIndex < 0) {
@@ -65,17 +65,17 @@ const toLuxembourgAddress = (feature: LuxembourgFeature): BookingAddress | null 
   }
 }
 
-const searchLuxembourg = async (query: string): Promise<BookingAddress[]> => {
+const searchLuxembourg = async (query: string): Promise<AddressDetails[]> => {
   const response = await $fetch<FeatureCollection<LuxembourgFeature>>(LUXEMBOURG_ENDPOINT, {
     query: { query, limit: SUGGESTION_LIMIT, layer: 'Adresse', extent: LUXEMBOURG_EXTENT },
     timeout: REQUEST_TIMEOUT_MS,
   })
   return response.features
     .map(toLuxembourgAddress)
-    .filter((address): address is BookingAddress => address !== null)
+    .filter((address): address is AddressDetails => address !== null)
 }
 
-const SEARCH_BY_COUNTRY: Record<CountryCode, (query: string) => Promise<BookingAddress[]>> = {
+const SEARCH_BY_COUNTRY: Record<CountryCode, (query: string) => Promise<AddressDetails[]>> = {
   FR: searchFrance,
   LU: searchLuxembourg,
 }
@@ -89,7 +89,7 @@ const SEARCH_BY_COUNTRY: Record<CountryCode, (query: string) => Promise<BookingA
 export const searchAddresses = async (
   query: string,
   countryCode: CountryCode,
-): Promise<BookingAddress[]> => {
+): Promise<AddressDetails[]> => {
   try {
     return await SEARCH_BY_COUNTRY[countryCode](query)
   } catch {

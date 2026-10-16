@@ -12,7 +12,7 @@ import {
 export const quotePayloadSchema = z
   .object({
     contact: quoteContactSchema,
-    address: bookingAddressSchema,
+    address: signedAddressSchema,
     equipment: quoteEquipmentSchema,
     smallBinCount: quoteBinCountSchema,
     largeBinCount: quoteBinCountSchema,
