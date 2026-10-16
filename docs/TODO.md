@@ -81,7 +81,7 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [x] Fiche client créée à la réservation, espace ouvert uniquement par le lien demandé par le
       client (option C), mention à la réservation et section confidentialité
 - [x] Connexion par lien magique (`/login`, `POST /api/auth/login`, `/account/confirm`)
-- [x] Liste des réservations et photos (URL signées)
+- [x] Cartes de réservation et page `/account/bookings/[id]`
 - [x] Demande de suppression du compte
 - [ ] Appliquer dans l'ordre les 4 migrations du 2026-10-16 (`20261016000000` à `20261016030000`)
       et régler Supabase : Auth Hook « Send Email » vers `public.suppress_auth_emails`, Email OTP
@@ -100,6 +100,9 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [ ] Modifier la capacité par jour de semaine
 - [ ] Photos avant/après depuis le téléphone
 - [ ] « Terminer l'intervention », disponible après l'ajout des photos
+- [ ] Photos avant/après et facture dans l'espace client (retirées de `/account` à l'étape 7,
+      emplacements « Bientôt disponible » sur `/account/bookings/[id]`, mentions légales françaises
+      de la facture à fixer avec le client)
 
 ## 9. Tournées
 
