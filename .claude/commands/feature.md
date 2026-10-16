@@ -14,6 +14,11 @@ write the same files run at the same time.
 
 How to brief agents:
 
+- **Review every code pass.** After each `implementer` or `ui-stylist` pass, launch a fresh
+  `code-reviewer` on that pass's delta (files, intent, check outputs) before the next step, and
+  send its findings to a fresh `implementer` (or `ui-stylist` for visual ones). Same cap as step 8:
+  at most two re-runs per pass, then the open findings go to the user.
+
 - **Launch fresh, never resume.** Every agent is a new one with a complete, self-contained brief
   (feature, decisions, files to read, previous findings quoted verbatim, check outputs): it starts
   with an empty context. Never resume an agent with `SendMessage`: resumed agents accumulate very
