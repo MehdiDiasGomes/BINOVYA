@@ -39,6 +39,9 @@ for the current architecture when the brief points to it.
 
 1. **Input**: every body, query and param parsed with Zod (bounded), no `as` cast on request
    data, no internals in error responses.
+   Business data the browser sends (coordinates, prices, totals, statuses, ids of related rows)
+   is never trusted just because it parses: the server recomputes or re-fetches it from its own
+   source (e.g. re-geocode an address instead of trusting the client's latitude/longitude).
 2. **Authorisation and ownership**: customer id from the verified session, never from the
    request; ownership checked for every id; same response for "not yours" and "does not exist"
    (no enumeration, including timing and messages); admin routes check the role server-side.

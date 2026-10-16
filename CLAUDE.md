@@ -35,6 +35,7 @@ bun run test:unit         # Vitest, pure logic, no server
 bun run test:integration  # Vitest, server routes, signed Stripe webhooks, one test per mail template
 bun run test:e2e          # Playwright, real Chromium and Stripe Checkout in test mode
 bun run test              # All three, in that order
+bun run test:server       # Keeps the test server and its `stripe listen` warm; the commands above reuse it
 ```
 
 ## Project Structure
