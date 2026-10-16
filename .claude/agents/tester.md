@@ -87,6 +87,12 @@ push or switch branch.
   including `playwright.config.ts`.
 - Test addresses whose coordinates do not match their label: use the real coordinates of the
   named place, and name the constant after it (the server may re-geocode one day).
+- `.catch(() => undefined)` on a Playwright action: it hides the real failure; assert the state
+  first, then act.
+- A test whose name claims a condition its data does not create (e.g. « invalid token » built
+  with a helper that signs): build the exact input the name describes.
+- Shared test addresses typed `Record<string, unknown>` then cast: type them with the app type
+  (`AddressDetails`) in `tests/support/address.ts` and reuse them everywhere.
 - A concurrency test that would also pass sequentially: fire enough simultaneous requests (5+)
   with `Promise.all` and assert exactly one success.
 - Hardcoded port or origin: use `BASE_URL` / `ORIGIN`.
