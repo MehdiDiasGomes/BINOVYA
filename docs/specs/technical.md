@@ -813,11 +813,42 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 
 - `bun run test` : unitaires, puis intégration, puis e2e. Il est autonome et ne demande ni
   `bun run dev` ni `stripe listen` lancés à la main. `test:integration` et `test:e2e` passent par
-  le même script (`scripts/test-run.ts`) et démarrent donc leur propre infrastructure.
-  `bun run test:unit` n'a besoin d'aucun serveur. `TEST_PORT=… bun run test` change le port.
+  le même script (`scripts/test-run.ts`) et démarrent leur propre infrastructure, sauf si un
+  serveur de test déjà lancé par `bun run test:server` peut être réutilisé (voir plus bas).
+  `bun run test:unit` n'a besoin d'aucun serveur. `TEST_PORT=… bun run test` change le port ;
+  `TEST_PORT` doit être un entier positif, sinon le script s'arrête.
   `scripts/test-run.ts` accepte aussi des étapes en argument (`unit`, `integration`, `e2e`).
+- Arguments transmis : avec une seule étape, tout ce qui suit est passé tel quel à Vitest ou à
+  Playwright (`bun run test:e2e -- --grep "…"`). Avec plusieurs étapes, le script refuse. Une
+  première valeur qui n'est ni une étape ni une option donne « Étape de test inconnue ».
 - Le script arrête tout à la fin, y compris sur Ctrl+C. Ton `bun run dev` sur le port 3000 peut
   continuer à tourner.
+- Le script est découpé en modules dans `scripts/` : `test-run.ts` (orchestration), `test-args.ts`
+  (lecture des arguments), `test-process.ts` (processus, ports, signaux), `test-infra.ts`
+  (serveur de test, listener Stripe, outbox), `test-lock.ts` (verrou), `test-server-state.ts`
+  (état du serveur gardé chaud) et `test-server.ts` (`bun run test:server`).
+
+**Serveur de test gardé chaud** (`bun run test:server`)
+
+- Il démarre le serveur de test (port 3001) et son `stripe listen`, puis les garde jusqu'à Ctrl+C
+  (ou SIGHUP, SIGTERM). Pourquoi : le démarrage à froid de Nuxt coûte du temps à chaque run. Mesuré
+  pour un seul test e2e : 30 s à froid, 13 s avec le serveur chaud.
+- Il écrit `.cache/test-server.json` (pids, port, outbox, sans clé ni secret).
+- Un run (`test-run.ts`) ne le réutilise que si tout est vrai : le fichier est valide, le port est
+  tenu par le groupe de processus du serveur, son listener Stripe est vivant, l'outbox est dans
+  `.mail-outbox/` et `GET /` répond 200. Sinon il démarre sa propre infrastructure. Le serveur de
+  dev de l'utilisateur n'est donc jamais réutilisé.
+- Le run vérifie le listener toutes les secondes et échoue s'il s'arrête.
+- Les deux terminaux doivent utiliser la même clé de test Stripe.
+- Si le port est déjà pris par des processus orphelins, le message affiche
+  `kill -- -<pgid>` puis `kill <pid>` du listener.
+
+**Verrou** (`.cache/test-run.lock`)
+
+- Un seul run à la fois, car les runs partagent le serveur de test et son outbox.
+- Le verrou n'est respecté que si son pid est un `test-run.ts` vivant. Un verrou périmé (pid mort
+  ou réutilisé par un autre processus) est remplacé. Le message d'erreur donne le pid à arrêter.
+- `bun run test:server` affiche ce message quand un run tient le port.
 
 **Infrastructure lancée par `scripts/test-run.ts`**
 
@@ -866,9 +897,20 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 - Le test d'intégration des rappels refuse de tourner s'il existe une vraie réservation payée
   dans la fenêtre J+1..J+2 : la tâche la traiterait, marquerait son rappel comme envoyé et le
   client ne le recevrait jamais.
-- Dernier passage complet : 648 tests sur 648 au vert, le 2026-10-16 (avant la branche
-  `feat/account-booking-cards`, qui ajoute des tests : cartes, routes, page détail, jetons de
-  mouvement).
+- Playwright (`playwright.config.ts`) : `actionTimeout` 10 s, `expect` 5 s (10 s explicite sur le
+  titre de la page `/en` au premier chargement). `restoreViewport`
+  (`tests/e2e/support/booking.ts`) : Chromium peut réduire la fenêtre à 0×0 au deuxième retour de
+  Stripe ; l'aide la redimensionne puis attend qu'elle ait une taille.
+- Capacité : `tests/integration/booking/booking-capacity.test.ts`. Journée pleine : 409
+  `dayTaken`, aucune ligne créée. Refus de secteur (plus de 15 km de la première réservation du
+  jour) avec de vraies communes (Thionville, Cattenom, Woippy), accepté un autre jour. Cinq
+  requêtes simultanées sur la dernière place, sur trois dates : une seule réussit.
+- Dernier passage complet : environ 7 min 30 s, le 2026-10-16 : 586 tests unitaires, 160
+  d'intégration, 60 e2e (environ 5 min).
+- Limites connues, laissées volontairement : `bun run test:server` lancé pendant qu'un run à froid
+  démarre encore Nuxt affiche le message « autre `stripe listen` » au lieu de celui du verrou ;
+  une course très rare sur un verrou périmé sous forte charge ; `TEST_PORT` au-dessus de 65535 ou
+  vide n'est pas traité spécialement.
 
 **Process des agents** (`.claude/agents/`)
 
