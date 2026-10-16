@@ -2,7 +2,8 @@ import { existsSync, readFileSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
 import { parseEnv } from 'node:util'
 
-const ADMIN_MAILBOX_FALLBACK = 'admin@binovya.test'
+import { TEST_ADMIN_MAILBOX, TEST_PORT } from '../../scripts/test-infra'
+import { localBaseUrl } from '../../scripts/test-process'
 
 let envFileCache: Record<string, string> | undefined
 
@@ -24,8 +25,7 @@ export const readEnv = (name: string): string => {
   return envFileCache[name]?.trim() ?? ''
 }
 
-export const BASE_URL: string =
-  process.env.TEST_BASE_URL ?? `http://localhost:${process.env.TEST_PORT ?? '3001'}`
+export const BASE_URL: string = process.env.TEST_BASE_URL ?? localBaseUrl(TEST_PORT)
 
 export const ORIGIN: string = new URL(BASE_URL).origin
 
@@ -33,8 +33,7 @@ export const ORIGIN: string = new URL(BASE_URL).origin
  * Returns the mailbox that receives the alerts for BINOVYA on the test server.
  * @returns Address set by `NUXT_CONTACT_EMAIL_TO`, the test script exports `admin@binovya.test`
  */
-export const adminMailbox = (): string =>
-  process.env.NUXT_CONTACT_EMAIL_TO || ADMIN_MAILBOX_FALLBACK
+export const adminMailbox = (): string => process.env.NUXT_CONTACT_EMAIL_TO || TEST_ADMIN_MAILBOX
 
 /**
  * Builds a unique, recognisable test address. No mail leaves the machine, so it needs no inbox.

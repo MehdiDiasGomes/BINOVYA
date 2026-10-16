@@ -61,7 +61,9 @@ Each one was caught by a review. Check your change against this list before repo
   that receives focus at the same time.
 - Repeated link texts: put the distinguishing part inside the link (sr-only), not only in
   `aria-describedby`.
-- Explicit types everywhere, including `safeParse` results.
+- Explicit types everywhere, including `safeParse` results and Node results in `scripts/`
+  (`Socket`, `SpawnSyncReturns<string>`…). `scripts/` is not covered by `nuxi typecheck`: check it
+  with `tsc --noEmit` on a scratch tsconfig extending `.nuxt/tsconfig.node.json`.
 - Prettier only on the files you changed, never on a folder.
 
 ## Checks (mandatory before reporting)

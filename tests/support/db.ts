@@ -1,4 +1,5 @@
 import { readEnv } from './env'
+import { sleep } from '../../scripts/test-process'
 
 export type BookingRow = {
   id: string
@@ -31,9 +32,6 @@ export const rest = async (path: string, init: RequestInit = {}): Promise<Respon
     },
   })
 }
-
-export const sleep = (ms: number): Promise<void> =>
-  new Promise<void>(resolve => setTimeout(resolve, ms))
 
 export const assertTestStripeKey = (): void => {
   if (!readEnv('NUXT_STRIPE_SECRET_KEY').startsWith('sk_test_')) {
@@ -131,10 +129,26 @@ export const cleanupE2eData = async (): Promise<{ bookings: number; users: numbe
   return { bookings, users: profiles.length }
 }
 
+export const ACTIVE_BOOKING_STATUSES: string[] = ['pending_payment', 'paid', 'completed']
+
+const ACTIVE_STATUS_FILTER: string = `status=in.(${ACTIVE_BOOKING_STATUSES.join(',')})`
+
 export const listActiveBookingDates = async (): Promise<Set<string>> => {
   const response: Response = await rest(
-    '/rest/v1/bookings?select=scheduled_date&status=in.(paid,completed,pending_payment)',
+    `/rest/v1/bookings?select=scheduled_date&${ACTIVE_STATUS_FILTER}`,
   )
   const rows = (await response.json()) as { scheduled_date: string }[]
   return new Set(rows.map(row => row.scheduled_date))
+}
+
+/**
+ * Counts the bookings occupying a day (pending payment, paid or completed).
+ * @param date - Intervention date
+ * @returns Number of active bookings on that date
+ */
+export const countActiveBookings = async (date: string): Promise<number> => {
+  const response: Response = await rest(
+    `/rest/v1/bookings?select=id&scheduled_date=eq.${date}&${ACTIVE_STATUS_FILTER}`,
+  )
+  return ((await response.json()) as unknown[]).length
 }

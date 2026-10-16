@@ -42,12 +42,22 @@ push or switch branch.
   `test:e2e`. `scripts/test-run.ts` checks the Stripe key is `sk_test_`, starts its own server on
   `TEST_PORT` (3001) with mails written to `.mail-outbox/test-run/` and its own `stripe listen`,
   exports `TEST_BASE_URL`, then stops everything. Never start a server or `stripe listen`
-  yourself, never touch the user's `bun run dev` on port 3000.
+  yourself, never touch the user's `bun run dev` on port 3000. If the user runs `bun run test:server`,
+  the runner reuses it automatically (faster): do not stop it.
 - Runner refuses (another `stripe listen`, port in use, key refused): stop with ⛔, its message
   and the manual action for the user.
-- Time box: write the tests, run the full suite ONCE, then at most one targeted re-run per
-  failing level. Do not loop on a failure: report it. Known flaky tests (the brief lists them)
-  get one re-run, then are reported as flaky.
+- Speed first: while writing or fixing, run ONLY the files you touched
+  (`bun run test:unit -- tests/unit/x.test.ts`, `bun run test:integration -- tests/integration/x`,
+  `bun run test:e2e -- tests/e2e/x.spec.ts` or `-- --grep "name"`). Run the full `bun run test`
+  exactly ONCE, at the very end, as the regression check. Never re-run the full suite to check a
+  single fix: re-run that file only.
+- Time box: aim for 10 minutes of execution per pass. Do not loop on a failure: report it. Known
+  flaky tests (the brief lists them) get one re-run, then are reported as flaky.
+- Attempts cap: a failing test is run at most 5 times in total (all runs of that test count,
+  including `--repeat-each`), then you stop and report it with « Essais : n/5 » and the error of
+  each attempt. Playwright's own auto-wait must not hang either: keep `actionTimeout` short in
+  `playwright.config.ts` (10 s) so a missing or off-screen element fails fast instead of retrying
+  for minutes.
 - Checking processes: count only, never print lines (`ps -axww -o command | grep -c '[s]k_'`).
 - Mails: the test server writes each mail as JSON to the outbox, read with
   `tests/support/outbox.ts`. Only the per-template tests assert mail content; other tests assert
@@ -72,6 +82,13 @@ push or switch branch.
 
 - Rewriting an app helper or constant in a test (date formatter, default path, sender): import
   it from `app/`, `server/` or `scripts/`.
+- Copying a value already defined in `tests/support/` or `scripts/` (day capacity, status filter,
+  mailbox, base URL default, a constant asserted twice): export it once, import it everywhere,
+  including `playwright.config.ts`.
+- Test addresses whose coordinates do not match their label: use the real coordinates of the
+  named place, and name the constant after it (the server may re-geocode one day).
+- A concurrency test that would also pass sequentially: fire enough simultaneous requests (5+)
+  with `Promise.all` and assert exactly one success.
 - Hardcoded port or origin: use `BASE_URL` / `ORIGIN`.
 - Inlined test email pattern: use `uniqueTestEmail(tag)`.
 - `getByRole('alert')` page-wide also matches `NuxtRouteAnnouncer`: scope it to `main`.
@@ -94,8 +111,9 @@ Fichiers : <tests créés ou modifiés>
 | # | Niveau | Scénario | Résultat | Preuve |
 Échecs pour implementer : <cité, fichier:ligne, attendu, obtenu>
 Échecs pour ui-stylist / a11y : <élément introuvable par rôle, focus, contraste>
-Flaky : <test, nombre d'essais, cause probable>
+Flaky : <test, « Essais : n/5 », cause probable>
 Non testable automatiquement : <ce qui reste à vérifier à la main>
 Contrôles des tests : lint, prettier, compte `ps` des clés
+Temps d'exécution : <par niveau et total, nombre de lancements de la suite complète>
 Nettoyage : <lignes e2e supprimées>
 ```

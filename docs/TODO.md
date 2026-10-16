@@ -90,6 +90,14 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
       n'envoie de vrai mail (transport `outbox`). Suite complète au vert, 648 tests sur 648, le
       2026-10-16
 
+- [ ] Jeton d'adresse signé (branche `fix/booking-address-token`, avant l'étape 8) : les
+      coordonnées de la réservation viennent du navigateur (`server/api/booking/index.post.ts`
+      passe `body.address.latitude` et `longitude` à `create_booking`), un client peut donc
+      contourner le rayon de 20 km et le secteur de 15 km d'un jour. Correctif :
+      `/api/address/search` signe chaque suggestion (HMAC-SHA256 sur libellé, code postal, pays, latitude, longitude et
+      expiration, secret `NUXT_ADDRESS_TOKEN_SECRET`), `/api/booking` vérifie le jeton avec
+      `timingSafeEqual`
+
 ## 8. Espace BINOVYA Pro
 
 - [ ] Accès admin (`app_metadata.role`)
@@ -122,6 +130,7 @@ Tout se prépare et se teste en local, sans serveur. La mise en place sur le VPS
 - [ ] `Caddyfile` : `Content-Security-Policy-Report-Only` rédigée et testée en local contre Nuxt
       et Supabase (le passage en application est à l'étape 12). Le cookie de session est lisible
       par le JavaScript, une XSS est donc le principal risque de vol de session
+- [ ] Tests : projet Playwright WebKit (Safari)
 - [ ] Logs JSON côté Nitro
 - [ ] Supervision : configuration de Prometheus, Loki, Alloy, Grafana, node-exporter, cAdvisor
 - [ ] Sauvegarde : script shell `pg_dump` de la base Supabase (planifié par cron à l'étape 12)
@@ -149,6 +158,14 @@ Tout se prépare et se teste en local, sans serveur. La mise en place sur le VPS
       `assertTestStripeKey` pour Stripe)
 - [ ] CI : réglage `concurrency` de GitHub Actions, pour qu'une seule exécution tourne à la fois
       (base de test et compte Stripe de test partagés)
+- [ ] Supabase reproductible avec la CLI, sans Terraform : `supabase migration repair` sur le
+      projet de dev (plus de 10 migrations appliquées à la main), réglages Auth (hook Send Email
+      vers `public.suppress_auth_emails`, expiration de l'OTP e-mail à 86 400 s, inscriptions
+      désactivées) déplacés dans `supabase/config.toml` puis `supabase config push`, event
+      trigger `rls_auto_enable` transformé en migration (il n'existe que sur le projet de dev)
+- [ ] Script `bun run supabase:provision` (création du projet, `link`, `db push`, `config push`),
+      réutilisé pour la production et pour le projet de test dédié à la CI. Les clés restent
+      copiées à la main
 - [ ] Dernier job : image vers GHCR, tags SHA + `latest` sur `main`
 - [ ] CD : SSH, `IMAGE_TAG=<sha>`, `docker compose pull && up -d`
 - [ ] GitHub Action mensuelle de mise à jour des cartes OSRM
@@ -189,6 +206,7 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
       vérification du domaine), `NUXT_CONTACT_EMAIL_TO`, clés Supabase de production.
       `NUXT_MAIL_TRANSPORT` doit rester absent : le serveur refuse `outbox` hors développement et
       journalise une erreur au démarrage. Copie du `.env` dans un gestionnaire de mots de passe
+- [ ] Passage sur un vrai iPhone et avec un vrai lecteur d'écran avant le lancement
 - [ ] Premier déploiement
 - [ ] Sauvegardes : cron nocturne activé sur le VPS, puis premier test de restauration
 - [ ] `Content-Security-Policy` passée de Report-Only à l'application, après vérification des

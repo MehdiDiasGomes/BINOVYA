@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from '@playwright/test'
+import { expect, type Locator, type Page, type ViewportSize } from '@playwright/test'
 
 import enBooking from '../../../i18n/locales/en/booking'
 import frBooking from '../../../i18n/locales/fr/booking'
@@ -98,6 +98,20 @@ export const payButton = (page: Page, lang: Lang): Locator =>
 export const goToStripe = async (page: Page, lang: Lang): Promise<void> => {
   await clickPay(page, lang)
   await page.waitForURL(/checkout\.stripe\.com/, { timeout: 60_000 })
+}
+
+export const restoreViewport = async (page: Page): Promise<void> => {
+  const size: ViewportSize | null = page.viewportSize()
+  if (!size) {
+    return
+  }
+  const isCollapsed = (): Promise<boolean> =>
+    page.evaluate(() => window.innerWidth * window.innerHeight === 0)
+  if (await isCollapsed()) {
+    await page.setViewportSize({ width: size.width + 1, height: size.height })
+    await page.setViewportSize(size)
+  }
+  await expect.poll(isCollapsed).toBe(false)
 }
 
 export const payOnStripe = async (page: Page, card = '4242424242424242'): Promise<void> => {

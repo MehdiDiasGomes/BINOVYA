@@ -4,6 +4,9 @@ import { expect } from 'vitest'
 import { findBookings, type BookingRow } from './db'
 import { BASE_URL, readEnv, uniqueTestEmail } from './env'
 
+/** Maximum number of active bookings per day. */
+export const DAY_CAPACITY: number = 3
+
 export type ApiResult = {
   status: number
   body: Record<string, unknown> & { data?: { code?: string } }
@@ -192,7 +195,7 @@ export const expireBooking = async (booking: PendingBooking): Promise<void> => {
  * @param tag - Short label put in the customer emails
  */
 export const fillDay = async (date: string, tag: string): Promise<void> => {
-  await [0, 1, 2].reduce(
+  await Array.from({ length: DAY_CAPACITY }, (_unused: unknown, index: number) => index).reduce(
     (previous: Promise<unknown>, index: number) =>
       previous.then(() => newPendingBooking(`${tag}-fill${index}`, date)),
     Promise.resolve(),

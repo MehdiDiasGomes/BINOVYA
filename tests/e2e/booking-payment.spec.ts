@@ -9,16 +9,17 @@ import {
   MESSAGES,
   payButton,
   payOnStripe,
+  restoreViewport,
   type BookingInput,
   type Lang,
 } from './support/booking'
+import { sleep } from '../../scripts/test-process'
 import { pickFreeDates } from '../support/dates'
 import {
   assertTestStripeKey,
   cleanupE2eData,
   findBookings,
   readPrice,
-  sleep,
   waitForStatus,
 } from '../support/db'
 
@@ -43,6 +44,7 @@ const cancelOnStripe = async (page: Page, lang: Lang): Promise<void> => {
   await page.waitForURL(url => url.pathname === bookingPath(lang) && url.search === '', {
     timeout: 30_000,
   })
+  await restoreViewport(page)
 }
 
 let days: string[] = []
@@ -139,6 +141,7 @@ test('3. browser Back from Stripe: booking expired, new attempt works', async ({
 
   await page.goBack()
   await page.waitForURL(url => url.pathname === bookingPath(lang), { timeout: 30_000 })
+  await restoreViewport(page)
   await expect(stepTitle(page, lang, 'payment')).toBeVisible()
   await waitForStatus(email, 'expired')
 

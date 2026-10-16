@@ -1,12 +1,13 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { sleep } from '../../../scripts/test-process'
 import {
   createCustomer,
   openPasswordSession,
   sessionCookie,
   type AccountCustomer,
 } from '../../support/account'
-import { assertTestStripeKey, cleanupE2eData, sleep } from '../../support/db'
+import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { BASE_URL, readEnv, uniqueTestEmail } from '../../support/env'
 
 type Tokens = { access_token: string; refresh_token: string; raw: string }

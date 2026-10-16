@@ -1,8 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
-import { sleep } from './db'
 import { TEST_OUTBOX_DIR } from '../../scripts/test-outbox'
+import { sleep } from '../../scripts/test-process'
 import { resolveOutboxDir } from '../../server/utils/mailOutbox'
 
 import type { MailOutboxRecord } from '../../app/types/email'
