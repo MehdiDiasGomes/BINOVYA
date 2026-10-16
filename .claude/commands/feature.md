@@ -14,9 +14,10 @@ write the same files run at the same time.
 
 How to brief agents:
 
-- **Resume, do not respawn.** Within one feature, keep using the same `implementer` (and the same
-  `code-reviewer` across review passes) through `SendMessage` with its agent id: it already read
-  the files. Spawn a new one only for a new feature or if the previous one is lost.
+- **Launch fresh, never resume.** Every agent is a new one with a complete, self-contained brief
+  (feature, decisions, files to read, previous findings quoted verbatim, check outputs): it starts
+  with an empty context. Never resume an agent with `SendMessage`: resumed agents accumulate very
+  long contexts.
 - **Relay findings verbatim.** Paste each finding as the auditor wrote it (severity, file:line,
   problem, proposed fix), then add your decision. Never paraphrase a finding.
 - **Formatting is automatic.** A project `PostToolUse` hook runs prettier on every file an agent
@@ -84,7 +85,7 @@ spec sections, and the `.vue` and `i18n/` files first.
 
 ## 6. Fixes (delegated)
 
-- Resume `implementer` with every critical, high and medium finding of both audits in one
+- Launch a new `implementer` with every critical, high and medium finding of both audits in one
   message, quoted verbatim. List low findings for the user without fixing them unless trivial
   (those go to `implementer` too).
 - Purely visual findings (contrast, focus ring) flagged for `ui-stylist`: relaunch it with those
@@ -107,17 +108,17 @@ spec sections, and the `.vue` and `i18n/` files first.
    `implementer` and `ui-stylist`.
 
 2. ⛔ (environment: secret mismatch, server to restart, live key): relay the manual action to the
-   user, wait for confirmation, then resume the same `tester`.
-3. ⚠️: resume `implementer` (or `ui-stylist` for visual items) with the failures quoted verbatim,
-   then resume the same `tester` to re-run. Max 2 re-runs, then the failures go to the user.
+   user, wait for confirmation, then launch a new `tester`.
+3. ⚠️: launch a new `implementer` (or `ui-stylist` for visual items) with the failures quoted
+   verbatim, then a new `tester` to re-run. Max 2 re-runs, then the failures go to the user.
 
 ## 8. Final review (loop, max 2 re-runs)
 
 1. Launch `code-reviewer` with: the feature description, the change set, the check outputs, all
    previous reports including the e2e report, and the list of what you fixed. Tell it which pass
    this is.
-2. If the verdict is ⛔ or ⚠️: resume `implementer` with the findings quoted verbatim, then resume
-   the same `code-reviewer` with its new report (pass 2, then pass 3).
+2. If the verdict is ⛔ or ⚠️: launch a new `implementer` with the findings quoted verbatim, then a
+   new `code-reviewer` with the previous review, the fixes and the pass number (pass 2, then 3).
 3. After pass 3, if findings remain, stop the loop and present them to the user with your
    recommendation. Do not loop further.
 

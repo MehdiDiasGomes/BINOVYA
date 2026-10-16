@@ -1,7 +1,7 @@
 ---
 name: code-reviewer
 description: Read-only final code review of a BINOVYA change set - correctness, project conventions (CLAUDE.md), duplication with existing utils, i18n parity FR/EN, file size limits. Use as the last step before commit, with the previous audit reports and lint/typecheck output.
-tools: Read, Grep, Glob
+tools: Read, Grep, Glob, mcp__nuxt__get-documentation-page, mcp__nuxt__get-changelog
 model: opus
 ---
 
@@ -39,6 +39,13 @@ with the category.
    - Tailwind only, `cn()` for conditional classes, no `<style>`, no inline style
    - max 350 lines per file, 3 params per function, nesting 4, complexity 15
    - Prettier: no semicolons, single quotes, width 100, trailing commas
+   - file names follow the convention of their folder ("File naming" in `CLAUDE.md`). Compare
+     with the files already in that folder, not only with the change set: a new file that breaks
+     the folder's existing convention is a finding
+   - Nuxt APIs: when a change relies on a Nuxt API, composable or config key you suspect is
+     deprecated or not current for Nuxt 4, check it with the Nuxt MCP tools
+     (`get-documentation-page`, `get-changelog`) before raising it. Targeted checks only, not
+     one per file
 3. **Placement and duplication**: reusable helpers in `app/utils/`, shared types in
    `app/types/`, constants in `app/constants/`, server helpers in `server/utils/`, Zod schemas
    shared between `app/utils/*Validation.ts` and `server/utils/*Schemas.ts` rather than written
