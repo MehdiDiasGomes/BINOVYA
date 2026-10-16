@@ -34,6 +34,7 @@
     <span
       v-if="props.error"
       :id="`${props.id}-error`"
+      role="alert"
       class="mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive"
     >
       <Icon name="CircleAlert" :size="14" aria-hidden="true" />
@@ -46,6 +47,7 @@
 import type { CountryCode } from '@/types/booking'
 
 import { INPUT_GROUP_FRAME_CLASS } from '@/constants/booking'
+import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(
   defineProps<{
@@ -72,16 +74,9 @@ const emit = defineEmits<{
   'update:countryCode': [value: CountryCode]
 }>()
 
-const describedBy: ComputedRef<string | undefined> = computed(() => {
-  const ids: string[] = []
-  if (props.hint) {
-    ids.push(`${props.id}-hint`)
-  }
-  if (props.error) {
-    ids.push(`${props.id}-error`)
-  }
-  return ids.length > 0 ? ids.join(' ') : undefined
-})
+const describedBy: ComputedRef<string | undefined> = computed(() =>
+  describedByIds(props.id, props.hint, props.error),
+)
 
 const handleInput = (event: Event): void => {
   emit('update:modelValue', (event.target as HTMLInputElement).value)
