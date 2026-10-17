@@ -8,6 +8,16 @@ type PhotoKind = 'before' | 'after'
 type QuoteStatus = 'new' | 'answered' | 'closed'
 type QuoteEquipment = 'bins' | 'pav' | 'urban_furniture' | 'signage'
 type CountryCode = 'FR' | 'LU'
+type RescheduleOverridable = 'out_of_area' | 'day_closed' | 'day_full' | 'out_of_sector'
+type RescheduleRefusal =
+  | RescheduleOverridable
+  | 'not_found'
+  | 'not_paid'
+  | 'invalid_date'
+  | 'same_date'
+  | 'past_date'
+  | 'too_far'
+  | 'too_frequent'
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json }
 
 type Table<Row, Required extends keyof Row = never> = {
@@ -68,6 +78,9 @@ type BookingRow = {
   reminder_sent_at: string | null
   day_of_sms_sent_at: string | null
   completed_at: string | null
+  rescheduled_at: string | null
+  reschedule_count: number
+  reschedule_window_start: string | null
   created_at: string
 }
 
@@ -112,6 +125,7 @@ type AvailabilityOverrideRow = {
   max_bookings: number | null
   sector_latitude: number | null
   sector_longitude: number | null
+  sector_label: string | null
   note: string | null
 }
 
@@ -202,6 +216,47 @@ export type Database = {
           p_amount_cents: number
         }
         Returns: 'paid' | 'already_paid' | 'refund_required' | 'not_payable' | 'not_found'
+      }
+      day_check: {
+        Args: {
+          p_date: string
+          p_latitude: number
+          p_longitude: number
+          p_exclude_booking_id: string | null
+          p_apply_bounds: boolean
+        }
+        Returns: 'closed' | 'full' | 'outOfSector' | 'available'
+      }
+      admin_reschedule_booking: {
+        Args: { p_booking_id: string; p_new_date: string; p_force?: boolean }
+        Returns: {
+          ok: boolean
+          reason: RescheduleRefusal | null
+          old_date: string | null
+          new_date: string | null
+          overridden_reason: RescheduleOverridable | null
+          overridden_reasons: RescheduleOverridable[] | null
+        }[]
+      }
+      admin_day_overview: {
+        Args: { p_from: string; p_to: string }
+        Returns: {
+          day: string
+          weekday: number
+          capacity: number
+          capacity_source: 'rule' | 'override'
+          is_closed: boolean
+          sector_latitude: number | null
+          sector_longitude: number | null
+          sector_label: string | null
+          note: string | null
+          active_count: number
+          paid_count: number
+        }[]
+      }
+      is_admin: {
+        Args: Record<string, never>
+        Returns: boolean
       }
       has_recent_sign_in: {
         Args: Record<string, never>
