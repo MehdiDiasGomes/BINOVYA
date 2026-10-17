@@ -1,6 +1,7 @@
 # TODO — Système de réservation
 
-Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/technical.md)
+Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/technical.md) ·
+[SEO](./specs/seo.md)
 
 ## 0. Specs
 
@@ -71,7 +72,7 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [x] Habillage BINOVYA de tous les mails (mise en page commune, CSS inliné à l'envoi)
 - [ ] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée, tutoriel
       pas à pas en secours. Gabarit prêt (`sendPhotosAvailableEmail`), envoi pas encore branché,
-      déclenchement à l'étape 8. Le lien du bouton « Voir mes photos » est à décider à l'étape 8 :
+      déclenchement à l'étape 8. Le lien du bouton « Voir mes photos » est à décider au lot 3 de l'étape 8 :
       lien simple vers `/login` (option A, cohérent avec « Suivre ma réservation » du mail de
       confirmation et avec l'option C), ou `createLoginLink` hors du plafond de `claim_login_link`
       (option B). Dans les deux cas `isAllowedLoginUrl` (hôte Supabase autorisé) devient obsolète
@@ -95,10 +96,21 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 8. Espace BINOVYA Pro
 
-- [ ] Accès admin (`app_metadata.role`)
-- [ ] Planning du jour, mobile
-- [ ] Liste des interventions : client, date, adresse, bacs, formule, paiement, statut
-- [ ] Bouton « Itinéraire Google Maps »
+Lot 1 sur 3 fait (accès, planning, liste, itinéraire) ; les lots 2 et 3 couvrent le reste.
+
+- [x] Accès admin (`app_metadata.role`)
+- [x] Planning du jour, mobile
+- [x] Liste des interventions : client, date, adresse, bacs, formule, paiement, statut
+- [x] Bouton « Itinéraire Google Maps »
+- [ ] Appliquer dans l'ordre les migrations `20261017000000_admin_login_link` et
+      `20261017010000_admin_session_rule` (SQL Editor)
+- [ ] Lot 2 : migration qui écrit les appels `is_admin()` des policies en `(select
+public.is_admin())` (fonction plpgsql, évaluée par ligne) et ajoute `is_admin` à `Functions`
+      de `app/types/database.types.ts`
+- [ ] Lots 2 et 3 : revérifier l'admin par `auth.getUser()` avant toute écriture (un rôle retiré ne
+      coupe l'accès qu'après 1 h au plus avec `getClaims`)
+- [ ] Chore : déplacer les constantes de classes de formulaire et de calendrier de
+      `app/constants/booking.ts` vers `app/constants/form.ts`
 - [ ] Bloquer une journée, changer une date, imposer le secteur d'un jour
 - [ ] Modifier la capacité par jour de semaine
 - [ ] Photos avant/après depuis le téléphone
@@ -179,7 +191,7 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
 - [ ] Cloudflare : compte (plan gratuit) et DNS de `binovya.com` hébergé chez Cloudflare
 - [ ] Cloudflare : enregistrements proxifiés (`A`, `AAAA` s'il y a une IPv6, `CNAME` `www`), et
       Resend (SPF, DKIM, `MX send`) et `_dmarc` en « DNS only ». `CAA` facultatif
-- [ ] Cloudflare : règles de limite de débit par IP sur `/api/auth/login`, `/api/booking`,
+- [ ] Cloudflare : règles de limite de débit par IP sur `/api/auth/login`, `/api/pro/auth/login`, `/api/booking`,
       `/api/booking/release`, `/api/contact` et `/api/quote` (vérifier le nombre de règles du plan
       gratuit)
 - [ ] Cloudflare : limite de débit sur `/api/address/search` et `/api/booking/availability`
@@ -194,6 +206,9 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
       renseigner `NUXT_MAIL_FROM` (deux items de l'étape 6)
 - [ ] Projet Supabase de production, dans l'organisation du client : suivre la check-list « Mise
       en place du projet Supabase de production » de `technical.md`
+- [ ] Créer le compte admin de production SANS mot de passe (invitation, ou
+      `auth.admin.createUser` sans `password`), `app_metadata.role = 'admin'`, sur une adresse
+      dédiée non publiée ; la requête de contrôle de `technical.md` doit ne rien renvoyer
 - [ ] RLS automatique en production : activer l'option qui crée l'event trigger `ensure_rls` (absent
       des migrations), ou l'ajouter par une migration dédiée (décision à prendre)
 - [ ] Discuter avec le client du plan Supabase Pro (25 $/mois), seule voie de sauvegardes
@@ -225,6 +240,18 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
 - [ ] Avant le lancement, décider du sort des formules trimestrielle et annuelle : aujourd'hui
       elles sont payées en une fois pour un seul passage, sans engagement enregistré. Les masquer
       (devis uniquement) ou livrer l'étape 14 (abonnements) avant
+
+## SEO (branche `chore/seo`, après la fusion de l'étape 8 dans `dev`)
+
+Audit du 2026-10-17, 29 constats : voir `specs/seo.md`. Sans numéro, pour ne pas renuméroter.
+
+- [ ] Répondre aux questions client de `specs/seo.md` (adresse, téléphone, domaine, engagements)
+- [ ] Pages privées hors index (`/login` en `noindex`, en-têtes `X-Robots-Tag`)
+- [ ] Sitemap, robots, URL publique, canonical et hreflang
+- [ ] Données structurées (`LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList`)
+- [ ] Page `/formulas` (clés i18n brutes) et images manquantes
+- [ ] Maillage interne et sélecteur de langue
+- [ ] Titres, descriptions et images (OG, dimensions, `alt`)
 
 ## 14. Après le lancement
 

@@ -1,6 +1,6 @@
 # Spec technique
 
-> Statut : en cours de définition. Dernière mise à jour : 2026-10-15.
+> Statut : en cours de définition. Dernière mise à jour : 2026-10-17.
 > Spec fonctionnelle associée : [booking-system.md](./booking-system.md).
 
 ## Vue d'ensemble
@@ -183,7 +183,7 @@
 - Gabarits dans `app/templates/email/` : `layout` (mise en page commune), `labels` (textes),
   `bookingDetails` (bloc récapitulatif), `bookingCustomerEmails` (confirmation, rappel,
   remboursement), `bookingAdminEmail` (alerte BINOVYA), `photosAvailableEmail`, `accountEmails`
-  (lien de connexion, alerte de suppression), `contactEmail` et `quoteEmail`.
+  (lien de connexion client et admin, alerte de suppression), `contactEmail` et `quoteEmail`.
 - Logique d'envoi dans `server/utils/bookingEmails.ts` et `server/utils/accountEmails.ts` : le
   client reçoit les mails avec `NUXT_CONTACT_EMAIL_TO` en `replyTo`.
 
@@ -191,6 +191,7 @@
 | -------------------------------- | ------------------------------------------------------ |
 | Confirmation au client           | Webhook, `confirm_booking_payment` renvoie `paid`      |
 | Lien de connexion                | `POST /api/auth/login`, adresse connue et sous plafond |
+| Lien de connexion admin          | `POST /api/pro/auth/login`, admin connu, sous plafond  |
 | Alerte de suppression (admin)    | `POST /api/account/deletion-request`                   |
 | Alerte admin (réservation payée) | Idem, à `NUXT_CONTACT_EMAIL_TO`                        |
 | Annulation et remboursement      | Webhook, `refund_required` ou `not_payable`            |
@@ -463,6 +464,8 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   `CONTENT_ENTER_TRANSITION` et `CONTENT_ENTER_OFFSET` pour tout contenu qui apparaît,
   `HERO_ENTER_CLASS` (600 ms, 24 px, `ease-brand`). `STEP_OFFSET` et `STEP_TRANSITION` ne servent
   qu'aux formulaires à étapes et aux échanges de formulaire en place.
+- Défilement doux : `html { scroll-behavior: smooth }` (`app/assets/css/tailwind.css`) n'est actif
+  que sous `prefers-reduced-motion: no-preference`.
 - `tests/unit/shared/motion-tokens.test.ts` vérifie que les deux sources donnent les mêmes valeurs.
   Modifier l'une sans l'autre fait échouer le test.
 
@@ -478,9 +481,11 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   en minuscules** (index unique utilisé). Réservée à `service_role`.
 - `has_recent_sign_in()` : la connexion la plus ancienne (`otp` ou `magiclink`) doit dater de moins
   de 7 jours. Utilisée par les policies de `profiles`, `bookings`, `intervention_photos` et du
-  bucket `intervention-photos`. `is_admin()` y échappe.
+  bucket `intervention-photos`. Elle ne change pas de comportement avec la migration admin, mais
+  lit désormais l'`amr` par `oldest_link_sign_in_at()`, partagée avec `is_admin()`. `is_admin()`
+  n'y échappe plus : voir « Espace Pro ».
 - `suppress_auth_emails(event)` : renvoie `{}`. Supabase n'envoie plus aucun mail d'auth, les mails
-  partent tous de notre serveur (`generateLink` puis Resend). Cela inclut le futur accès admin.
+  partent tous de notre serveur (`generateLink` puis Resend). Cela inclut l'accès admin.
 - Réglages manuels attendus dans le tableau de bord Supabase :
   - Auth Hook « Send Email » activé, vers `public.suppress_auth_emails` ;
   - « Allow new users to sign up » désactivé (aucun compte créé par un lien) ;
@@ -504,7 +509,7 @@ Le projet de production vit dans l'organisation Supabase du client (étape 12 de
 > sécurité de l'espace client de l'étape 7 ne tient pas (mails d'auth envoyés par Supabase,
 > comptes créés par un lien, sessions trop longues).
 
-1. Appliquer dans le SQL Editor, dans l'ordre des horodatages, les 10 migrations de
+1. Appliquer dans le SQL Editor, dans l'ordre des horodatages, les 12 migrations de
    `supabase/migrations/` :
    - `20261010000000_booking_schema`
    - `20261010010000_profiles_email`
@@ -516,6 +521,8 @@ Le projet de production vit dans l'organisation Supabase du client (étape 12 de
    - `20261016010000_login_link_rate_limit`
    - `20261016020000_customer_session_max_age`
    - `20261016030000_auth_email_hook_and_session_rule`
+   - `20261017000000_admin_login_link`
+   - `20261017010000_admin_session_rule`
 2. Refaire à la main les réglages Auth (posés sur le projet de développement à l'étape 7) :
    - Auth Hook « Send Email » activé, type Postgres, vers `public.suppress_auth_emails` ;
    - « Allow new users to sign up » désactivé ;
@@ -524,7 +531,8 @@ Le projet de production vit dans l'organisation Supabase du client (étape 12 de
    - détection de réutilisation des jetons de renouvellement activée ;
    - limite d'e-mails au minimum ;
    - Site URL et Redirect URLs = `https://binovya.com` uniquement (aucune URL de dev) ;
-   - utilisateur admin avec `app_metadata.role = 'admin'` (étape 8) ;
+   - utilisateur admin avec `app_metadata.role = 'admin'`, créé SANS mot de passe (voir « Espace
+     Pro », « Créer un admin ») ;
    - « Time-box user sessions » à 7 jours seulement si le client prend le plan Pro ;
    - RLS automatique sur les nouvelles tables : le projet de développement a un event trigger
      `ensure_rls` (`ddl_command_end`) qui appelle `public.rls_auto_enable()` (`security definer`,
@@ -542,7 +550,12 @@ select p.proname, p.proacl
 from pg_proc p
 join pg_namespace n on n.oid = p.pronamespace
 where n.nspname = 'public'
-  and p.proname in ('claim_login_link', 'has_recent_sign_in', 'suppress_auth_emails');
+  and p.proname in (
+    'claim_login_link',
+    'claim_admin_login_link',
+    'has_recent_sign_in',
+    'suppress_auth_emails'
+  );
 
 -- Policies qui appliquent la règle des 7 jours : profiles, bookings, intervention_photos
 -- et storage.objects (intervention-photos) doivent toutes apparaître
@@ -556,19 +569,178 @@ select
   has_table_privilege('anon', 'public.profiles', 'UPDATE') as anon_update,
   has_table_privilege('authenticated', 'public.profiles', 'UPDATE') as authenticated_update;
 
+-- Aucun admin avec mot de passe : aucune ligne attendue
+select id
+from auth.users
+where raw_app_meta_data ->> 'role' = 'admin'
+  and encrypted_password <> '';
+
 -- RLS automatique : une ligne attendue
 select evtname, evtevent, evtfoid::regproc from pg_event_trigger where evtname = 'ensure_rls';
 ```
 
-- Résultats attendus : `claim_login_link` réservée à `service_role`, `has_recent_sign_in` à
-  `authenticated` et `service_role`, `suppress_auth_emails` à `supabase_auth_admin`. La troisième
-  requête renvoie `false` et `false`. La quatrième renvoie une ligne (`ensure_rls`,
+- Résultats attendus : `claim_login_link` et `claim_admin_login_link` réservées à `service_role`,
+  `has_recent_sign_in` à `authenticated` et `service_role`, `suppress_auth_emails` à
+  `supabase_auth_admin`. La troisième requête renvoie `false` et `false`. La quatrième ne renvoie
+  aucune ligne (sinon un admin a un mot de passe : le supprimer et le recréer sans mot de passe). La cinquième
+  renvoie une ligne (`ensure_rls`,
   `ddl_command_end`, `rls_auto_enable`). On n'utilise pas `information_schema.role_table_grants` :
   elle n'affiche que les droits visibles pour le rôle qui exécute la requête, donc un résultat
   vide peut être un faux « OK ». `has_table_privilege` répond pour le rôle nommé, quel que soit
   celui qui interroge.
 - Les réglages Auth ne se lisent pas en SQL : les contrôler dans le tableau de bord, puis tester
   qu'un lien demandé sur `/login` arrive bien par Resend et jamais par Supabase.
+
+## Espace Pro
+
+Règles métier : [booking-system.md](./booking-system.md). Lot 1 sur 3 de l'étape 8 (accès,
+planning, liste, itinéraire). Photos, capacité et « Terminer l'intervention » viennent aux lots 2
+et 3.
+
+### Pages et mise en page
+
+- Pages : `/pro/login` (demande du lien), `/pro/confirm` (vérification du lien, comme
+  `/account/confirm`), `/pro` (planning du jour) et `/pro/interventions` (liste filtrée). Toutes
+  en `noindex, nofollow` ; `/pro/confirm` envoie aussi `referrer: no-referrer`.
+- Layout `pro` (`app/layouts/pro.vue`) : en-tête sombre, navigation avec `aria-current`, menu
+  burger sous `sm:`.
+
+### Routes serveur
+
+- `POST /api/pro/auth/login` : `handleLoginRequest` avec la RPC `claim_admin_login_link` et
+  `sendAdminLoginLinkEmail`.
+- `GET /api/pro/planning?date=` : interventions `paid` et `completed` du jour (aujourd'hui en
+  Europe/Paris sans `date`) et coordonnées du dépôt.
+- `GET /api/pro/interventions?status&from&to&page` : page de 50 interventions. `status` vaut
+  `all` par défaut, `page` va de 1 à 1000. `from` postérieur à `to` donne 400 (le navigateur
+  l'écarte avant l'appel).
+- Ordre des deux `GET`, identique : `Cache-Control: private, no-store` posé en premier, puis
+  `requireAdmin`, puis la validation Zod (`server/utils/proSchemas.ts`, 400), puis la lecture avec
+  le client Supabase de la session, donc sous la RLS `is_admin()`. Une erreur de lecture donne 500.
+- `requireAdmin` : 401 sans session, 403 sans le rôle admin, 401 et révocation globale en tâche de
+  fond si la session a plus de 7 jours ou vient d'un mot de passe.
+- Page au-delà du total : PostgREST répond `PGRST103` (plage non satisfaisable). La route refait
+  alors une requête qui ne fait que compter et renvoie une page vide avec le total, pour que le
+  navigateur retourne à la dernière page.
+
+### Fonctions serveur
+
+- `requireAdmin` (`server/utils/adminSession.ts`) : rôle lu dans `app_metadata.role` (jamais
+  `user_metadata`) puis session active (`hasAdminRole`, `isActiveAdminClaims` dans
+  `app/utils/adminSession.ts`, partagées avec le navigateur). L'ordre 403 puis 401 évite de
+  révoquer la session d'un simple client qui appellerait la route.
+- `requireSessionIdentity` et `rejectExpiredSession` (`server/utils/session.ts`) : partagées avec
+  `requireCustomerId`. La seconde lève 401 et lance la révocation globale par `event.waitUntil`.
+- `handleLoginRequest` (`server/utils/loginRequest.ts`), commune à `/api/auth/login` et
+  `/api/pro/auth/login` : corps de 4 Ko, même réponse `{ success: true }` dans tous les cas, RPC de
+  plafond puis envoi du mail après la réponse (`event.waitUntil`).
+- `server/utils/loginLink.ts` : `claimLoginLink` (appel de la RPC), `createLoginLink` (client),
+  `createAdminLoginLink` (admin : n'agit que si l'utilisateur Auth a encore le rôle admin, lien
+  vers `/pro/confirm#token_hash=…`) et `generateMagicLink` (interne, `generateLink`).
+- `sendAdminLoginLinkEmail` (`server/utils/accountEmails.ts`) : mail en français, sans `replyTo`
+  (voulu : il part à l'admin lui-même).
+- `loadDayInterventions`, `loadInterventionsPage`, `loadDepot` (`server/utils/proInterventions.ts`)
+  : lectures sous RLS. Les profils sont lus à part, par lot d'identifiants. Tri du planning par
+  code postal puis adresse, de la liste par date puis date de création.
+
+### Base de données
+
+- `admin_login_links` (`user_id`, `sent_at`, `link_count`, `window_start`) : compteurs de
+  plafond des admins, qui n'ont pas de fiche `profiles`. RLS active, aucun droit hors
+  `service_role`.
+- `claim_admin_login_link(p_email)` : même `INSERT … ON CONFLICT DO UPDATE` atomique que
+  `claim_login_link` (60 s, 5 liens sur 24 h), mais l'adresse doit être celle d'un utilisateur Auth
+  avec `app_metadata.role = 'admin'`, non supprimé et non banni. Réservée à `service_role`.
+- `oldest_link_sign_in_at()` : heure de la plus ancienne entrée `otp` ou `magiclink` de l'`amr`
+  du JWT.
+- `is_admin()` (plpgsql, `stable`) : vrai si `app_metadata.role = 'admin'` ET si
+  `oldest_link_sign_in_at()` a moins de 7 jours. Une session par mot de passe n'est donc jamais
+  admin. Elle était en SQL simple (rôle seul) : en plpgsql elle n'est plus remplacée par son
+  corps dans les requêtes et s'évalue par ligne dans certaines policies (voir « Risques acceptés »).
+- `has_recent_sign_in()` : inchangée dans son comportement (voir « Espace client »).
+- Créer un admin SANS mot de passe : invitation du tableau de bord Supabase, ou
+  `auth.admin.createUser` sans `password`, avec `email_confirm: true` et
+  `app_metadata: { role: 'admin' }`. Pas de fiche `profiles`. Un mot de passe ne donnerait de toute
+  façon pas accès (méthode `password` refusée), mais le retirer réduit la surface d'attaque. Adresse
+  dédiée et non publiée. Contrôle en production : la requête « Aucun admin avec mot de passe » de la
+  check-list Supabase.
+
+### Client
+
+- Middlewares : `admin` (protège `/pro` et `/pro/interventions` ; sans session valide renvoie vers
+  `/pro/login`, avec `?access=denied` si la session n'est pas admin, avec `?session=expired` si la
+  session admin a plus de 7 jours) et `admin-guest` (renvoie un admin connecté de `/pro/login` vers
+  `/pro`). Les avis passent par `NoticeBanner.vue`. `customer` et `guest` renvoient un admin vers
+  `/pro`.
+- `useAdminSession` : `isAdmin`, `isExpiredAdmin`, `hasSession`, `endSession`, `leave` (retour à
+  `/pro/login`) et `expire` (idem avec l'avis d'expiration). Le navigateur lit le jeton sans le
+  vérifier, le serveur revérifie toujours.
+- `useCustomerSession` : nouveau statut `admin`. `expireSession` n'y termine pas la session, il
+  renvoie vers `/pro`. La navigation (`app/constants/account.ts`) affiche « Espace admin »
+  (`account.navAdmin`, icône `LayoutDashboard`) vers `/pro`.
+- `useProPageState` : se pose sur `useAccountPageState`. 401 : retour à `/pro/login` avec l'avis
+  d'expiration ; 403 : retour à `/pro/login` sans avis.
+- `useBusinessToday` : date du jour en Europe/Paris (`businessToday`, `app/utils/date.ts`),
+  recalculée quand l'onglet redevient visible, pour qu'une page laissée ouverte la nuit passe au
+  jour suivant.
+- `useProInterventionsFilters` : l'URL est la source de vérité (`status`, `from`, `to`, `page`).
+  Un brouillon réactif applique les filtres dès qu'ils changent (`isSameFilters` évite un
+  changement d'URL identique), sauf si la plage est invalide. `navigateWithQuery` choisit
+  `router.replace` pour les filtres et `router.push` pour les pages.
+- `useMobileMenu` et `MenuToggleButton.vue` (accueil et Pro) : nom accessible fixe « Menu » avec
+  `aria-expanded`. Échap et tout changement de route ferment le menu. Un lien vers la page courante
+  ou vers une ancre met le focus sur le titre ciblé, sinon sur le bouton.
+- `DatePicker.vue` : `Popover` shadcn et `CalendarRoot` / `CalendarCellTrigger` de reka-ui. Nom
+  accessible par `aria-labelledby` (libellé et valeur), `isLabelHidden` pour masquer le libellé,
+  bornes `min` / `max`, lundi en premier, pas de grille fixe à 6 semaines. Les classes du calendrier
+  sont partagées avec `BookingCalendar` dans `app/constants/booking.ts` (déplacement vers
+  `app/constants/form.ts` prévu, voir `TODO.md`). Le filtre de statut est un `Select` shadcn.
+- `ProInterventionCard.vue` : sous 640 px le repli se fait en CSS (`max-sm:`), mais `inert` et
+  `aria-hidden` dépendent de `useMediaQuery` seul, pour que le contenu masqué ne soit ni focalisable
+  ni lu. `MediaCardSkeleton.vue` a les props `tallRows` et `collapsedRows` pour garder la même
+  hauteur que la carte réelle.
+- `GoogleMapsIcon.vue` : icône officielle de 2020, téléchargée une fois depuis Wikimedia Commons
+  (`https://upload.wikimedia.org/wikipedia/commons/a/aa/Google_Maps_icon_%282020%29.svg`), aucune
+  requête à l'exécution. Libre de droits d'auteur mais marque Google : l'utiliser seulement pour
+  pointer vers Google Maps, couleurs inchangées.
+
+### Itinéraires Google Maps
+
+- `app/utils/googleMaps.ts` : `directionsUrl` (une carte) et `roundDirectionsUrls` (la tournée).
+  Format officiel `https://www.google.com/maps/dir/?api=1&destination=…&travelmode=driving`, avec
+  `origin` et `waypoints` pour la tournée.
+- Les coordonnées sont utilisées si elles sont valides, sinon le texte de l'adresse. La tournée part
+  du dépôt (`booking_settings`) et y revient, en ordre d'affichage. Elle est coupée en tronçons de
+  `GOOGLE_MAPS_MAX_WAYPOINTS` (9) étapes, chacun partant d'où le précédent s'arrête.
+- Limite connue : les navigateurs mobiles sans l'application Google Maps n'acceptent que 3 étapes.
+
+### Ajouter un composant shadcn
+
+La CLI shadcn-vue actuelle ne convient pas à ce projet : son registre déclare un paquet npm `cn` et
+`@lucide/vue`, et relève `reka-ui` et `@vueuse`. Ajouter les composants à la main, avec les
+transformations de la CLI (alias, imports), et ne jamais faire confiance aux dépendances qu'elle
+installe.
+
+### Risques acceptés
+
+- Un rôle admin retiré ne coupe l'accès qu'après 1 h au plus, durée de vie du jeton lu par
+  `getClaims`. Parade prévue aux lots 2 et 3 : `auth.getUser()` avant toute écriture.
+- `is_admin()` est évaluée par ligne dans certaines policies. Parade prévue au lot 2 : l'écrire
+  `(select public.is_admin())` dans les policies, qui est alors évaluée une fois par requête.
+- Adresse admin dédiée et non publiée : n'importe qui peut en demander un lien, et 5 liens sur 24 h
+  verrouillent l'admin pour le reste de la journée.
+- Un appel à `/api/pro/*` avec une session par mot de passe révoque globalement les sessions de
+  cet admin. Seul celui qui connaît déjà le mot de passe peut le provoquer.
+
+### Tests
+
+- Tests dans `tests/{unit,integration,e2e}/pro/`, aide `tests/support/admin.ts` (création d'un
+  admin directement dans Auth, lecture des compteurs, nettoyage).
+- `tests/integration/booking/booking-reminders.test.ts` et
+  `tests/integration/email/booking-reminder.test.ts` refusent de tourner tant que de vraies
+  réservations payées (ou de démonstration) sont dans la fenêtre de rappel.
+- E2E instable : `tests/e2e/pro/pro-interventions.spec.ts:152` (`ERR_ABORTED` pendant un
+  rechargement du serveur de dev).
 
 ## Hébergement
 
@@ -610,7 +782,8 @@ directement.
   - `CAA` facultatif pour limiter l'émission de certificats ; `MX` de réception seulement si une
     boîte mail est voulue.
 - Limite de débit par IP, posée en règles Cloudflare (et non plus sur Caddy) sur
-  `/api/auth/login`, `/api/booking`, `/api/booking/release`, `/api/contact` et `/api/quote`. Le
+  `/api/auth/login`, `/api/pro/auth/login`, `/api/booking`, `/api/booking/release`,
+  `/api/contact` et `/api/quote`. Le
   nombre de règles du plan gratuit est à vérifier à la pose. Les limites applicatives (par
   exemple `claim_login_link`) restent : elles protègent même si Cloudflare est contourné.
 - Cloudflare Turnstile (captcha gratuit) à évaluer sur `/login`, `/booking`, `/contact` et
@@ -904,8 +1077,8 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 **Organisation**
 
 - `tests/{unit,integration,e2e}/<domaine>/` avec les domaines `account`, `booking`, `contact`,
-  `email`, `shared` et `scripts`. Noms de fichiers en kebab-case. Les aides communes sont dans
-  `tests/support/` (`api`, `db`, `seed`, `env`, `dates`, `account`, `outbox`) ; celles propres au
+  `email`, `pro`, `shared` et `scripts`. Noms de fichiers en kebab-case. Les aides communes sont dans
+  `tests/support/` (`api`, `db`, `seed`, `env`, `dates`, `account`, `admin`, `outbox`) ; celles propres au
   e2e dans `tests/e2e/support/`.
 - Un test d'intégration par gabarit de mail, dans `tests/integration/email/` : confirmation,
   alerte admin de paiement, remboursement après paiement tardif, rappel, lien de connexion,
@@ -960,11 +1133,13 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
   `resolveSiteUrl` (`server/utils/siteUrl.ts`) n'accepte http qu'en développement. Elle est
   assumée pour `emailSitePageUrl` (le mail part sans lien plutôt que pas du tout) mais reste à
   trancher.
-- `has_recent_sign_in()` accepte un timestamp d'`amr` transmis en chaîne numérique (sa regex ne
-  vérifie pas le type JSON), alors que l'application exige un nombre. À trancher dans une future
-  migration.
+- `has_recent_sign_in()` et `is_admin()` acceptent un timestamp d'`amr` transmis en chaîne
+  numérique (la regex de `oldest_link_sign_in_at()`, qu'elles partagent, ne vérifie pas le type
+  JSON), alors que l'application exige un nombre. À trancher dans une future migration.
 - Sans `NUXT_SITE_URL`, `POST /api/booking` journalise deux fois l'erreur (`assertCheckoutSiteUrl`
   puis `resolveSiteUrl`). Sans conséquence.
+- `is_admin()` n'est pas encore déclarée dans `Functions` de `app/types/database.types.ts`
+  (`TODO.md`, étape 8, lot 2).
 - `tests/e2e/customer-area.spec.ts` approche la limite de 350 lignes (310) : le découper avant d'y
   ajouter des tests.
 - La branche « développement » de `isMailConfigured()` (valeur inconnue refusée, outbox permise)

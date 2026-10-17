@@ -97,7 +97,8 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
 `create_booking` (contrôle, calcul du prix et blocage de la place en une transaction),
 `confirm_booking_payment` (confirme un paiement reçu, sous le verrou du jour),
 `expire_stale_bookings` (libère les réservations non payées), `claim_login_link` (plafond d'envoi
-des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
+des liens de connexion client), `claim_admin_login_link` (idem pour les admins).
+`has_recent_sign_in()` et `is_admin()` servent aux policies RLS.
 
 ## Règles
 
@@ -194,8 +195,39 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
   demande est remise à zéro et le client voit une erreur, pour qu'il puisse réessayer. Les
   réservations payées sont conservées pour la comptabilité. La requête est refusée si son
   `Origin` n'est pas celui du site.
-- **Connexion admin (étape 8)** : une route serveur utilisera `generateLink`, puisque Supabase
-  n'envoie plus aucun mail d'auth. `is_admin()` n'est pas soumis à la règle des 7 jours.
+- **Accès admin** : sur `/pro/login`, l'admin saisit son adresse. Il reçoit un lien valable 24 h, à
+  usage unique, dont le jeton est dans le fragment de `/pro/confirm` (comme pour le client). Le
+  rôle ne vient que de `app_metadata.role`. La session admin dure 7 jours depuis la connexion par
+  lien (la plus ancienne entrée `otp` ou `magiclink` de l'`amr`), comme celle d'un client. Une
+  session par mot de passe n'est jamais admin ni client. `is_admin()` exige le rôle ET cette
+  connexion par lien de moins de 7 jours.
+- **Plafond des liens admin** : 60 secondes entre deux liens et 5 sur 24 h glissantes, tenus en
+  base (`claim_admin_login_link`, table `admin_login_links`). Les admins bannis sont ignorés. La
+  réponse de `POST /api/pro/auth/login` est identique dans tous les cas (adresse inconnue, non
+  admin, plafond atteint, champ piège).
+- **Admin sur les pages client** : `/login` et `/account/**` renvoient un admin vers `/pro`. La
+  navigation affiche « Espace admin » (icône `LayoutDashboard`) vers `/pro`. Le code client ne
+  termine jamais une session admin, et `/account/confirm` ne redirige pas.
+- **Planning du jour** (`/pro`) : choix du jour (précédent, suivant, sélecteur de date,
+  « Aujourd'hui »). Il liste les réservations `paid` et `completed`, triées par code postal puis
+  adresse jusqu'à l'étape 9. « Aujourd'hui » est calculé en Europe/Paris (`businessToday`, aussi
+  utilisé par les rappels), même si le serveur tourne en UTC.
+- **Itinéraire** : le bloc est toujours en haut du planning (squelette pendant le chargement,
+  « Aucune intervention à réaliser ce jour. » sans intervention à faire ; masqué sans dépôt ou en
+  cas d'erreur). Le trajet part du dépôt et y revient en passant par les seules interventions
+  `paid`, dans l'ordre affiché. Au-delà de `GOOGLE_MAPS_MAX_WAYPOINTS` (9) étapes, il est coupé en
+  « Tournée, partie X sur N ». Les coordonnées sont utilisées si elles sont valides, sinon
+  l'adresse. Chaque carte porte aussi un bouton « Itinéraire Google Maps ». Sur mobile (< 640 px),
+  la carte se replie (« Afficher plus » : bacs, formule, paiement, jours de collecte, montant).
+- **Liste des interventions** (`/pro/interventions`) : filtre de statut (Tous, À réaliser,
+  Réalisées, Annulées). « Du » vaut aujourd'hui par défaut ; « Du » vide = aucune borne basse ;
+  un « Au » antérieur à « Du » est ignoré (les deux sélecteurs se bornent l'un l'autre). Les
+  filtres s'appliquent aussitôt et remplacent l'entrée d'historique (`replace`). Pagination par 50,
+  pages 1 à 1000, chaque page ajoute une entrée d'historique (`push`) ; une page au-delà de la
+  dernière ramène à la dernière. Tri par date puis date de création. Le paiement s'affiche
+  « Remboursé » pour une réservation annulée.
+- **Lien du mail « photos disponibles »** : à trancher au lot 3 de l'étape 8. Défaut proposé à
+  l'utilisateur : option A, lien vers `/login`.
 - **SMS** : tâche quotidienne (`pg_cron`), les colonnes `*_sent_at` empêchent les doublons.
 - **Confidentialité** : téléphone, photos des locaux et durée de conservation des données
   client à mentionner dans la page dédiée. Suppression des données sur simple demande.
