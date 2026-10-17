@@ -6,6 +6,7 @@
         :id="props.id"
         :value="props.modelValue"
         :type="props.type"
+        :inputmode="props.inputMode"
         :autocomplete="props.autocomplete"
         :placeholder="props.placeholder"
         :aria-invalid="props.error ? 'true' : undefined"
@@ -15,7 +16,7 @@
         @input="handleInput"
       />
     </label>
-    <span v-if="props.hint" :id="`${props.id}-hint`" class="mt-1.5 block text-[13px] text-ink/70">
+    <span v-if="props.hint" :id="`${props.id}-hint`" :class="FIELD_HINT_CLASS">
       {{ props.hint }}
     </span>
     <span v-if="props.error" :id="`${props.id}-error`" role="alert" :class="FIELD_ERROR_CLASS">
@@ -26,7 +27,9 @@
 </template>
 
 <script setup lang="ts">
-import { FIELD_ERROR_CLASS, FIELD_INPUT_CLASS } from '@/constants/booking'
+import type { HTMLAttributes } from 'vue'
+
+import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, FIELD_INPUT_CLASS } from '@/constants/booking'
 import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(
@@ -35,6 +38,7 @@ const props = withDefaults(
     label: string
     modelValue?: string
     type?: string
+    inputMode?: HTMLAttributes['inputmode']
     autocomplete?: string
     placeholder?: string
     hint?: string
@@ -44,6 +48,7 @@ const props = withDefaults(
   {
     modelValue: '',
     type: 'text',
+    inputMode: undefined,
     autocomplete: 'off',
     placeholder: '',
     hint: '',

@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div ref="rootRef">
     <ul v-if="props.isLoading" aria-hidden="true" class="grid gap-6 md:grid-cols-2">
       <li
         v-for="placeholder in ACCOUNT_SKELETON_CARD_COUNT"
@@ -20,15 +20,15 @@
         <Icon name="CircleAlert" :size="16" aria-hidden="true" />
         {{ $t('pro.loadError') }}
       </p>
-      <button
+      <AppButton
         ref="retryButton"
-        type="button"
-        :class="cn(SECONDARY_BUTTON_CLASS, 'mt-3 px-5')"
+        variant="secondary"
+        icon="RotateCw"
+        class="mt-3"
         @click="emit('retry')"
       >
-        <Icon name="RotateCw" :size="16" aria-hidden="true" />
         {{ $t('pro.retry') }}
-      </button>
+      </AppButton>
     </div>
 
     <Motion
@@ -53,21 +53,31 @@
           :intervention="intervention"
           :show-date="props.showDate"
           :title-tag="props.cardTitleTag"
+          @reschedule="openReschedule(intervention, $event)"
         />
       </Reveal>
     </ul>
+
+    <ProRescheduleDialog
+      v-model:open="isRescheduleOpen"
+      :intervention="rescheduledIntervention"
+      :trigger="rescheduleTrigger"
+      @rescheduled="emit('rescheduled', $event)"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
+import type { FocusTarget } from '@/types/button'
 import type { MediaCardTitleTag } from '@/types/mediaCard'
 import type { ProIntervention } from '@/types/pro'
+import type { ProRescheduledEvent } from '@/types/proAvailability'
+import type { ShallowRef } from 'vue'
 
 import {
   ACCOUNT_SKELETON_CARD_COUNT,
   ACCOUNT_SKELETON_MOBILE_CARD_COUNT,
 } from '@/constants/account'
-import { SECONDARY_BUTTON_CLASS } from '@/constants/buttons'
 import {
   CONTENT_ENTER_OFFSET,
   CONTENT_ENTER_TRANSITION,
@@ -107,7 +117,20 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   retry: []
+  rescheduled: [moved: ProRescheduledEvent]
 }>()
+
+const isRescheduleOpen: Ref<boolean> = ref(false)
+
+const rescheduledIntervention: Ref<ProIntervention | null> = ref(null)
+
+const rescheduleTrigger: ShallowRef<HTMLElement | null> = shallowRef(null)
+
+const openReschedule = (intervention: ProIntervention, trigger: HTMLElement | null): void => {
+  rescheduledIntervention.value = intervention
+  rescheduleTrigger.value = trigger
+  isRescheduleOpen.value = true
+}
 
 const skeletonTallRows: ComputedRef<number[]> = computed(() => [
   PRO_SKELETON_PHONE_ROW + (props.showDate ? PRO_SKELETON_DATE_ROWS : 0),
@@ -117,7 +140,20 @@ const skeletonCollapsedRows: ComputedRef<number> = computed(
   () => PRO_SKELETON_COLLAPSED_ROWS + (props.showDate ? PRO_SKELETON_DATE_ROWS : 0),
 )
 
-const retryButton: Ref<HTMLButtonElement | null> = ref(null)
+const retryButton: Ref<FocusTarget | null> = ref(null)
 
-defineExpose({ retryButton })
+const rootRef: Ref<HTMLElement | null> = ref(null)
+
+/**
+ * Moves keyboard focus to the « Change the date » button of the first intervention still to do.
+ * @returns True when a button received focus
+ */
+const focusFirstReschedule = (): boolean => {
+  const button: HTMLButtonElement | null | undefined =
+    rootRef.value?.querySelector<HTMLButtonElement>('[data-pro-reschedule]')
+  button?.focus()
+  return Boolean(button)
+}
+
+defineExpose({ retryButton, focusFirstReschedule })
 </script>

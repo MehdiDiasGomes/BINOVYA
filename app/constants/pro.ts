@@ -1,7 +1,5 @@
 import type { ProBookingStatus, ProNavItem, ProStatusFilter } from '@/types/pro'
-
-import { SECONDARY_BUTTON_CLASS } from '@/constants/buttons'
-import { cn } from '@/lib/utils'
+import type { ProRescheduleErrorCode, ProRescheduleForceableCode } from '@/types/proAvailability'
 
 export const ADMIN_ROLE: string = 'admin'
 
@@ -12,6 +10,14 @@ export const PRO_LOGIN_PATH: string = '/pro/login'
 export const PRO_CONFIRM_PATH: string = '/pro/confirm'
 
 export const PRO_INTERVENTIONS_PATH: string = '/pro/interventions'
+
+export const PRO_AVAILABILITY_PATH: string = '/pro/availability'
+
+export const PRO_NAV_SHEET_ID: string = 'pro-mobile-menu'
+
+export const PRO_SIDEBAR_MIN_WIDTH: number = 1024
+
+export const PRO_SIDEBAR_QUERY: string = `(min-width: ${PRO_SIDEBAR_MIN_WIDTH}px)`
 
 export const PRO_ACCESS_DENIED_QUERY: string = 'denied'
 
@@ -47,15 +53,40 @@ export const GOOGLE_MAPS_DIRECTIONS_URL: string = 'https://www.google.com/maps/d
 
 export const GOOGLE_MAPS_MAX_WAYPOINTS: number = 9
 
-export const PRO_MAPS_LINK_CLASS: string = cn(
-  SECONDARY_BUTTON_CLASS,
-  'inline-flex h-auto min-h-11 gap-2.5 px-5',
-)
+export const PRO_DIALOG_OVERLAY_CLASS: string =
+  'fixed inset-0 z-50 bg-navy-950/60 ease-brand data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-press data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-lift motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none'
 
-export const PRO_SIGN_OUT_BUTTON_CLASS: string =
-  'flex min-h-11 items-center gap-2 rounded-lg border border-white/30 px-3 text-sm font-bold text-white transition-colors duration-press ease-brand hover:border-turquoise hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none'
+export const PRO_NAV_LINK_CLASS: string =
+  'group relative flex min-h-11 items-center gap-3 rounded-lg px-4 text-sm font-bold text-white/80 transition-colors duration-press ease-brand before:absolute before:inset-y-2 before:left-0 before:w-1 before:rounded-full before:bg-turquoise before:opacity-0 before:transition-opacity before:duration-press before:ease-brand hover:bg-white/5 hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 aria-[current=page]:bg-white/10 aria-[current=page]:font-black aria-[current=page]:text-white aria-[current=page]:before:opacity-100 motion-reduce:transition-none motion-reduce:before:transition-none'
 
 export const PRO_NAV_ITEMS: ProNavItem[] = [
-  { path: PRO_HOME_PATH, labelKey: 'pro.nav.planning' },
-  { path: PRO_INTERVENTIONS_PATH, labelKey: 'pro.nav.interventions' },
+  { path: PRO_HOME_PATH, labelKey: 'pro.nav.planning', icon: 'CalendarDays' },
+  { path: PRO_INTERVENTIONS_PATH, labelKey: 'pro.nav.interventions', icon: 'ClipboardList' },
+  { path: PRO_AVAILABILITY_PATH, labelKey: 'pro.nav.availability', icon: 'CalendarCog' },
+]
+
+export const PRO_DAY_CAPACITY_MAX: number = 50
+
+export const PRO_DAY_NOTE_MAX_LENGTH: number = 500
+
+export const PRO_AVAILABILITY_HORIZON_DAYS: number = 365
+
+export const PRO_AVAILABILITY_MAX_RANGE_DAYS: number = 400
+
+export const PRO_RESCHEDULE_FORCEABLE_CODES: ProRescheduleForceableCode[] = [
+  'outOfArea',
+  'dayClosed',
+  'dayFull',
+  'outOfSector',
+]
+
+export const PRO_RESCHEDULE_ERROR_CODES: ProRescheduleErrorCode[] = [
+  ...PRO_RESCHEDULE_FORCEABLE_CODES,
+  'notFound',
+  'notPaid',
+  'invalidDate',
+  'sameDate',
+  'pastDate',
+  'tooFar',
+  'tooFrequent',
 ]

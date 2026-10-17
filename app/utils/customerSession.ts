@@ -4,7 +4,7 @@ import { CUSTOMER_SESSION_MAX_AGE_SECONDS, SIGN_IN_METHODS } from '@/constants/a
 
 type SessionClaims = Pick<JwtPayload, 'amr'>
 
-type TokenClaims = Pick<JwtPayload, 'amr' | 'app_metadata'>
+type TokenClaims = Pick<JwtPayload, 'amr' | 'app_metadata' | 'email'>
 
 const readTimestamp = (entry: unknown): number | null =>
   typeof entry === 'object' &&

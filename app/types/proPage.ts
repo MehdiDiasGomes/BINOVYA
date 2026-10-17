@@ -1,5 +1,6 @@
 import type { AsyncDataRequestStatus } from '#app'
 import type ProInterventionList from '@/components/pro/ProInterventionList.vue'
+import type { ProRescheduledEvent } from '@/types/proAvailability'
 import type { FetchError } from 'ofetch'
 import type { ComputedRef, Ref } from 'vue'
 
@@ -19,4 +20,11 @@ export type ProPageState = {
   isLoading: ComputedRef<boolean>
   isMounted: Readonly<Ref<boolean>>
   reload: () => Promise<void>
+  rescheduleNotice: Readonly<Ref<string>>
+  handleRescheduled: (moved: ProRescheduledEvent) => Promise<void>
+}
+
+export type ProAuthErrorHandlers = {
+  handleAuthStatus: (statusCode: number | undefined) => Promise<boolean>
+  handleAuthError: (error: unknown) => Promise<boolean>
 }

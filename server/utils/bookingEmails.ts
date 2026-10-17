@@ -1,3 +1,5 @@
+import { randomUUID } from 'node:crypto'
+
 import type { Database } from '@/types/database.types'
 import type { BookingEmailContent, BookingEmailData, CustomerEmailRow } from '@/types/email'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -6,6 +8,7 @@ import { generateBookingAdminEmail } from '@/templates/email/bookingAdminEmail'
 import {
   generateBookingConfirmationEmail,
   generateBookingRefundEmail,
+  generateBookingRescheduleEmail,
 } from '@/templates/email/bookingCustomerEmails'
 import { generatePhotosAvailableEmail } from '@/templates/email/photosAvailableEmail'
 import { parseSecureUrl } from '@/utils/link'
@@ -191,6 +194,37 @@ export const sendBookingRefundEmail = async (
     )
   } catch {
     console.error(`Booking refund email failed for ${bookingId}`)
+  }
+}
+
+/**
+ * Tells the customer that BINOVYA moved a paid booking to another date, with the reminder to
+ * empty the bins. Each move gets its own idempotency key, so moving the booking back and forth
+ * within a day still sends every notice. Never throws.
+ * @param client - Supabase client using the secret key
+ * @param bookingId - Identifier of the moved booking, already at its new date
+ * @param previousDate - ISO date the booking was moved from
+ */
+export const sendBookingRescheduleEmail = async (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+  previousDate: string,
+): Promise<void> => {
+  try {
+    const booking: BookingEmailData | null = await loadBookingEmailData(client, bookingId)
+    if (!booking) {
+      return
+    }
+    await sendToCustomer(
+      booking,
+      generateBookingRescheduleEmail(
+        { ...booking, previousDate, accountUrl: emailSitePageUrl('/login') },
+        escapeHtml,
+      ),
+      `reschedule-${randomUUID()}`,
+    )
+  } catch {
+    console.error(`Booking reschedule email failed for ${bookingId}`)
   }
 }
 

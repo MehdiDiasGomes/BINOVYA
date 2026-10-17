@@ -7,6 +7,7 @@ import type {
   ProInterventionsFilters,
   ProInterventionsPage,
 } from '@/types/pro'
+import type { ProDayOverview } from '@/types/proAvailability'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
@@ -87,6 +88,7 @@ const toIntervention = (
         recyclingCollectionWeekdays: row.recycling_collection_weekdays,
         amountTotalCents: row.amount_total_cents,
         status: row.status,
+        isToMove: false,
       }
     : null
 
@@ -214,4 +216,37 @@ export const loadDepot = async (client: SupabaseClient<Database>): Promise<GeoPo
     throw unavailable()
   }
   return data ? { latitude: data.depot_latitude, longitude: data.depot_longitude } : null
+}
+
+/**
+ * Lists the dates holding paid interventions, the only ones that can be marked to move.
+ * @param interventions - Interventions of a page or a day
+ * @returns Distinct ISO dates of the paid interventions
+ */
+export const paidInterventionDates = (interventions: ProIntervention[]): string[] => [
+  ...new Set(
+    interventions
+      .filter(intervention => intervention.status === 'paid')
+      .map(intervention => intervention.scheduledDate),
+  ),
+]
+
+/**
+ * Marks to move every paid intervention whose day is closed, by its weekday rule or by an
+ * exception. A day holding more bookings than its capacity marks none.
+ * @param interventions - Interventions of a page or a day
+ * @param days - Overviews of the days of these interventions
+ * @returns The interventions with their `isToMove` flag
+ */
+export const flagInterventionsToMove = (
+  interventions: ProIntervention[],
+  days: ProDayOverview[],
+): ProIntervention[] => {
+  const closedDates: Set<string> = new Set(days.filter(day => day.isClosed).map(day => day.date))
+  return interventions.map(
+    (intervention: ProIntervention): ProIntervention => ({
+      ...intervention,
+      isToMove: intervention.status === 'paid' && closedDates.has(intervention.scheduledDate),
+    }),
+  )
 }

@@ -37,10 +37,9 @@
           <li>{{ $t('account.confirm.steps.email') }}</li>
           <li>{{ $t('account.confirm.steps.click') }}</li>
         </ol>
-        <NuxtLink :to="localePath('/login')" :class="cn(PRIMARY_BUTTON_CLASS, 'mt-6 inline-flex')">
-          <Icon name="Send" :size="16" aria-hidden="true" />
+        <AppButton :to="localePath('/login')" icon="Send" class="mt-6">
           {{ $t('account.confirm.loginCta') }}
-        </NuxtLink>
+        </AppButton>
       </Motion>
 
       <div v-else class="flex flex-col items-center gap-4 py-10 text-center">
@@ -61,9 +60,7 @@
 
 <script setup lang="ts">
 import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
-import { PRIMARY_BUTTON_CLASS } from '@/constants/buttons'
 import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION } from '@/constants/motion'
-import { cn } from '@/lib/utils'
 
 definePageMeta({
   layout: 'default',

@@ -65,13 +65,9 @@
           :is-required="false"
         />
         <div class="sm:pt-6.5">
-          <button
-            type="button"
-            :class="cn(SECONDARY_BUTTON_CLASS, 'h-12 w-full')"
-            @click="resetFilters"
-          >
+          <AppButton variant="secondary" class="w-full" @click="resetFilters">
             {{ $t('pro.list.filters.reset') }}
-          </button>
+          </AppButton>
         </div>
       </div>
 
@@ -92,6 +88,7 @@
           :empty-text="$t('pro.list.empty')"
           show-date
           @retry="reload"
+          @rescheduled="handleRescheduled"
         />
 
         <nav
@@ -99,27 +96,29 @@
           :aria-label="$t('pro.list.pagination.label')"
           class="mt-8 grid grid-cols-[auto_1fr_auto] items-center gap-3 sm:flex sm:justify-between"
         >
-          <button
-            type="button"
-            :aria-disabled="currentPage <= 1"
-            :class="cn(SECONDARY_BUTTON_CLASS, 'w-11 px-0 sm:w-auto sm:px-4')"
+          <AppButton
+            variant="secondary"
+            size="sm"
+            icon="ChevronLeft"
+            :is-disabled="currentPage <= 1"
+            class="w-11 px-0 sm:w-auto sm:px-4"
             @click="changePage(currentPage - 1)"
           >
-            <Icon name="ChevronLeft" :size="16" aria-hidden="true" />
             <span class="sr-only sm:not-sr-only">{{ $t('pro.list.pagination.previous') }}</span>
-          </button>
+          </AppButton>
           <p class="text-center text-sm font-bold text-ink">
             {{ $t('pro.list.pagination.page', { page: currentPage, total: pageCount }) }}
           </p>
-          <button
-            type="button"
-            :aria-disabled="currentPage >= pageCount"
-            :class="cn(SECONDARY_BUTTON_CLASS, 'w-11 px-0 sm:w-auto sm:px-4')"
+          <AppButton
+            variant="secondary"
+            size="sm"
+            trailing-icon="ChevronRight"
+            :is-disabled="currentPage >= pageCount"
+            class="w-11 px-0 sm:w-auto sm:px-4"
             @click="changePage(currentPage + 1)"
           >
             <span class="sr-only sm:not-sr-only">{{ $t('pro.list.pagination.next') }}</span>
-            <Icon name="ChevronRight" :size="16" aria-hidden="true" />
-          </button>
+          </AppButton>
         </nav>
       </section>
     </div>
@@ -133,7 +132,6 @@ import type { ProInterventionsPage } from '@/types/pro'
 
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { FIELD_INPUT_CLASS, FLOATING_PANEL_CLASS, SELECT_ITEM_CLASS } from '@/constants/booking'
-import { SECONDARY_BUTTON_CLASS } from '@/constants/buttons'
 import { HERO_ENTER_CLASS } from '@/constants/motion'
 import { PRO_STATUS_FILTERS } from '@/constants/pro'
 import { cn } from '@/lib/utils'
@@ -163,8 +161,18 @@ const {
   lazy: true,
 })
 
-const { titleRef, listTitleRef, listRef, hasError, hasLoaded, isLoading, isMounted, reload } =
-  useProPageState({ data: result, status, error, refresh })
+const {
+  titleRef,
+  listTitleRef,
+  listRef,
+  hasError,
+  hasLoaded,
+  isLoading,
+  isMounted,
+  reload,
+  rescheduleNotice,
+  handleRescheduled,
+} = useProPageState({ data: result, status, error, refresh })
 
 const total: ComputedRef<number> = computed(() => result.value?.total ?? 0)
 
@@ -188,18 +196,38 @@ const resultsTitle: ComputedRef<string> = computed(() => {
     : t('pro.list.count', { n: total.value }, total.value)
 })
 
+const toMoveCount: ComputedRef<number> = computed(
+  () => result.value?.interventions.filter(intervention => intervention.isToMove).length ?? 0,
+)
+
+const loadedStatus: ComputedRef<string> = computed(() => {
+  const count: string = t('pro.list.count', { n: total.value }, total.value)
+  if (toMoveCount.value === 0) {
+    return count
+  }
+  const toMoveKey: string =
+    pageCount.value > 1 ? 'pro.list.toMoveCountPage' : 'pro.list.toMoveCount'
+  return `${count}, ${t(toMoveKey, { n: toMoveCount.value }, toMoveCount.value)}`
+})
+
 const isPaging: Ref<boolean> = ref(false)
 
 const hasFocusedPage: Ref<boolean> = ref(false)
 
 const liveStatus: ComputedRef<string> = computed(() => {
-  if (!isMounted.value || hasFocusedPage.value) {
+  if (!isMounted.value) {
+    return ''
+  }
+  if (rescheduleNotice.value) {
+    return rescheduleNotice.value
+  }
+  if (hasFocusedPage.value) {
     return ''
   }
   if (isLoading.value) {
     return result.value ? '' : t('pro.list.loading')
   }
-  return hasError.value ? '' : t('pro.list.count', { n: total.value }, total.value)
+  return hasError.value ? '' : loadedStatus.value
 })
 
 const changePage = async (page: number): Promise<void> => {

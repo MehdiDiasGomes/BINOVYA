@@ -1,9 +1,27 @@
 import type { Database } from '@/types/database.types'
-import type { ProInterventionsPage } from '@/types/pro'
+import type { ProIntervention, ProInterventionsPage } from '@/types/pro'
+import type { ProDayOverview } from '@/types/proAvailability'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { H3Event } from 'h3'
 
-import { serverSupabaseClient } from '#supabase/server'
+import { serverSupabaseClient, serverSupabaseServiceRole } from '#supabase/server'
 import { PRO_LIST_STATUSES } from '@/constants/pro'
+
+const loadPaidDays = (
+  event: H3Event,
+  interventions: ProIntervention[],
+): Promise<ProDayOverview[]> => {
+  const dates: string[] = paidInterventionDates(interventions)
+  if (dates.length === 0) {
+    return Promise.resolve([])
+  }
+  return loadDayOverviewsOfDates(serverSupabaseServiceRole<Database>(event), dates).catch(
+    (): ProDayOverview[] => {
+      console.error('Interventions day overviews unavailable')
+      return []
+    },
+  )
+}
 
 export default defineEventHandler(async (event): Promise<ProInterventionsPage> => {
   setResponseHeader(event, 'Cache-Control', 'private, no-store')
@@ -16,7 +34,7 @@ export default defineEventHandler(async (event): Promise<ProInterventionsPage> =
 
   const { status, from, to, page } = query.data
   const client: SupabaseClient<Database> = await serverSupabaseClient<Database>(event)
-  return loadInterventionsPage(
+  const result: ProInterventionsPage = await loadInterventionsPage(
     client,
     {
       statuses: status === 'all' ? PRO_LIST_STATUSES : [status],
@@ -25,4 +43,6 @@ export default defineEventHandler(async (event): Promise<ProInterventionsPage> =
     },
     page,
   )
+  const days: ProDayOverview[] = await loadPaidDays(event, result.interventions)
+  return { ...result, interventions: flagInterventionsToMove(result.interventions, days) }
 })

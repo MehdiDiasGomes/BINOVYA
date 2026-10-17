@@ -23,16 +23,16 @@
             {{ $t('account.dashboard.subtitle') }}
           </p>
         </div>
-        <button
-          type="button"
-          :aria-disabled="isSigningOut"
+        <AppButton
+          variant="secondary"
+          icon="LogOut"
+          :is-loading="isSigningOut"
           :aria-busy="isSigningOut"
-          class="flex h-11 items-center justify-center gap-2 self-start rounded-lg border border-ink/50 bg-white px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:active:scale-100 sm:self-auto"
+          class="self-start sm:self-auto"
           @click="signOut"
         >
-          <Icon name="LogOut" :size="16" aria-hidden="true" />
           {{ isSigningOut ? $t('account.dashboard.signingOut') : $t('account.dashboard.signOut') }}
-        </button>
+        </AppButton>
       </div>
     </section>
 
@@ -62,15 +62,15 @@
             <Icon name="CircleAlert" :size="16" aria-hidden="true" />
             {{ $t('account.dashboard.loadError') }}
           </p>
-          <button
+          <AppButton
             ref="retryRef"
-            type="button"
-            class="mt-3 flex h-11 items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+            variant="secondary"
+            icon="RotateCw"
+            class="mt-3"
             @click="reload"
           >
-            <Icon name="RotateCw" :size="16" aria-hidden="true" />
             {{ $t('account.dashboard.retry') }}
-          </button>
+          </AppButton>
         </div>
 
         <Motion
@@ -82,13 +82,9 @@
         >
           <h3 class="text-lg font-black text-ink">{{ $t('account.dashboard.empty.title') }}</h3>
           <p class="mt-1.5 text-sm text-ink/80">{{ $t('account.dashboard.empty.text') }}</p>
-          <NuxtLink
-            :to="localePath('/booking')"
-            class="mt-4 inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-white transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
-          >
-            <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
+          <AppButton :to="localePath('/booking')" icon="CalendarCheck" class="mt-4">
             {{ $t('account.dashboard.empty.cta') }}
-          </NuxtLink>
+          </AppButton>
         </Motion>
 
         <ul v-else class="mt-4 grid gap-6 sm:grid-cols-2">
@@ -113,6 +109,7 @@
 
 <script setup lang="ts">
 import type { AccountOverview } from '@/types/account'
+import type { FocusTarget } from '@/types/button'
 
 import {
   ACCOUNT_SKELETON_CARD_COUNT,
@@ -149,7 +146,7 @@ const {
 
 const titleRef: Ref<HTMLElement | null> = ref(null)
 const bookingsTitleRef: Ref<HTMLElement | null> = ref(null)
-const retryRef: Ref<HTMLButtonElement | null> = ref(null)
+const retryRef: Ref<FocusTarget | null> = ref(null)
 const isSigningOut: Ref<boolean> = ref(false)
 
 const hasLoaded: ComputedRef<boolean> = computed(() => Boolean(overview.value) && !error.value)

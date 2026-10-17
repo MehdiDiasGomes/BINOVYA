@@ -20,14 +20,14 @@
         :aria-label="$t('pro.planning.dateGroup')"
         class="grid grid-cols-[auto_1fr_auto] items-center gap-3 sm:flex sm:flex-wrap"
       >
-        <button
-          type="button"
-          :class="cn(SECONDARY_BUTTON_CLASS, 'h-12 w-12 px-0 sm:w-auto sm:px-4')"
+        <AppButton
+          variant="secondary"
+          icon="ChevronLeft"
+          class="w-12 px-0 sm:w-auto sm:px-5"
           @click="shiftDay(-1)"
         >
-          <Icon name="ChevronLeft" :size="16" aria-hidden="true" />
           <span class="sr-only sm:not-sr-only">{{ $t('pro.planning.previousDay') }}</span>
-        </button>
+        </AppButton>
         <DatePicker
           :id="DATE_FIELD_ID"
           :model-value="selectedDate"
@@ -36,23 +36,23 @@
           class="min-w-0"
           @update:model-value="selectDate"
         />
-        <button
-          type="button"
-          :class="cn(SECONDARY_BUTTON_CLASS, 'h-12 w-12 px-0 sm:w-auto sm:px-4')"
+        <AppButton
+          variant="secondary"
+          trailing-icon="ChevronRight"
+          class="w-12 px-0 sm:w-auto sm:px-5"
           @click="shiftDay(1)"
         >
           <span class="sr-only sm:not-sr-only">{{ $t('pro.planning.nextDay') }}</span>
-          <Icon name="ChevronRight" :size="16" aria-hidden="true" />
-        </button>
-        <button
-          type="button"
-          :aria-disabled="selectedDate === today"
-          :class="cn(SECONDARY_BUTTON_CLASS, 'col-span-3 h-12 sm:col-auto')"
+        </AppButton>
+        <AppButton
+          variant="secondary"
+          icon="CalendarDays"
+          :is-disabled="selectedDate === today"
+          class="col-span-3 sm:col-auto"
           @click="selectDate(today)"
         >
-          <Icon name="CalendarDays" :size="16" aria-hidden="true" />
           {{ $t('pro.planning.today') }}
-        </button>
+        </AppButton>
       </div>
 
       <Motion
@@ -97,16 +97,20 @@
             </p>
             <ul class="mt-4 flex flex-wrap gap-3">
               <li v-for="(url, index) in roundUrls" :key="url">
-                <a
+                <AppButton
                   :href="url"
                   target="_blank"
                   rel="noopener noreferrer"
-                  :class="PRO_MAPS_LINK_CLASS"
+                  variant="secondary"
+                  size="sm"
+                  class="gap-2.5"
                 >
-                  <GoogleMapsIcon :size="16" />
+                  <template #leading>
+                    <GoogleMapsIcon :size="16" />
+                  </template>
                   {{ roundLinkLabel(index) }}
                   <span class="sr-only">{{ $t('pro.newTab') }}</span>
-                </a>
+                </AppButton>
               </li>
             </ul>
           </template>
@@ -122,6 +126,20 @@
         >
           {{ $t('pro.planning.listTitle') }}
         </h2>
+        <Motion
+          v-if="loadedDay && loadedDayStatus"
+          :initial="{ opacity: 0, y: CONTENT_ENTER_OFFSET }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="CONTENT_ENTER_TRANSITION"
+          class="mb-6"
+        >
+          <ProDayStatusPanel
+            :day="loadedDay"
+            :status="loadedDayStatus"
+            :can-move="hasPaidIntervention"
+            @move="focusFirstReschedule"
+          />
+        </Motion>
         <ProInterventionList
           ref="listRef"
           :interventions="planning?.interventions ?? []"
@@ -129,6 +147,7 @@
           :has-error="hasError"
           :empty-text="$t('pro.planning.empty')"
           @retry="reload"
+          @rescheduled="handleRescheduled"
         />
       </section>
     </div>
@@ -138,18 +157,18 @@
 <script setup lang="ts">
 import type { GeoPoint } from '@/types/booking'
 import type { ProPlanning } from '@/types/pro'
+import type { ProDayOverview, ProDayStatus } from '@/types/proAvailability'
 
-import { SECONDARY_BUTTON_CLASS } from '@/constants/buttons'
 import {
   CONTENT_ENTER_OFFSET,
   CONTENT_ENTER_TRANSITION,
   HERO_ENTER_CLASS,
 } from '@/constants/motion'
-import { GOOGLE_MAPS_MAX_WAYPOINTS, PRO_MAPS_LINK_CLASS } from '@/constants/pro'
-import { cn } from '@/lib/utils'
+import { GOOGLE_MAPS_MAX_WAYPOINTS } from '@/constants/pro'
 import { addDaysToIsoDate, formatFullDate } from '@/utils/date'
 import { isIsoDate } from '@/utils/dateValidation'
 import { roundDirectionsUrls } from '@/utils/googleMaps'
+import { dayStatus, dayStatusTitle } from '@/utils/proAvailability'
 
 definePageMeta({
   layout: 'pro',
@@ -181,9 +200,17 @@ const {
   lazy: true,
 })
 
-const { titleRef, listTitleRef, listRef, hasError, isLoading, isMounted, reload } = useProPageState(
-  { data: planning, status, error, refresh },
-)
+const {
+  titleRef,
+  listTitleRef,
+  listRef,
+  hasError,
+  isLoading,
+  isMounted,
+  reload,
+  rescheduleNotice,
+  handleRescheduled,
+} = useProPageState({ data: planning, status, error, refresh })
 
 const dayLabel: ComputedRef<string> = computed(() =>
   formatFullDate(selectedDate.value, locale.value),
@@ -205,6 +232,24 @@ const roundUrls: ComputedRef<string[]> = computed(() => {
     : []
 })
 
+const loadedDay: ComputedRef<ProDayOverview | null> = computed(() =>
+  isLoading.value || hasError.value ? null : (planning.value?.day ?? null),
+)
+
+const loadedDayStatus: ComputedRef<ProDayStatus | null> = computed(() =>
+  loadedDay.value ? dayStatus(loadedDay.value) : null,
+)
+
+const hasPaidIntervention: ComputedRef<boolean> = computed(() =>
+  (planning.value?.interventions ?? []).some(intervention => intervention.status === 'paid'),
+)
+
+const focusFirstReschedule = (): void => {
+  if (!listRef.value?.focusFirstReschedule()) {
+    listTitleRef.value?.focus()
+  }
+}
+
 const roundLinkLabel = (index: number): string =>
   roundUrls.value.length > 1
     ? t('pro.planning.round.part', { part: index + 1, total: roundUrls.value.length })
@@ -214,11 +259,23 @@ const liveStatus: ComputedRef<string> = computed(() => {
   if (!isMounted.value) {
     return ''
   }
+  if (rescheduleNotice.value) {
+    return rescheduleNotice.value
+  }
   if (isLoading.value) {
     return t('pro.planning.loading')
   }
+  if (hasError.value) {
+    return ''
+  }
   const count: number = planning.value?.interventions.length ?? 0
-  return hasError.value ? '' : t('pro.planning.count', { date: dayLabel.value, n: count }, count)
+  const countText: string = t('pro.planning.count', { date: dayLabel.value, n: count }, count)
+  const statusTitle: string = loadedDay.value
+    ? dayStatusTitle(loadedDay.value, locale.value, t)
+    : ''
+  return statusTitle
+    ? t('pro.planning.loadedStatus', { count: countText, status: statusTitle })
+    : countText
 })
 
 const selectDate = async (date: string): Promise<void> => {

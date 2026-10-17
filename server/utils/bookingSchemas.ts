@@ -28,9 +28,26 @@ export const addressDetailsSchema = addressFieldsSchema.refine(hasCountryPostcod
   path: ['postcode'],
 })
 
-export const signedAddressSchema = addressFieldsSchema
-  .extend({ token: z.string().max(ADDRESS_TOKEN_MAX_LENGTH).default('') })
-  .refine(hasCountryPostcode, { path: ['postcode'] })
+const hasMunicipalityPostcode = (municipality: z.infer<typeof addressFieldsSchema>): boolean =>
+  municipality.postcode === ''
+    ? municipality.countryCode === 'LU'
+    : hasCountryPostcode(municipality)
+
+const signedFieldsSchema = addressFieldsSchema.extend({
+  token: z.string().max(ADDRESS_TOKEN_MAX_LENGTH).default(''),
+})
+
+export const signedAddressSchema = signedFieldsSchema.refine(hasCountryPostcode, {
+  path: ['postcode'],
+})
+
+export const municipalityDetailsSchema = addressFieldsSchema.refine(hasMunicipalityPostcode, {
+  path: ['postcode'],
+})
+
+export const signedMunicipalitySchema = signedFieldsSchema.refine(hasMunicipalityPostcode, {
+  path: ['postcode'],
+})
 
 export const bookingPlanSchema = z.enum(['one_off', 'quarterly', 'annual'])
 

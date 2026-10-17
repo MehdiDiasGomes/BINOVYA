@@ -13,7 +13,7 @@
             :id="props.id"
             type="button"
             :aria-labelledby="`${props.id}-label ${props.id}`"
-            :aria-describedby="describedBy"
+            :aria-describedby="ariaDescribedBy"
             :class="
               cn(
                 FIELD_INPUT_CLASS,
@@ -93,15 +93,15 @@
           </CalendarRoot>
         </PopoverContent>
       </Popover>
-      <button
+      <AppButton
         v-if="isClearable"
-        type="button"
-        :class="cn(SECONDARY_BUTTON_CLASS, 'size-12 shrink-0 px-0')"
+        variant="secondary"
+        icon="X"
+        class="size-12 shrink-0 px-0"
         @click="clear"
       >
-        <Icon name="X" :size="16" aria-hidden="true" />
         <span class="sr-only">{{ $t('common.datePicker.clear', { label: props.label }) }}</span>
-      </button>
+      </AppButton>
     </div>
     <span v-if="props.error" :id="`${props.id}-error`" role="alert" :class="FIELD_ERROR_CLASS">
       <Icon name="CircleAlert" :size="14" aria-hidden="true" />
@@ -139,7 +139,6 @@ import {
   FIELD_INPUT_CLASS,
   FLOATING_PANEL_CLASS,
 } from '@/constants/booking'
-import { SECONDARY_BUTTON_CLASS } from '@/constants/buttons'
 import { cn } from '@/lib/utils'
 import { mondayWeekStart } from '@/utils/calendar'
 import { formatMediumDate } from '@/utils/date'
@@ -157,6 +156,7 @@ const props = withDefaults(
     error?: string
     isRequired?: boolean
     isLabelHidden?: boolean
+    describedBy?: string
   }>(),
   {
     modelValue: '',
@@ -165,6 +165,7 @@ const props = withDefaults(
     error: '',
     isRequired: true,
     isLabelHidden: false,
+    describedBy: undefined,
   },
 )
 
@@ -215,8 +216,11 @@ const visibleText: ComputedRef<string> = computed(() =>
     : t('common.datePicker.placeholder'),
 )
 
-const describedBy: ComputedRef<string | undefined> = computed(() =>
-  describedByIds(props.id, '', props.error),
+const ariaDescribedBy: ComputedRef<string | undefined> = computed(
+  () =>
+    [describedByIds(props.id, '', props.error), props.describedBy]
+      .filter((value: string | undefined): value is string => Boolean(value))
+      .join(' ') || undefined,
 )
 
 const handleSelect = (value: DateValue | undefined): void => {

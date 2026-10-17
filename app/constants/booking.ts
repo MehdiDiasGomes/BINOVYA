@@ -32,6 +32,9 @@ export const INPUT_GROUP_FRAME_CLASS =
 export const FIELD_INPUT_CLASS: string =
   'h-12 w-full rounded-lg border border-ink/50 bg-white px-4 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-press ease-brand placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60 aria-invalid:border-destructive motion-reduce:transition-none'
 
+export const FIELD_TEXTAREA_CLASS: string =
+  'block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-press ease-brand placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60 motion-reduce:transition-none'
+
 export const CALENDAR_NAV_BUTTON_CLASS: string =
   'pointer-events-auto flex size-11 items-center justify-center rounded-lg border border-ink/50 bg-white text-ink opacity-100 shadow-none transition-[color,background-color,border-color,scale] duration-press ease-brand hover:border-primary hover:bg-paper-2 hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 has-[>svg]:px-0 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 motion-safe:not-data-[disabled]:active:scale-95 motion-reduce:transition-none'
 
@@ -55,6 +58,8 @@ export const SELECT_ITEM_CLASS: string =
 
 export const FLOATING_PANEL_CLASS: string =
   'rounded-xl border-border bg-white text-ink shadow-lg motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none'
+
+export const FIELD_HINT_CLASS: string = 'mt-1.5 block text-[13px] text-ink/70'
 
 export const FIELD_ERROR_CLASS: string =
   'mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive'

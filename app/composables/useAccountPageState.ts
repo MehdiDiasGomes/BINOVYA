@@ -1,4 +1,5 @@
 import type { AccountPageState, AccountPageStateOptions } from '@/types/accountPage'
+import type { FocusTarget } from '@/types/button'
 
 /**
  * Shares the loading state of a customer or BINOVYA Pro area page, moves focus to its title once
@@ -54,7 +55,7 @@ export const useAccountPageState = (options: AccountPageStateOptions): AccountPa
     } finally {
       await nextTick()
       const loadedTarget: HTMLElement | null = (options.loadedFocusRef ?? options.titleRef).value
-      const target: HTMLElement | null = options.hasLoaded.value
+      const target: FocusTarget | null = options.hasLoaded.value
         ? loadedTarget
         : options.retryRef.value
       target?.focus()

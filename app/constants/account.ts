@@ -17,6 +17,8 @@ export const CUSTOMER_SESSION_MAX_AGE_SECONDS: number = LINK_SESSION_MAX_AGE_DAY
 
 export const ADMIN_SESSION_MAX_AGE_SECONDS: number = CUSTOMER_SESSION_MAX_AGE_SECONDS
 
+export const FORBIDDEN_ORIGIN_CODE: string = 'forbiddenOrigin'
+
 export const SIGN_IN_METHODS: string[] = ['otp', 'magiclink']
 
 export const SESSION_EXPIRED_QUERY = 'expired'

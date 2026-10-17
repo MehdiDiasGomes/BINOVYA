@@ -112,7 +112,7 @@
                   rows="5"
                   :maxlength="QUOTE_COMMENT_MAX_LENGTH"
                   :placeholder="$t('quote.comment.placeholder')"
-                  class="mt-4 block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-[border-color,box-shadow] duration-press ease-brand motion-reduce:transition-none placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60"
+                  :class="cn(FIELD_TEXTAREA_CLASS, 'mt-4')"
                 />
               </label>
 
@@ -163,8 +163,10 @@
 import type { BookingContact, ContactErrors } from '@/types/booking'
 import type { QuoteField } from '@/types/quote'
 
+import { FIELD_TEXTAREA_CLASS } from '@/constants/booking'
 import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { QUOTE_ADDRESS_INPUT_ID, QUOTE_COMMENT_MAX_LENGTH } from '@/constants/quote'
+import { cn } from '@/lib/utils'
 import { focusFirstElement } from '@/utils/focus'
 
 type ContactFieldId = [keyof BookingContact | 'company', string]

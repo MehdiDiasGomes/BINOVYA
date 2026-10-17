@@ -1,6 +1,8 @@
+import type { LucideIconName } from '@/constants/clients'
 import type { AccountBookingStatus, AccountStatusIcon } from '@/types/account'
 import type { BookingPlan, GeoPoint } from '@/types/booking'
 import type { MediaCardTone } from '@/types/mediaCard'
+import type { ProDayOverview } from '@/types/proAvailability'
 import type { ComputedRef } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
@@ -28,12 +30,14 @@ export type ProIntervention = {
   recyclingCollectionWeekdays: number[]
   amountTotalCents: number
   status: ProBookingStatus
+  isToMove: boolean
 }
 
 export type ProPlanning = {
   date: string
   depot: GeoPoint | null
   interventions: ProIntervention[]
+  day: ProDayOverview | null
 }
 
 export type ProInterventionsPage = {
@@ -80,6 +84,7 @@ export type AdminSessionState = {
   isAdmin: ComputedRef<boolean>
   isExpiredAdmin: ComputedRef<boolean>
   hasSession: ComputedRef<boolean>
+  email: ComputedRef<string>
   expiredLoginRoute: ComputedRef<RouteLocationRaw>
   endSession: () => Promise<void>
   leave: () => Promise<void>
@@ -89,6 +94,7 @@ export type AdminSessionState = {
 export type ProNavItem = {
   path: string
   labelKey: string
+  icon: LucideIconName
 }
 
 export type ProFiltersDraft = {

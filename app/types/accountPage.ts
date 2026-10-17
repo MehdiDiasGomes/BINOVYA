@@ -1,4 +1,5 @@
 import type { AsyncDataRequestStatus } from '#app'
+import type { FocusTarget } from '@/types/button'
 import type { FetchError } from 'ofetch'
 import type { ComputedRef, Ref } from 'vue'
 
@@ -7,7 +8,7 @@ export type AccountPageStateOptions = {
   error: Readonly<Ref<FetchError | undefined>>
   refresh: () => Promise<void>
   titleRef: Readonly<Ref<HTMLElement | null>>
-  retryRef: Readonly<Ref<HTMLButtonElement | null>>
+  retryRef: Readonly<Ref<FocusTarget | null>>
   hasLoaded: Readonly<Ref<boolean>>
   loadedFocusRef?: Readonly<Ref<HTMLElement | null>>
   onAuthError?: (statusCode: number) => Promise<void>

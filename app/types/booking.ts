@@ -26,11 +26,17 @@ export type BookingService = {
 
 export type CountryCode = 'FR' | 'LU'
 
+export type AddressKind = 'address' | 'municipality'
+
 export type AddressDetails = GeoPoint & {
   label: string
   city: string
   postcode: string
   countryCode: CountryCode
+}
+
+export type LuxembourgCommune = GeoPoint & {
+  name: string
 }
 
 export type BookingAddress = AddressDetails & {

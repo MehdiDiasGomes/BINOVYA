@@ -30,13 +30,9 @@
         <p class="mt-3 text-[15px] leading-relaxed text-ink/80">
           {{ $t('pro.confirm.failedText', { hours: LOGIN_LINK_LIFETIME_HOURS }) }}
         </p>
-        <NuxtLink
-          :to="localePath(PRO_LOGIN_PATH)"
-          :class="cn(PRIMARY_BUTTON_CLASS, 'mt-6 inline-flex')"
-        >
-          <Icon name="Send" :size="16" aria-hidden="true" />
+        <AppButton :to="localePath(PRO_LOGIN_PATH)" icon="Send" class="mt-6">
           {{ $t('pro.confirm.loginCta') }}
-        </NuxtLink>
+        </AppButton>
       </Motion>
 
       <div v-else class="flex flex-col items-center gap-4 py-10 text-center">
@@ -57,10 +53,8 @@
 
 <script setup lang="ts">
 import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
-import { PRIMARY_BUTTON_CLASS } from '@/constants/buttons'
 import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION } from '@/constants/motion'
 import { PRO_HOME_PATH, PRO_LOGIN_PATH } from '@/constants/pro'
-import { cn } from '@/lib/utils'
 
 definePageMeta({
   layout: 'pro',

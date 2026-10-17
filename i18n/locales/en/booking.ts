@@ -78,8 +78,9 @@ export default {
       FR: '12 rue de la Gare, Thionville',
       LU: '24 Grand-Rue, Rumelange',
     },
-    hint: 'Type at least 3 characters, then choose an address from the list.',
+    hint: 'Type at least {min} characters, then choose an address from the list.',
     listLabel: 'Suggested addresses',
+    count: 'One suggested address | {n} suggested addresses',
     loading: 'Searching…',
     noResult: 'No address found. Check what you typed.',
     error: 'The search is unavailable right now. Try again in a moment.',
@@ -89,6 +90,18 @@ export default {
     inArea: 'Good news, we operate in {city}.',
     outOfArea: 'We do not operate in {city} yet. Our area covers {radius} km around Uckange.',
     outOfAreaCta: 'Contact us for a specific request',
+  },
+  municipality: {
+    label: 'Municipality',
+    country: 'Country of the municipality',
+    placeholder: {
+      FR: 'Thionville',
+      LU: 'Dudelange',
+    },
+    hint: 'Type at least {min} characters, then choose a municipality from the list.',
+    listLabel: 'Suggested municipalities',
+    count: 'One suggested municipality | {n} suggested municipalities',
+    noResult: 'No municipality found. Check what you typed.',
   },
   bins: {
     small: {

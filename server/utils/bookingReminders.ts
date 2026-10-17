@@ -66,7 +66,7 @@ const sendReminder = async (
   const isSent: boolean = await sendToCustomer(
     booking,
     generateBookingReminderEmail(booking, escapeHtml),
-    'reminder',
+    `reminder-${booking.scheduledDate}`,
   )
   if (!isSent) {
     return false
@@ -75,6 +75,7 @@ const sendReminder = async (
     .from('bookings')
     .update({ reminder_sent_at: new Date().toISOString() })
     .eq('id', booking.id)
+    .eq('scheduled_date', booking.scheduledDate)
     .is('reminder_sent_at', null)
   if (error) {
     console.error(`Reminder sent but not recorded for booking ${booking.id}`)
@@ -84,8 +85,10 @@ const sendReminder = async (
 
 /**
  * Emails a reminder to every paid booking whose intervention is due in the next two days and
- * records `reminder_sent_at`, conditioned on it still being empty. Bookings are handled one by
- * one to stay under the Resend rate limit; a failed send is retried on the next run.
+ * records `reminder_sent_at`, conditioned on it still being empty and on the booking still being on
+ * the date the reminder announced. The idempotency key carries that date, so a booking moved into
+ * the window after its first reminder gets a new one. Bookings are handled one by one to stay under
+ * the Resend rate limit; a failed send is retried on the next run.
  * @param client - Supabase client using the secret key
  * @param now - Current instant, injectable for tests
  * @returns Number of reminders sent and failed

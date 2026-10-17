@@ -45,14 +45,14 @@
         <p class="mt-3 text-[15px] leading-relaxed text-ink/80">
           {{ $t('pro.login.sent.text', { hours: LOGIN_LINK_LIFETIME_HOURS }) }}
         </p>
-        <button
-          type="button"
-          :class="cn(SECONDARY_BUTTON_CLASS, 'mt-6 h-12 w-full px-5 sm:w-auto')"
+        <AppButton
+          variant="secondary"
+          icon="ArrowLeft"
+          class="mt-6 w-full sm:w-auto"
           @click="showLoginForm"
         >
-          <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
           {{ $t('pro.login.sent.retry') }}
-        </button>
+        </AppButton>
       </Motion>
 
       <form
@@ -88,19 +88,9 @@
           <Icon name="CircleAlert" :size="16" aria-hidden="true" />
           {{ $t('pro.login.submitError') }}
         </p>
-        <button
-          type="submit"
-          :aria-disabled="isSubmitting"
-          :class="cn(PRIMARY_BUTTON_CLASS, 'w-full sm:w-auto')"
-        >
-          <Icon
-            :name="isSubmitting ? 'Loader2' : 'Send'"
-            :size="16"
-            aria-hidden="true"
-            :class="cn(isSubmitting && 'animate-spin motion-reduce:animate-none')"
-          />
+        <AppButton type="submit" icon="Send" :is-loading="isSubmitting" class="w-full sm:w-auto">
           {{ isSubmitting ? $t('pro.login.submitting') : $t('pro.login.submit') }}
-        </button>
+        </AppButton>
       </form>
     </div>
   </div>
@@ -114,10 +104,8 @@ import {
   LOGIN_LINK_LIFETIME_HOURS,
   SESSION_EXPIRED_QUERY,
 } from '@/constants/account'
-import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from '@/constants/buttons'
 import { HERO_ENTER_CLASS, POP_SPRING, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { PRO_ACCESS_DENIED_QUERY } from '@/constants/pro'
-import { cn } from '@/lib/utils'
 
 definePageMeta({
   layout: 'pro',

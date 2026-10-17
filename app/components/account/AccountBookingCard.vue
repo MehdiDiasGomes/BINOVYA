@@ -30,13 +30,14 @@
     <template #action>
       <div class="flex flex-col gap-4.5">
         <AccountBookingReminder v-if="view.showReminder" />
-        <NuxtLink
+        <AppButton
           :to="localePath(`/account/bookings/${props.booking.id}`)"
-          :class="MEDIA_CARD_ACTION_CLASS"
+          variant="onDark"
+          class="w-full"
         >
           {{ $t('account.booking.view') }}
           <span class="sr-only">{{ $t('account.booking.viewContext', { date: linkDate }) }}</span>
-        </NuxtLink>
+        </AppButton>
       </div>
     </template>
   </MediaCard>
@@ -45,7 +46,6 @@
 <script setup lang="ts">
 import type { AccountBooking, AccountBookingCardView } from '@/types/account'
 
-import { MEDIA_CARD_ACTION_CLASS } from '@/constants/mediaCard'
 import { bookingCardView, bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'
 import { formatFullDate } from '@/utils/date'
 import { formatPrice } from '@/utils/pricing'

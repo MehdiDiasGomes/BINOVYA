@@ -11,6 +11,14 @@
     </template>
 
     <div class="flex flex-1 flex-col">
+      <p
+        v-if="props.intervention.isToMove"
+        class="mb-3 inline-flex items-center gap-1.5 self-start rounded-full bg-amber-300 px-3 py-1.5 text-sm font-black text-navy-950"
+      >
+        <Icon name="CalendarX" :size="16" aria-hidden="true" class="shrink-0" />
+        {{ $t('pro.intervention.toMove') }}
+        <span class="sr-only">{{ $t('pro.intervention.toMoveReason') }}</span>
+      </p>
       <dl v-if="hasVisibleRows" class="grid gap-2 text-[15px]">
         <div
           v-if="props.showDate"
@@ -76,44 +84,66 @@
           </div>
         </div>
       </div>
-      <button
-        type="button"
+      <AppButton
+        variant="onDarkGhost"
+        size="sm"
         :aria-expanded="isExpanded"
         :aria-controls="detailsId"
-        class="mt-4.5 inline-flex min-h-11 items-center gap-2 self-start rounded-full border border-white/40 bg-white/10 px-4 text-sm font-bold text-white transition-colors duration-press ease-brand hover:border-white/70 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-turquoise focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900 motion-reduce:transition-none sm:hidden"
+        class="mt-4.5 self-start sm:hidden"
         @click="isExpanded = !isExpanded"
       >
-        <Icon
-          name="ChevronDown"
-          :size="16"
-          aria-hidden="true"
-          :class="
-            cn(
-              'shrink-0 transition-[rotate] duration-press ease-brand motion-reduce:transition-none',
-              isExpanded && 'rotate-180',
-            )
-          "
-        />
+        <template #leading>
+          <Icon
+            name="ChevronDown"
+            :size="16"
+            aria-hidden="true"
+            :class="
+              cn(
+                'shrink-0 transition-[rotate] duration-press ease-brand motion-reduce:transition-none',
+                isExpanded && 'rotate-180',
+              )
+            "
+          />
+        </template>
         {{ isExpanded ? $t('pro.intervention.showLess') : $t('pro.intervention.showMore') }}
         <span class="sr-only">
-          {{ $t('pro.intervention.toggleContext', { name: customerName }) }}
+          {{ toggleContext }}
         </span>
-      </button>
+      </AppButton>
     </div>
 
     <template #action>
-      <a
-        :href="mapsUrl"
-        target="_blank"
-        rel="noopener noreferrer"
-        :class="cn(MEDIA_CARD_ACTION_CLASS, 'flex items-center justify-center gap-2.5')"
-      >
-        <GoogleMapsIcon :size="18" />
-        {{ $t('pro.intervention.directions') }}
-        <span class="sr-only">
-          {{ $t('pro.intervention.directionsContext', { address: props.intervention.address }) }}
-        </span>
-      </a>
+      <div class="flex flex-col gap-3">
+        <AppButton
+          :href="mapsUrl"
+          target="_blank"
+          rel="noopener noreferrer"
+          variant="onDark"
+          class="w-full gap-2.5"
+        >
+          <template #leading>
+            <GoogleMapsIcon :size="18" />
+          </template>
+          {{ $t('pro.intervention.directions') }}
+          <span class="sr-only">
+            {{ directionsContext }}
+          </span>
+        </AppButton>
+        <AppButton
+          v-if="isReschedulable"
+          aria-haspopup="dialog"
+          data-pro-reschedule
+          :variant="props.intervention.isToMove ? 'onDarkWarning' : 'onDarkGhost'"
+          icon="CalendarClock"
+          class="w-full gap-2.5"
+          @click="requestReschedule"
+        >
+          {{ $t('pro.intervention.reschedule') }}
+          <span class="sr-only">
+            {{ rescheduleContext }}
+          </span>
+        </AppButton>
+      </div>
     </template>
   </MediaCard>
 </template>
@@ -125,7 +155,6 @@ import type { AccountDetailRow } from '@/types/account'
 import type { MediaCardTitleTag } from '@/types/mediaCard'
 import type { ProIntervention, ProInterventionView } from '@/types/pro'
 
-import { MEDIA_CARD_ACTION_CLASS } from '@/constants/mediaCard'
 import { PRO_CARD_EXPANDED_MIN_WIDTH, PRO_CARD_EXPANDED_QUERY } from '@/constants/pro'
 import { cn } from '@/lib/utils'
 import { bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'
@@ -150,7 +179,17 @@ const props = withDefaults(
   },
 )
 
+const emit = defineEmits<{
+  reschedule: [trigger: HTMLElement | null]
+}>()
+
 const { t, locale } = useI18n()
+
+const requestReschedule = (event: MouseEvent): void => {
+  emit('reschedule', event.currentTarget instanceof HTMLElement ? event.currentTarget : null)
+}
+
+const isReschedulable: ComputedRef<boolean> = computed(() => props.intervention.status === 'paid')
 
 const view: ComputedRef<ProInterventionView> = computed(() =>
   proInterventionView(props.intervention),
@@ -162,6 +201,30 @@ const customerName: ComputedRef<string> = computed(() =>
 
 const dateLabel: ComputedRef<string> = computed(() =>
   bookingDateLabel(props.intervention.scheduledDate, locale.value),
+)
+
+const toggleContext: ComputedRef<string> = computed(() =>
+  props.showDate
+    ? t('pro.intervention.toggleContextDated', { name: customerName.value, date: dateLabel.value })
+    : t('pro.intervention.toggleContext', { name: customerName.value }),
+)
+
+const rescheduleContext: ComputedRef<string> = computed(() =>
+  props.showDate
+    ? t('pro.intervention.rescheduleContextDated', {
+        name: customerName.value,
+        date: dateLabel.value,
+      })
+    : t('pro.intervention.rescheduleContext', { name: customerName.value }),
+)
+
+const directionsContext: ComputedRef<string> = computed(() =>
+  props.showDate
+    ? t('pro.intervention.directionsContextDated', {
+        address: props.intervention.address,
+        date: dateLabel.value,
+      })
+    : t('pro.intervention.directionsContext', { address: props.intervention.address }),
 )
 
 const isWide: Readonly<Ref<boolean>> = useMediaQuery(PRO_CARD_EXPANDED_QUERY, {
