@@ -30,6 +30,13 @@ type ProfileRow = {
   created_at: string
 }
 
+type AdminLoginLinkRow = {
+  user_id: string
+  sent_at: string
+  link_count: number
+  window_start: string
+}
+
 type PriceGridRow = {
   plan: BookingPlan
   small_bin_count: number
@@ -122,6 +129,10 @@ export type Database = {
   public: {
     Tables: {
       profiles: Table<ProfileRow, 'id' | 'email' | 'first_name' | 'last_name' | 'phone'>
+      admin_login_links: Table<
+        AdminLoginLinkRow,
+        'user_id' | 'sent_at' | 'link_count' | 'window_start'
+      >
       price_grid: Table<
         PriceGridRow,
         'plan' | 'small_bin_count' | 'large_bin_count' | 'price_cents'
@@ -196,7 +207,15 @@ export type Database = {
         Args: Record<string, never>
         Returns: boolean
       }
+      oldest_link_sign_in_at: {
+        Args: Record<string, never>
+        Returns: string | null
+      }
       claim_login_link: {
+        Args: { p_email: string }
+        Returns: string | null
+      }
+      claim_admin_login_link: {
         Args: { p_email: string }
         Returns: string | null
       }
