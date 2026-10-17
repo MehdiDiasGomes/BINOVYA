@@ -54,6 +54,22 @@ describe('isSignInExpired', () => {
   })
 })
 
+describe('isSignInExpired with a max age', () => {
+  it('uses the given lifetime instead of the default one', () => {
+    expect(isSignInExpired(withAmr('otp', NOW - 3 * DAY), NOW, 2 * DAY)).toBe(true)
+    expect(isSignInExpired(withAmr('otp', NOW - DAY), NOW, 2 * DAY)).toBe(false)
+  })
+
+  it('keeps the exact limit and ends one second later', () => {
+    expect(isSignInExpired(withAmr('otp', NOW - 2 * DAY), NOW, 2 * DAY)).toBe(false)
+    expect(isSignInExpired(withAmr('otp', NOW - 2 * DAY - 1), NOW, 2 * DAY)).toBe(true)
+  })
+
+  it('still ends a session without sign-in time', () => {
+    expect(isSignInExpired({ amr: [] }, NOW, 30 * DAY)).toBe(true)
+  })
+})
+
 describe('signInTimestamp', () => {
   it('returns the oldest valid entry', () => {
     const claims = {

@@ -2,6 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 import { ACCOUNT_MESSAGES, confirmPath, seedArea } from './support/account'
 import { MESSAGES } from './support/booking'
+import SITE_FR from '../../i18n/locales/fr'
 import { assertTestStripeKey, cleanupE2eData } from '../support/db'
 
 const FR = ACCOUNT_MESSAGES.fr
@@ -133,7 +134,7 @@ test.describe('navbar link', () => {
     await page.setViewportSize({ width: 375, height: 800 })
     await page.goto('/')
     await page.waitForLoadState('networkidle')
-    await page.getByRole('button', { name: 'Ouvrir le menu' }).click()
+    await page.getByRole('button', { name: SITE_FR.nav.menu }).click()
     const link = page.getByRole('link', { name: FR.nav })
     await expect(link).toBeVisible()
     const box = await link.boundingBox()

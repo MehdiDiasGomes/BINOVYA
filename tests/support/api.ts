@@ -68,6 +68,28 @@ export const postJson = async (
   return { status: response.status, body: parsed, raw }
 }
 
+export type GetResult = ApiResult & { headers: Headers }
+
+/**
+ * Sends a GET request to the test server.
+ * @param path - Path with its query string
+ * @param cookie - Optional `Cookie` header carrying a session
+ * @returns Status, parsed JSON body, raw body and response headers
+ */
+export const getApi = async (path: string, cookie?: string): Promise<GetResult> => {
+  const response: Response = await fetch(`${BASE_URL}${path}`, {
+    headers: cookie ? { Cookie: cookie } : {},
+  })
+  const raw: string = await response.text()
+  let parsed: ApiResult['body'] = {}
+  try {
+    parsed = JSON.parse(raw) as ApiResult['body']
+  } catch {
+    parsed = {}
+  }
+  return { status: response.status, body: parsed, raw, headers: response.headers }
+}
+
 export const createBooking = (overrides: BookingOverrides = {}): Promise<ApiResult> =>
   postJson('/api/booking', bookingBody(overrides))
 

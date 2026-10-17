@@ -12,6 +12,10 @@ const WARM_UP_PATHS: string[] = [
   '/booking?checkout=cancelled',
   '/contact',
   '/quote',
+  '/pro/login',
+  '/pro/confirm',
+  '/pro',
+  '/pro/interventions',
 ]
 
 const WARM_UP_TIMEOUT_MS = 90_000
