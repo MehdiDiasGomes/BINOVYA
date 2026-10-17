@@ -284,6 +284,7 @@ Full pipeline: `/feature <description>` (`.claude/commands/feature.md`).
 | `ui-stylist`       | sonnet | Tailwind classes, markup and motion-v animations in `app/pages`, `app/components`; presets in `app/constants/motion.ts` | templates changed, after implementation       |
 | `security-auditor` | opus   | nothing (read-only)                                                                                                     | `server/`, `supabase/`, auth, payments, input |
 | `a11y-auditor`     | sonnet | nothing (read-only)                                                                                                     | `.vue` or `i18n/` changed                     |
+| `seo-auditor`      | sonnet | nothing (read-only)                                                                                                     | public pages, meta, robots, new page          |
 | `tester`           | sonnet | unit (`tests/unit/`), integration (`tests/integration/`), Playwright E2E (`tests/e2e/`); runs them, checks the DB       | after fixes, before the final review          |
 | `code-reviewer`    | opus   | nothing (read-only)                                                                                                     | after every code pass, and final review       |
 | `docs-writer`      | sonnet | `docs/` only                                                                                                            | end of feature                                |
@@ -292,7 +293,7 @@ Rules:
 
 - Every pass that changes code (implementer or ui-stylist) is followed by a fresh `code-reviewer`
   on that pass's delta before the next step; its findings go to a fresh implementer or ui-stylist.
-- Order: db-migrator → implementer → ui-stylist ∥ security-auditor → a11y-auditor → fixes →
+- Order: db-migrator → implementer → ui-stylist ∥ security-auditor → a11y-auditor ∥ seo-auditor → fixes →
   tester → code-reviewer → docs-writer. Two writers never run together; a read-only agent may
   run next to a writer when it reads files that writer does not touch (security-auditor reads
   `server/` and `supabase/`, ui-stylist edits `.vue`).

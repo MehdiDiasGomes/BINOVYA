@@ -64,6 +64,14 @@ Each one was caught by a review. Check your change against this list before repo
   that receives focus at the same time.
 - Repeated link texts: put the distinguishing part inside the link (sr-only), not only in
   `aria-describedby`.
+- An accessible name that does not contain the visible text (WCAG 2.5.3 « label in name »): a
+  button showing « 16 oct. 2026 » must not be named « vendredi 16 octobre 2026 ». Prefer
+  `aria-labelledby` pointing at the visible label and value.
+- A visual state driven by `useMediaQuery` (or any JS breakpoint): it returns its SSR default
+  until mount, so client-rendered content flashes the wrong layout. Let CSS breakpoints drive the
+  visuals; keep the JS value for ARIA/`inert` only.
+- A hyphenated binding on a case-sensitive SVG attribute (`:view-box`): Vue renders it as
+  written and the browser ignores it. Write `viewBox` / `:viewBox`.
 - Explicit types everywhere, including `safeParse` results and Node results in `scripts/`
   (`Socket`, `SpawnSyncReturns<string>`…). `scripts/` is not covered by `nuxi typecheck`: check it
   with `tsc --noEmit` on a scratch tsconfig extending `.nuxt/tsconfig.node.json`.

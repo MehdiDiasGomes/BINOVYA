@@ -82,15 +82,20 @@ When `ui-stylist` is done, re-run lint and typecheck on the files it touched, in
 `ui-stylist` (markup, classes). Keep its "À vérifier dans le navigateur" list for the handover:
 animations are only validated by the user in a browser.
 
-## 5. Accessibility audit (read-only, after styling)
+## 5. Accessibility and SEO audits (read-only, after styling, in parallel)
 
-Launch `a11y-auditor` if the change set touches `.vue` files or `i18n/`, once `ui-stylist` has
-finished, since it audits the final markup. Give it: the feature description, the change set, the
-spec sections, and the `.vue` and `i18n/` files first.
+In a single message, once `ui-stylist` has finished, since both audit the final markup:
+
+- `a11y-auditor` if the change set touches `.vue` files or `i18n/`. Give it: the feature
+  description, the change set, the spec sections, and the `.vue` and `i18n/` files first.
+- `seo-auditor` if the change set touches a public page (`app/pages/` outside `account/**`,
+  `pro/**` and `login.vue`), a layout, `app.vue`, the meta texts in `i18n/`, `nuxt.config.ts` or
+  `public/robots.txt`, or adds a page (public or private: a new private page must be `noindex`).
+  Give it: the feature description, the change set and the pages concerned first.
 
 ## 6. Fixes (delegated)
 
-- Launch a new `implementer` with every critical, high and medium finding of both audits in one
+- Launch a new `implementer` with every critical, high and medium finding of every audit in one
   message, quoted verbatim. List low findings for the user without fixing them unless trivial
   (those go to `implementer` too).
 - Purely visual findings (contrast, focus ring) flagged for `ui-stylist`: relaunch it with those

@@ -92,6 +92,10 @@ kept equal by a unit test):
 - Applying the skill from memory instead of reading its files.
 - Conditional classes without `cn()` (you may add the `cn` import line).
 - Raw `duration-150` / `ease-out`, or `transition-[transform,…]` with Tailwind v4 `translate-*`.
+- A replacement inside a class string that swallows the next space (`ease-brandhover:…`): after
+  each replacement, search the file for `ease-brand[a-z]` and `duration-press[a-z]`.
+- `STEP_OFFSET` / `STEP_TRANSITION` on loaded content: they are for form steps only, content
+  appearing on a page uses `CONTENT_ENTER_OFFSET` / `CONTENT_ENTER_TRANSITION`.
 - A border colour change not animated together with its ring:
   `transition-[border-color,box-shadow]`.
 - Skeletons not sized like the real content: wrap each text-line block in a container with the
