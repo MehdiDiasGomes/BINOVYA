@@ -11,7 +11,7 @@
         :aria-invalid="props.error ? 'true' : undefined"
         :aria-describedby="describedBy"
         :required="props.isRequired"
-        class="h-12 w-full rounded-lg border border-ink/50 bg-white px-4 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60 aria-invalid:border-destructive"
+        :class="FIELD_INPUT_CLASS"
         @input="handleInput"
       />
     </label>
@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { FIELD_ERROR_CLASS } from '@/constants/booking'
+import { FIELD_ERROR_CLASS, FIELD_INPUT_CLASS } from '@/constants/booking'
 import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(

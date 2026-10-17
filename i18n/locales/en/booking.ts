@@ -141,8 +141,6 @@ export default {
   },
   date: {
     calendarLabel: 'Visit day selection',
-    previousMonth: 'Previous month',
-    nextMonth: 'Next month',
     recommendedSuffix: ', recommended day',
     nextRecommended: 'Next recommended date',
     nextAvailable: 'Next available date',

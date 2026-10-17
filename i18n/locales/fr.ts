@@ -5,6 +5,7 @@ import contact from './fr/contact'
 import faq from './fr/faq'
 import legal from './fr/legal'
 import privacy from './fr/privacy'
+import pro from './fr/pro'
 import quote from './fr/quote'
 import solutions from './fr/solutions'
 
@@ -18,9 +19,6 @@ export default {
     reserver: 'Réserver',
     reserverAriaLabel: 'Réserver une intervention',
     mainNavAriaLabel: 'Navigation principale',
-    mobileNavAriaLabel: 'Menu de navigation mobile',
-    openMenu: 'Ouvrir le menu',
-    closeMenu: 'Fermer le menu',
     menu: 'Menu',
   },
   hero: {
@@ -143,6 +141,7 @@ export default {
   about,
   booking,
   account,
+  pro,
   quote,
   ...solutions,
   common: {
@@ -155,6 +154,14 @@ export default {
     english: 'English',
     required: 'obligatoire',
     skipToContent: 'Aller au contenu principal',
+    fieldValue: '{label} : {value}',
+    datePicker: {
+      calendar: 'Calendrier',
+      placeholder: 'Choisir une date',
+      previousMonth: 'Mois précédent',
+      nextMonth: 'Mois suivant',
+      clear: 'Effacer la date « {label} »',
+    },
   },
   seo: {
     home: {

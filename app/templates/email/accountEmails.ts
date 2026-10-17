@@ -1,7 +1,9 @@
 import type { DeletionAlertData, LoginEmailData } from '@/types/account'
 import type { BookingEmailContent } from '@/types/email'
+import type { AdminLoginEmailData } from '@/types/pro'
 
 import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
+import { BUSINESS_TIME_ZONE } from '@/constants/booking'
 import {
   type Escape,
   emailButton,
@@ -17,11 +19,11 @@ import { formatFullDate, isoDateInTimeZone } from '@/utils/date'
 
 const LOGIN_TITLE = 'Connexion à votre espace client'
 
+const ADMIN_LOGIN_TITLE: string = 'Connexion à BINOVYA Pro'
+
 const DELETION_TITLE = 'Demande de suppression de compte'
 
 const EMAIL_LOCALE = 'fr-FR'
-
-const EMAIL_TIME_ZONE = 'Europe/Paris'
 
 /**
  * Builds the email carrying a one-time login link to the customer area.
@@ -55,6 +57,37 @@ export const generateLoginLinkEmail = (
 })
 
 /**
+ * Builds the email carrying a one-time login link to the BINOVYA Pro area, sent to an admin.
+ * @param data - Login link, as plain text
+ * @param escape - Function escaping untrusted text for HTML
+ * @returns Subject and HTML body of the email
+ */
+export const generateAdminLoginLinkEmail = (
+  data: AdminLoginEmailData,
+  escape: Escape,
+): BookingEmailContent => ({
+  subject: 'Votre lien de connexion à BINOVYA Pro',
+  html: renderEmailLayout({
+    title: ADMIN_LOGIN_TITLE,
+    preheader: `Accédez au planning des interventions. Lien valable ${LOGIN_LINK_LIFETIME_HOURS} heures.`,
+    content: [
+      emailTitle(ADMIN_LOGIN_TITLE),
+      emailParagraph('Bonjour,'),
+      emailParagraph(
+        'Vous avez demandé à accéder à BINOVYA Pro, où vous retrouvez le planning du jour et la liste des interventions.',
+      ),
+      emailButton('Me connecter', escape(data.loginUrl)),
+      emailParagraph(
+        `Ce lien est valable ${LOGIN_LINK_LIFETIME_HOURS} heures et ne sert qu'une seule fois. Passé ce délai, demandez-en un nouveau depuis la page de connexion de BINOVYA Pro.`,
+      ),
+      emailParagraph(
+        "Si vous n'êtes pas à l'origine de cette demande, ignorez ce mail : sans ce lien, personne ne peut accéder à BINOVYA Pro.",
+      ),
+    ].join(''),
+  }),
+})
+
+/**
  * Builds the alert sent to BINOVYA when a customer requests the deletion of their account.
  * @param data - Customer identity and request time, as plain text
  * @param escape - Function escaping untrusted text for HTML
@@ -65,7 +98,7 @@ export const generateDeletionRequestAlert = (
   escape: Escape,
 ): BookingEmailContent => {
   const requestDate: string = formatFullDate(
-    isoDateInTimeZone(new Date(data.requestedAt), EMAIL_TIME_ZONE),
+    isoDateInTimeZone(new Date(data.requestedAt), BUSINESS_TIME_ZONE),
     EMAIL_LOCALE,
   )
   return {

@@ -1,0 +1,111 @@
+import type { AccountBookingStatus, AccountStatusIcon } from '@/types/account'
+import type { BookingPlan, GeoPoint } from '@/types/booking'
+import type { MediaCardTone } from '@/types/mediaCard'
+import type { ComputedRef } from 'vue'
+import type { RouteLocationRaw } from 'vue-router'
+
+export type ProBookingStatus = AccountBookingStatus
+
+export type ProStatusFilter = 'all' | ProBookingStatus
+
+export type ProCustomer = {
+  firstName: string
+  lastName: string
+  phone: string
+}
+
+export type ProIntervention = {
+  id: string
+  scheduledDate: string
+  customer: ProCustomer | null
+  address: string
+  latitude: number
+  longitude: number
+  plan: BookingPlan
+  smallBinCount: number
+  largeBinCount: number
+  householdCollectionWeekdays: number[]
+  recyclingCollectionWeekdays: number[]
+  amountTotalCents: number
+  status: ProBookingStatus
+}
+
+export type ProPlanning = {
+  date: string
+  depot: GeoPoint | null
+  interventions: ProIntervention[]
+}
+
+export type ProInterventionsPage = {
+  interventions: ProIntervention[]
+  total: number
+  page: number
+  pageSize: number
+}
+
+export type ProInterventionsFilters = {
+  statuses: ProBookingStatus[]
+  from: string | null
+  to: string | null
+}
+
+export type ProInterventionsQuery = {
+  status: ProStatusFilter
+  from?: string
+  to?: string
+  page: number
+}
+
+export type ProInterventionView = {
+  tone: MediaCardTone
+  icon: AccountStatusIcon
+  statusKey: string
+  paymentKey: string
+}
+
+export type MapsStop = GeoPoint & {
+  address: string
+}
+
+export type AdminLoginLink = {
+  url: string
+  email: string
+}
+
+export type AdminLoginEmailData = {
+  loginUrl: string
+}
+
+export type AdminSessionState = {
+  isAdmin: ComputedRef<boolean>
+  isExpiredAdmin: ComputedRef<boolean>
+  hasSession: ComputedRef<boolean>
+  expiredLoginRoute: ComputedRef<RouteLocationRaw>
+  endSession: () => Promise<void>
+  leave: () => Promise<void>
+  expire: () => Promise<void>
+}
+
+export type ProNavItem = {
+  path: string
+  labelKey: string
+}
+
+export type ProFiltersDraft = {
+  status: ProStatusFilter
+  from: string
+  to: string
+}
+
+export type ProNavigationOptions = {
+  replace?: boolean
+}
+
+export type ProInterventionsFiltersState = {
+  draft: ProFiltersDraft
+  query: ComputedRef<ProInterventionsQuery>
+  currentPage: ComputedRef<number>
+  rangeError: ComputedRef<string>
+  resetFilters: () => Promise<void>
+  goToPage: (page: number, options?: ProNavigationOptions) => Promise<void>
+}

@@ -143,8 +143,6 @@ export default {
   },
   date: {
     calendarLabel: 'Choix du jour de passage',
-    previousMonth: 'Mois précédent',
-    nextMonth: 'Mois suivant',
     recommendedSuffix: ', jour recommandé',
     nextRecommended: 'Prochaine date recommandée',
     nextAvailable: 'Prochaine date disponible',

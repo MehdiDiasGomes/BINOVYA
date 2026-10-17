@@ -17,12 +17,12 @@
           {{ COUNTRY_DIAL_CODES[selected] }}
         </span>
       </SelectTrigger>
-      <SelectContent>
+      <SelectContent :class="FLOATING_PANEL_CLASS">
         <SelectItem
           v-for="code in COUNTRY_CODES"
           :key="code"
           :value="code"
-          class="py-2 text-[15px] text-ink focus:bg-paper-2 focus:text-ink"
+          :class="cn(SELECT_ITEM_CLASS, 'py-2 text-[15px]')"
         >
           <img
             :src="COUNTRY_FLAG_SOURCES[code]"
@@ -44,7 +44,14 @@ import { SelectRoot } from 'reka-ui'
 
 import type { CountryCode } from '@/types/booking'
 
-import { COUNTRY_CODES, COUNTRY_DIAL_CODES, COUNTRY_FLAG_SOURCES } from '@/constants/booking'
+import {
+  COUNTRY_CODES,
+  COUNTRY_DIAL_CODES,
+  COUNTRY_FLAG_SOURCES,
+  FLOATING_PANEL_CLASS,
+  SELECT_ITEM_CLASS,
+} from '@/constants/booking'
+import { cn } from '@/lib/utils'
 
 const props = withDefaults(
   defineProps<{
@@ -73,6 +80,6 @@ const selected: WritableComputedRef<CountryCode> = computed({
 const triggerLabel: ComputedRef<string> = computed(() => {
   const country: string = t(`booking.countries.${selected.value}`)
   const dialCode: string = props.withDialCode ? ` ${COUNTRY_DIAL_CODES[selected.value]}` : ''
-  return `${props.label} : ${country}${dialCode}`
+  return t('common.fieldValue', { label: props.label, value: `${country}${dialCode}` })
 })
 </script>

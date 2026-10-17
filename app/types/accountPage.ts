@@ -10,6 +10,7 @@ export type AccountPageStateOptions = {
   retryRef: Readonly<Ref<HTMLButtonElement | null>>
   hasLoaded: Readonly<Ref<boolean>>
   loadedFocusRef?: Readonly<Ref<HTMLElement | null>>
+  onAuthError?: (statusCode: number) => Promise<void>
 }
 
 export type AccountPageState = {

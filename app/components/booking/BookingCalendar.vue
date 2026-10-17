@@ -17,25 +17,15 @@
   >
     <CalendarHeader class="mb-3 flex items-center justify-between">
       <CalendarPrev
-        :aria-label="$t('booking.date.previousMonth')"
-        :class="
-          cn(
-            NAV_BUTTON_CLASS,
-            'transition-[color,background-color,border-color,transform] duration-150 motion-safe:not-data-[disabled]:active:scale-95',
-          )
-        "
+        :aria-label="$t('common.datePicker.previousMonth')"
+        :class="CALENDAR_NAV_BUTTON_CLASS"
       >
         <Icon name="ChevronLeft" :size="18" aria-hidden="true" />
       </CalendarPrev>
-      <CalendarHeading class="font-heading text-base font-black capitalize text-ink" />
+      <CalendarHeading :class="CALENDAR_HEADING_CLASS" />
       <CalendarNext
-        :aria-label="$t('booking.date.nextMonth')"
-        :class="
-          cn(
-            NAV_BUTTON_CLASS,
-            'transition-[color,background-color,border-color,transform] duration-150 motion-safe:not-data-[disabled]:active:scale-95',
-          )
-        "
+        :aria-label="$t('common.datePicker.nextMonth')"
+        :class="CALENDAR_NAV_BUTTON_CLASS"
       >
         <Icon name="ChevronRight" :size="18" aria-hidden="true" />
       </CalendarNext>
@@ -55,7 +45,7 @@
               <CalendarHeadCell
                 v-for="day in weekDays"
                 :key="day"
-                class="flex-1 pb-2 text-center text-xs font-bold uppercase text-ink/70"
+                :class="CALENDAR_HEAD_CELL_CLASS"
               >
                 {{ day }}
               </CalendarHeadCell>
@@ -71,18 +61,12 @@
                 v-for="day in week"
                 :key="day.toString()"
                 :date="day"
-                class="flex-1 p-0.5"
+                :class="CALENDAR_CELL_WRAPPER_CLASS"
               >
                 <CalendarCellTrigger
                   :day="day"
                   :month="month.value"
-                  :class="
-                    cn(
-                      CELL_CLASS,
-                      'transition-[color,background-color,transform] duration-150 motion-safe:not-data-[disabled]:not-data-[unavailable]:active:scale-95',
-                      isRecommended(day) && RECOMMENDED_CLASS,
-                    )
-                  "
+                  :class="cn(CALENDAR_CELL_CLASS, isRecommended(day) && CALENDAR_RECOMMENDED_CLASS)"
                 >
                   {{ day.day }}
                   <template v-if="isRecommended(day)">
@@ -103,13 +87,7 @@
 </template>
 
 <script setup lang="ts">
-import {
-  getDayOfWeek,
-  getLocalTimeZone,
-  parseDate,
-  today,
-  type DateValue,
-} from '@internationalized/date'
+import { getLocalTimeZone, parseDate, today, type DateValue } from '@internationalized/date'
 import {
   CalendarCell,
   CalendarCellTrigger,
@@ -126,9 +104,19 @@ import {
 } from 'reka-ui'
 
 import type { DayAvailability } from '@/types/booking'
+import type { CalendarWeekStart } from '@/types/calendar'
 
+import {
+  CALENDAR_CELL_CLASS,
+  CALENDAR_CELL_WRAPPER_CLASS,
+  CALENDAR_HEAD_CELL_CLASS,
+  CALENDAR_HEADING_CLASS,
+  CALENDAR_NAV_BUTTON_CLASS,
+  CALENDAR_RECOMMENDED_CLASS,
+} from '@/constants/booking'
 import { STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
+import { mondayWeekStart } from '@/utils/calendar'
 
 const props = withDefaults(
   defineProps<{
@@ -145,22 +133,9 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const NAV_BUTTON_CLASS =
-  'flex h-10 w-10 items-center justify-center rounded-lg border border-ink/50 text-ink transition-colors hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40'
-
-const CELL_CLASS =
-  'relative flex h-11 w-full cursor-pointer items-center justify-center rounded-lg text-sm font-bold text-ink transition-colors hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 data-[outside-view]:invisible data-[disabled]:cursor-not-allowed data-[disabled]:font-medium data-[disabled]:text-ink/35 data-[disabled]:hover:bg-transparent data-[unavailable]:cursor-not-allowed data-[unavailable]:font-medium data-[unavailable]:text-ink/35 data-[unavailable]:line-through data-[unavailable]:hover:bg-transparent data-[selected]:bg-primary data-[selected]:text-white data-[selected]:hover:bg-primary'
-
-const RECOMMENDED_CLASS =
-  'bg-turquoise/15 ring-1 ring-inset ring-turquoise-deep data-[selected]:ring-0'
-
-const KNOWN_MONDAY = '2024-01-01'
-
 const { locale } = useI18n()
 
-const mondayIndex: ComputedRef<0 | 1 | 2 | 3 | 4 | 5 | 6> = computed(
-  () => getDayOfWeek(parseDate(KNOWN_MONDAY), locale.value) as 0 | 1 | 2 | 3 | 4 | 5 | 6,
-)
+const mondayIndex: ComputedRef<CalendarWeekStart> = computed(() => mondayWeekStart(locale.value))
 
 const dayKeys: ComputedRef<string[]> = computed(() => [...props.days.keys()])
 

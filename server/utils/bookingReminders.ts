@@ -3,9 +3,7 @@ import type { BookingEmailData, CustomerEmailRow, ReminderRunResult } from '@/ty
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import { generateBookingReminderEmail } from '@/templates/email/bookingCustomerEmails'
-import { addDaysToIsoDate, isoDateInTimeZone } from '@/utils/date'
-
-export const REMINDER_TIME_ZONE = 'Europe/Paris'
+import { addDaysToIsoDate, businessToday } from '@/utils/date'
 
 export const REMINDER_LEAD_DAYS = 2
 
@@ -23,7 +21,7 @@ const pause = (milliseconds: number): Promise<void> =>
  * @returns First and last ISO dates of the window, in the Paris time zone
  */
 export const reminderDateWindow = (now: Date): { from: string; to: string } => {
-  const today: string = isoDateInTimeZone(now, REMINDER_TIME_ZONE)
+  const today: string = businessToday(now)
   return { from: addDaysToIsoDate(today, 1), to: addDaysToIsoDate(today, REMINDER_LEAD_DAYS) }
 }
 

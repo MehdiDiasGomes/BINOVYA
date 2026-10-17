@@ -1,10 +1,12 @@
 import type { AccountPageState, AccountPageStateOptions } from '@/types/accountPage'
 
 /**
- * Shares the loading state of a customer area page, moves focus to its title once the first load
- * settles, expires the session when the server answers 401 and reloads on demand, focusing the
- * loaded content or the retry button when the error persists.
- * @param options - Fetch state of the page, the elements to focus and whether the content loaded
+ * Shares the loading state of a customer or BINOVYA Pro area page, moves focus to its title once
+ * the first load settles, expires the customer session when the server answers 401, or calls
+ * `onAuthError` on 401 and 403 when given, and reloads on demand, focusing the loaded content or
+ * the retry button when the error persists.
+ * @param options - Fetch state of the page, the elements to focus, whether the content loaded and
+ * the optional authentication error handler
  * @returns Loading flag, mounted flag to fill live regions client side, and the reload action
  */
 export const useAccountPageState = (options: AccountPageStateOptions): AccountPageState => {
@@ -29,7 +31,12 @@ export const useAccountPageState = (options: AccountPageStateOptions): AccountPa
   }
 
   watch(options.error, async (): Promise<void> => {
-    if (options.error.value?.statusCode === 401) {
+    const statusCode: number | undefined = options.error.value?.statusCode
+    if (options.onAuthError && (statusCode === 401 || statusCode === 403)) {
+      await options.onAuthError(statusCode)
+      return
+    }
+    if (statusCode === 401) {
       await expireSession()
     }
   })

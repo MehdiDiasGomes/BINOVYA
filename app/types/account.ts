@@ -10,6 +10,8 @@ export type AccountTranslate = (key: string, named: Record<string, unknown>) => 
 
 export type AccountStatusIcon = 'CalendarDays' | 'CircleCheck' | 'CircleX'
 
+export type AccountNavIcon = 'CircleUser' | 'LayoutDashboard'
+
 export type AccountBookingCardView = {
   tone: MediaCardTone
   icon: AccountStatusIcon
@@ -51,6 +53,10 @@ export type LoginRequest = {
   website: string
 }
 
+export type LoginEndpoint = '/api/auth/login' | '/api/pro/auth/login'
+
+export type LoginLinkRpc = 'claim_login_link' | 'claim_admin_login_link'
+
 export type LoginResponse = {
   success: boolean
 }
@@ -85,7 +91,7 @@ export type DeletionAlertData = {
 
 export type DeletionStep = 'idle' | 'confirming' | 'submitting' | 'done'
 
-export type CustomerSessionStatus = 'none' | 'active' | 'expired'
+export type CustomerSessionStatus = 'none' | 'active' | 'expired' | 'admin'
 
 export type CustomerSessionState = {
   status: ComputedRef<CustomerSessionStatus>

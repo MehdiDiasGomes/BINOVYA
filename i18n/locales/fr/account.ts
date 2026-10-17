@@ -1,5 +1,6 @@
 export default {
   nav: 'Espace client',
+  navAdmin: 'Espace admin',
   login: {
     seo: {
       title: 'Espace client - BINOVYA',

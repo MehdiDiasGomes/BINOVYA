@@ -14,28 +14,32 @@
     </div>
     <div :class="cn('grid gap-1 text-[15px]', props.stackRows && 'gap-2')">
       <div
-        v-for="row in props.detailRows"
-        :key="row"
+        v-for="(_row, index) in props.detailRows"
+        :key="index"
         :class="
           cn(
             'flex justify-between gap-3',
             props.stackRows ? 'flex-col gap-0.5 sm:flex-row sm:gap-3' : 'items-center',
+            isCollapsible && index >= (props.collapsedRows ?? props.detailRows) && 'max-sm:hidden',
           )
         "
       >
         <div class="flex h-lh items-center">
           <SkeletonBlock surface="dark" class="h-3.5 w-20" />
         </div>
-        <div class="flex h-lh items-center">
+        <div :class="cn('flex items-center', props.tallRows.includes(index) ? 'min-h-11' : 'h-lh')">
           <SkeletonBlock surface="dark" class="h-3.5 w-32" />
         </div>
       </div>
     </div>
-    <div class="mt-auto border-t border-white/15 pt-3.5">
+    <div :class="cn('mt-auto border-t border-white/15 pt-3.5', isCollapsible && 'max-sm:hidden')">
       <div class="flex h-7 items-center justify-between gap-3">
         <SkeletonBlock surface="dark" class="h-3.5 w-24" />
         <SkeletonBlock surface="dark" class="h-5 w-16" />
       </div>
+    </div>
+    <div v-if="isCollapsible" class="flex h-11 items-center sm:hidden">
+      <SkeletonBlock surface="dark" class="h-3.5 w-28" />
     </div>
     <SkeletonBlock v-if="props.hasAction" surface="dark" class="h-13 w-full rounded-full" />
   </div>
@@ -51,12 +55,18 @@ const props = withDefaults(
     hasSubtitle?: boolean
     stackRows?: boolean
     hasAction?: boolean
+    tallRows?: number[]
+    collapsedRows?: number | null
   }>(),
   {
     detailRows: 2,
     hasSubtitle: true,
     stackRows: false,
     hasAction: true,
+    tallRows: () => [],
+    collapsedRows: null,
   },
 )
+
+const isCollapsible: ComputedRef<boolean> = computed(() => props.collapsedRows !== null)
 </script>

@@ -30,3 +30,10 @@ export const toInternationalPhone = (phone: string, countryCode: CountryCode): s
  */
 export const isValidPhone = (phone: string): boolean =>
   FRENCH_PHONE_PATTERN.test(phone) || LUXEMBOURG_PHONE_PATTERN.test(phone)
+
+/**
+ * Builds a `tel:` link target from a phone number, keeping only digits and the leading plus sign.
+ * @param phone - Phone number as stored, possibly with spaces
+ * @returns Value for the `href` of a call link
+ */
+export const telHref = (phone: string): string => `tel:${phone.replace(/[^\d+]/g, '')}`

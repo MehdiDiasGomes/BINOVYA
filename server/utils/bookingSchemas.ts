@@ -3,6 +3,7 @@ import { z } from 'zod'
 import { ADDRESS_TOKEN_MAX_LENGTH } from './addressToken'
 
 import { contactSchema, honeypotSchema, localeSchema } from '@/utils/bookingValidation'
+import { isoDateSchema } from '@/utils/dateValidation'
 
 const latitude = z.coerce.number().min(-90).max(90)
 const longitude = z.coerce.number().min(-180).max(180)
@@ -41,7 +42,7 @@ export const bookingRequestSchema = z.object({
   householdCollectionWeekdays: weekdays,
   recyclingCollectionWeekdays: weekdays,
   binsReadyConfirmed: z.literal(true),
-  date: z.string().date(),
+  date: isoDateSchema,
   contact: contactSchema,
   locale: localeSchema,
   website: honeypotSchema,

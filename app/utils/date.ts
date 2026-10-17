@@ -1,3 +1,5 @@
+import { BUSINESS_TIME_ZONE } from '@/constants/booking'
+
 /**
  * Formats a date as a local `YYYY-MM-DD` string, without timezone conversion.
  * @param date - Date to format
@@ -28,6 +30,9 @@ export const formatLongDate = (isoDate: string, locale: string): string =>
 export const formatWeekday = (weekday: number, locale: string): string =>
   new Intl.DateTimeFormat(locale, { weekday: 'long' }).format(new Date(2024, 0, 7 + weekday))
 
+export const formatMediumDate = (isoDate: string, locale: string): string =>
+  new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(parseIsoDate(isoDate))
+
 export const formatFullDate = (isoDate: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, {
     weekday: 'long',
@@ -53,6 +58,14 @@ export const isoDateInTimeZone = (instant: Date, timeZone: string): string => {
     parts.find(entry => entry.type === type)?.value ?? ''
   return `${part('year')}-${part('month')}-${part('day')}`
 }
+
+/**
+ * Returns the calendar date of an instant in the business time zone.
+ * @param now - Moment to convert, the current instant by default
+ * @returns ISO calendar date in the business time zone
+ */
+export const businessToday = (now: Date = new Date()): string =>
+  isoDateInTimeZone(now, BUSINESS_TIME_ZONE)
 
 /**
  * Adds a number of days to a calendar date, without timezone conversion.

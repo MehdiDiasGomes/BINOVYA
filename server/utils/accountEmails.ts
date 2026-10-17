@@ -1,8 +1,11 @@
 import type { DeletionAlertData, LoginLink, LoginLinkTarget } from '@/types/account'
+import type { BookingLocale } from '@/types/booking'
 import type { Database } from '@/types/database.types'
+import type { AdminLoginLink } from '@/types/pro'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
+  generateAdminLoginLinkEmail,
   generateDeletionRequestAlert,
   generateLoginLinkEmail,
 } from '@/templates/email/accountEmails'
@@ -30,6 +33,30 @@ export const sendLoginLinkEmail = async (
       replyTo: useRuntimeConfig().contactEmailTo || undefined,
     },
     `Login link email for ${target.customerId}`,
+  )
+}
+
+/**
+ * Generates a login link to the BINOVYA Pro area and emails it, in French, to the address of the
+ * admin account. Nothing is sent when the account is no longer an admin. Never throws: a failure
+ * is only logged with the account id.
+ * @param client - Supabase client using the secret key
+ * @param adminId - Identifier returned by `claim_admin_login_link`
+ * @param locale - Locale of the confirm page
+ * @returns True when Resend accepted the email
+ */
+export const sendAdminLoginLinkEmail = async (
+  client: SupabaseClient<Database>,
+  adminId: string,
+  locale: BookingLocale,
+): Promise<boolean> => {
+  const link: AdminLoginLink | null = await createAdminLoginLink(client, adminId, locale)
+  if (!link) {
+    return false
+  }
+  return sendTransactionalEmail(
+    { to: link.email, ...generateAdminLoginLinkEmail({ loginUrl: link.url }, escapeHtml) },
+    `Admin login link email for ${adminId}`,
   )
 }
 

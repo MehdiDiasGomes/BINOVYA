@@ -18,7 +18,6 @@
     <div class="mx-auto max-w-[640px] px-4 pb-16 pt-8 sm:px-8">
       <Motion
         v-if="isSent"
-        key="sent"
         as="section"
         aria-labelledby="login-sent-title"
         :initial="{ opacity: 0, y: STEP_OFFSET }"
@@ -69,7 +68,7 @@
         </p>
         <button
           type="button"
-          class="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 sm:w-auto"
+          :class="cn(SECONDARY_BUTTON_CLASS, 'mt-4 h-12 w-full px-5 sm:w-auto')"
           @click="showLoginForm"
         >
           <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
@@ -85,13 +84,12 @@
         class="space-y-5 rounded-2xl border border-border bg-white p-5 shadow-sm delay-150 sm:p-8"
         @submit.prevent="handleSubmit"
       >
-        <p
+        <NoticeBanner
           v-if="isSessionExpired"
-          class="flex items-start gap-2 rounded-xl border border-border bg-paper-2 px-4 py-3 text-sm font-bold text-ink"
-        >
-          <Icon name="Clock" :size="16" aria-hidden="true" class="mt-0.5 shrink-0 text-primary" />
-          {{ $t('account.login.sessionExpired') }}
-        </p>
+          icon="Clock"
+          icon-class="text-primary"
+          :text="$t('account.login.sessionExpired')"
+        />
         <BookingField
           :id="EMAIL_FIELD_ID"
           v-model="email"
@@ -115,14 +113,13 @@
         <button
           type="submit"
           :aria-disabled="isSubmitting"
-          :aria-busy="isSubmitting"
-          class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
+          :class="cn(PRIMARY_BUTTON_CLASS, 'w-full sm:w-auto')"
         >
           <Icon
             :name="isSubmitting ? 'Loader2' : 'Send'"
             :size="16"
             aria-hidden="true"
-            :class="cn(isSubmitting && 'animate-spin')"
+            :class="cn(isSubmitting && 'animate-spin motion-reduce:animate-none')"
           />
           {{ isSubmitting ? $t('account.login.submitting') : $t('account.login.submit') }}
         </button>
@@ -133,9 +130,9 @@
 
 <script setup lang="ts">
 import { LOGIN_LINK_LIFETIME_HOURS, SESSION_EXPIRED_QUERY } from '@/constants/account'
+import { PRIMARY_BUTTON_CLASS, SECONDARY_BUTTON_CLASS } from '@/constants/buttons'
 import { HERO_ENTER_CLASS, POP_SPRING, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
-import { focusFirstElement } from '@/utils/focus'
 
 definePageMeta({
   layout: 'default',
@@ -146,10 +143,18 @@ const EMAIL_FIELD_ID = 'login-email'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
-const { email, website, errorKey, hasAttempted, isSubmitting, isSent, hasFailed, submit, reset } =
-  useLoginForm()
-
 const sentTitleRef: Ref<HTMLElement | null> = ref(null)
+const {
+  email,
+  website,
+  isSubmitting,
+  isSent,
+  hasFailed,
+  visibleError,
+  handleSubmit,
+  showLoginForm,
+} = useLoginPage({ endpoint: '/api/auth/login', emailFieldId: EMAIL_FIELD_ID, sentTitleRef })
+
 const isMounted: Ref<boolean> = ref(false)
 const route = useRoute()
 
@@ -163,28 +168,6 @@ const liveStatus: ComputedRef<string> = computed(() => {
   }
   return isMounted.value && isSessionExpired.value ? t('account.login.sessionExpired') : ''
 })
-
-const visibleError: ComputedRef<string> = computed(() =>
-  hasAttempted.value && errorKey.value ? t(errorKey.value) : '',
-)
-
-const handleSubmit = async (): Promise<void> => {
-  await submit()
-  await nextTick()
-  if (isSent.value) {
-    sentTitleRef.value?.focus()
-    return
-  }
-  if (errorKey.value) {
-    focusFirstElement([EMAIL_FIELD_ID])
-  }
-}
-
-const showLoginForm = async (): Promise<void> => {
-  reset()
-  await nextTick()
-  focusFirstElement([EMAIL_FIELD_ID])
-}
 
 onMounted(() => {
   isMounted.value = true

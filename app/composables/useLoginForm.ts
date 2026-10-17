@@ -1,23 +1,13 @@
-import type { LoginRequest, LoginResponse } from '@/types/account'
-
-type LoginFormState = {
-  email: Ref<string>
-  website: Ref<string>
-  errorKey: ComputedRef<string | null>
-  hasAttempted: Ref<boolean>
-  isSubmitting: Ref<boolean>
-  isSent: Ref<boolean>
-  hasFailed: Ref<boolean>
-  submit: () => Promise<void>
-  reset: () => void
-}
+import type { LoginEndpoint, LoginRequest, LoginResponse } from '@/types/account'
+import type { LoginFormState } from '@/types/loginPage'
 
 /**
  * Holds the login form state and asks the server to email a login link. The server answers the
  * same whether the address is known or not.
+ * @param endpoint - Login route of the customer area or of the BINOVYA Pro area
  * @returns Form state, validation error and the submit and reset actions
  */
-export const useLoginForm = (): LoginFormState => {
+export const useLoginForm = (endpoint: LoginEndpoint): LoginFormState => {
   const { locale } = useI18n()
   const email: Ref<string> = ref('')
   const website: Ref<string> = ref('')
@@ -42,7 +32,7 @@ export const useLoginForm = (): LoginFormState => {
         locale: locale.value,
         website: website.value,
       }
-      await $fetch<LoginResponse>('/api/auth/login', { method: 'POST', body })
+      await $fetch<LoginResponse>(endpoint, { method: 'POST', body })
       isSent.value = true
     } catch {
       hasFailed.value = true

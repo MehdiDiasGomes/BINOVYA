@@ -1,5 +1,6 @@
 export default {
   nav: 'Customer area',
+  navAdmin: 'Admin area',
   login: {
     seo: {
       title: 'Customer area - BINOVYA',

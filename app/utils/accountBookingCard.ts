@@ -30,11 +30,14 @@ export const bookingDateLabel = (scheduledDate: string, locale: string): string 
 
 /**
  * Summarises the bins of a booking, such as « 1 × Petit bac + 2 × Grand bac ».
- * @param booking - Booking shown in the customer area
+ * @param booking - Booking or intervention with its bin counts
  * @param t - Translation function of the page
  * @returns Translated summary of the booked bins
  */
-export const bookingServicesLabel = (booking: AccountBooking, t: AccountTranslate): string =>
+export const bookingServicesLabel = (
+  booking: Pick<AccountBooking, 'smallBinCount' | 'largeBinCount'>,
+  t: AccountTranslate,
+): string =>
   [
     { quantity: booking.smallBinCount, serviceKey: 'booking.bins.small.title' },
     { quantity: booking.largeBinCount, serviceKey: 'booking.bins.large.title' },
