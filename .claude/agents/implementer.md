@@ -72,6 +72,13 @@ Each one was caught by a review. Check your change against this list before repo
   visuals; keep the JS value for ARIA/`inert` only.
 - A hyphenated binding on a case-sensitive SVG attribute (`:view-box`): Vue renders it as
   written and the browser ignores it. Write `viewBox` / `:viewBox`.
+- A new optional prop on a shared component whose default changes the rendering of existing
+  callers (`inputMode: 'text'` broke every `type="email"` keyboard). Default to `undefined` so
+  the attribute is not rendered unless a caller asks for it.
+- A controlled input whose local text diverges from its model (reka NumberField applies typed
+  text only on blur): emitting a value equal to the current model triggers no re-render, so the
+  field keeps showing stale text. Write the text back (`input.value` + an `input` event) when
+  you take over its behaviour.
 - Explicit types everywhere, including `safeParse` results and Node results in `scripts/`
   (`Socket`, `SpawnSyncReturns<string>`…). `scripts/` is not covered by `nuxi typecheck`: check it
   with `tsc --noEmit` on a scratch tsconfig extending `.nuxt/tsconfig.node.json`.
