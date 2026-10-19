@@ -77,10 +77,10 @@ export default {
   dayStatus: {
     title: {
       closedWithBookings:
-        '{weekday} fermé : une intervention à déplacer | {weekday} fermé : {n} interventions à déplacer',
+        '{weekday} fermé : une intervention à déplacer | {weekday} fermé : {bookings} interventions à déplacer',
       closed: '{weekday} fermé',
       overCapacity:
-        'Capacité dépassée : {n} réservations pour une place | Capacité dépassée : {n} réservations pour {capacity} places',
+        'Capacité dépassée : {bookings} réservations pour une place | Capacité dépassée : {bookings} réservations pour {capacity} places',
     },
     reason: {
       closedRule: 'La règle du {weekday} ferme ce jour : les clients ne peuvent pas le réserver.',
@@ -205,6 +205,8 @@ export default {
       tooFrequent:
         'Cette intervention a déjà été déplacée plusieurs fois dans l’heure. Réessayez plus tard.',
       generic: 'Le déplacement n’a pas pu être enregistré. Réessayez dans un instant.',
+      timeout:
+        'La réponse tarde. Le déplacement a peut-être été enregistré : la liste sera actualisée à la fermeture, vérifiez la date avant de réessayer.',
     },
   },
   availability: {
@@ -228,6 +230,7 @@ export default {
       increase: 'Augmenter la capacité {context}',
       decrease: 'Diminuer la capacité {context}',
       followRule: 'Suivre la règle',
+      rulePlaceholder: '{count} (règle)',
     },
     rules: {
       title: 'Capacité par jour de semaine',
@@ -257,10 +260,12 @@ export default {
       saving: 'Enregistrement…',
       saved: 'Exception du {date} enregistrée.',
       saveError: 'L’exception n’a pas pu être enregistrée. Réessayez dans un instant.',
+      saveErrorFor: 'L’exception du {date} n’a pas pu être enregistrée. Réessayez dans un instant.',
       invalid: 'L’exception n’est pas valide. Corrigez les champs signalés.',
       remove: 'Retirer l’exception',
       removed: 'Exception du {date} retirée : le jour suit de nouveau la règle du {weekday}.',
       removeError: 'L’exception n’a pas pu être retirée. Réessayez dans un instant.',
+      removeErrorFor: 'L’exception du {date} n’a pas pu être retirée. Réessayez dans un instant.',
     },
     days: {
       title: 'Exceptions et jours à surveiller',

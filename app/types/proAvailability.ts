@@ -1,5 +1,6 @@
 import type { BookingAddress, GeoPoint } from '@/types/booking'
 import type { ProIntervention } from '@/types/pro'
+import type { Ref } from 'vue'
 
 export type ProCapacitySource = 'rule' | 'override'
 
@@ -81,3 +82,19 @@ export type ProPluralTranslate = (
   named: Record<string, unknown>,
   plural: number,
 ) => string
+
+export type ProDayOverrideDraftsSource = {
+  date: () => string
+  day: () => ProDayOverview | null
+}
+
+export type ProDayOverrideDrafts = {
+  capacityDraft: Ref<number | null>
+  noteDraft: Ref<string>
+  sectorAddress: Ref<BookingAddress | null>
+  isStoredSectorRemoved: Ref<boolean>
+  capacityError: Ref<string>
+  sectorError: Ref<string>
+  feedback: Ref<string>
+  resetAfterRefresh: (date: string, savedDay: ProDayOverview | null) => void
+}

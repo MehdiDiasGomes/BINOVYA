@@ -1,6 +1,6 @@
 <template>
   <div class="min-h-[70vh]">
-    <p class="sr-only" role="status">{{ liveStatus }}</p>
+    <p class="sr-only" role="status" aria-live="polite">{{ liveStatus }}</p>
     <div class="mx-auto max-w-[1180px] space-y-8 px-4 pb-16 pt-8 sm:px-8 sm:pt-12">
       <div :class="HERO_ENTER_CLASS">
         <span class="mb-2 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary">
@@ -89,6 +89,7 @@
           show-date
           @retry="reload"
           @rescheduled="handleRescheduled"
+          @stale="reload"
         />
 
         <nav

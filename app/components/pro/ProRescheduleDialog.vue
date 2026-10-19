@@ -1,9 +1,9 @@
 <template>
-  <DialogRoot :open="props.open" @update:open="emit('update:open', $event)">
+  <DialogRoot :open="props.open" @update:open="handleOpenChange">
     <DialogPortal>
       <DialogOverlay :class="PRO_DIALOG_OVERLAY_CLASS" />
       <DialogContent
-        class="fixed inset-x-0 bottom-0 z-50 max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-2xl border border-border bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink shadow-lg ease-brand focus-visible:outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-12 data-[state=closed]:duration-press data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-12 data-[state=open]:duration-lift sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6 sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none"
+        class="fixed inset-x-0 bottom-0 z-50 flex max-h-[calc(100dvh-1rem)] min-h-[min(37.5rem,calc(100dvh-1rem))] w-full flex-col overflow-y-auto rounded-t-2xl border border-border bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink shadow-lg ease-brand focus-visible:outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-12 data-[state=closed]:duration-press data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-12 data-[state=open]:duration-lift sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:block sm:min-h-0 sm:top-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6 sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none"
         @open-auto-focus.prevent="focusFirstElement([DATE_FIELD_ID])"
         @close-auto-focus="handleCloseAutoFocus"
       >
@@ -17,13 +17,18 @@
           {{ description }}
         </DialogDescription>
         <DialogClose
-          class="absolute right-3 top-3 flex size-11 items-center justify-center rounded-lg text-ink/70 transition-colors duration-press ease-brand hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary motion-reduce:transition-none"
+          :aria-disabled="isSubmitting || undefined"
+          class="absolute right-3 top-3 flex size-11 items-center justify-center rounded-lg text-ink/70 transition-colors duration-press ease-brand hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink/70 motion-reduce:transition-none"
         >
           <Icon name="X" :size="18" aria-hidden="true" />
           <span class="sr-only">{{ $t('pro.reschedule.close') }}</span>
         </DialogClose>
 
-        <form class="mt-5 space-y-4" novalidate @submit.prevent="submit(false)">
+        <form
+          class="mt-5 flex flex-1 flex-col gap-4 sm:flex-none"
+          novalidate
+          @submit.prevent="submit(false)"
+        >
           <DatePicker
             :id="DATE_FIELD_ID"
             :model-value="draftDate"
@@ -70,9 +75,9 @@
             </AnimatePresence>
           </div>
 
-          <div class="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+          <div class="mt-auto flex flex-col-reverse gap-3 pt-2 sm:mt-0 sm:flex-row sm:justify-end">
             <DialogClose as-child>
-              <AppButton variant="secondary">
+              <AppButton variant="secondary" :is-disabled="isSubmitting">
                 {{ $t('pro.reschedule.cancel') }}
               </AppButton>
             </DialogClose>
@@ -102,9 +107,13 @@ import type { ProIntervention } from '@/types/pro'
 import type { ProRescheduledEvent, ProRescheduleResponse } from '@/types/proAvailability'
 
 import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
-import { PRO_AVAILABILITY_HORIZON_DAYS, PRO_DIALOG_OVERLAY_CLASS } from '@/constants/pro'
+import {
+  PRO_AVAILABILITY_HORIZON_DAYS,
+  PRO_DIALOG_OVERLAY_CLASS,
+  PRO_RESCHEDULE_TIMEOUT_MS,
+} from '@/constants/pro'
 import { addDaysToIsoDate, formatFullDate } from '@/utils/date'
-import { readFetchErrorCode } from '@/utils/fetchError'
+import { isFetchTimeoutError, readFetchErrorCode } from '@/utils/fetchError'
 import { focusFirstElement } from '@/utils/focus'
 import { isForceableRescheduleCode, isRescheduleErrorCode } from '@/utils/proAvailability'
 import { proCustomerName } from '@/utils/proIntervention'
@@ -125,6 +134,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:open': [value: boolean]
   rescheduled: [moved: ProRescheduledEvent]
+  stale: []
 }>()
 
 const DATE_FIELD_ID: string = 'pro-reschedule-date'
@@ -140,7 +150,8 @@ const dateError: Ref<string> = ref('')
 const refusal: Ref<string> = ref('')
 const isForceable: Ref<boolean> = ref(false)
 const isSubmitting: Ref<boolean> = ref(false)
-const isMoved: Ref<boolean> = ref(false)
+const pendingMove: Ref<ProRescheduledEvent | null> = ref(null)
+const isStale: Ref<boolean> = ref(false)
 const submitButtonRef: Ref<FocusTarget | null> = ref(null)
 
 const maxDate: ComputedRef<string> = computed(() =>
@@ -168,26 +179,39 @@ watch(
   (open: boolean): void => {
     if (open) {
       draftDate.value = ''
-      isMoved.value = false
-      isSubmitting.value = false
+      pendingMove.value = null
+      isStale.value = false
       clearFeedback()
     }
   },
 )
+
+const handleOpenChange = (value: boolean): void => {
+  if (value || !isSubmitting.value) {
+    emit('update:open', value)
+  }
+}
 
 const selectDate = (date: string): void => {
   draftDate.value = date
   clearFeedback()
 }
 
-const refusalText = (code: unknown): string =>
-  isRescheduleErrorCode(code)
+const refusalText = (error: unknown, code: unknown): string => {
+  if (isFetchTimeoutError(error)) {
+    return t('pro.reschedule.errors.timeout')
+  }
+  return isRescheduleErrorCode(code)
     ? t(`pro.reschedule.errors.${code}`, { date: formatFullDate(maxDate.value, locale.value) })
     : t('pro.reschedule.errors.generic')
+}
 
 const showRefusal = async (error: unknown, wasForced: boolean): Promise<void> => {
   const code: unknown = readFetchErrorCode(error)
-  refusal.value = refusalText(code)
+  if (isFetchTimeoutError(error)) {
+    isStale.value = true
+  }
+  refusal.value = refusalText(error, code)
   isForceable.value = !wasForced && isForceableRescheduleCode(code)
   if (!isForceable.value) {
     await nextTick()
@@ -209,13 +233,17 @@ const submit = async (force: boolean): Promise<void> => {
   try {
     const response: ProRescheduleResponse = await $fetch<ProRescheduleResponse>(
       `/api/pro/bookings/${encodeURIComponent(intervention.id)}/reschedule`,
-      { method: 'POST', body: { date: draftDate.value, force } },
+      {
+        method: 'POST',
+        body: { date: draftDate.value, force },
+        timeout: PRO_RESCHEDULE_TIMEOUT_MS,
+      },
     )
-    isMoved.value = true
+    pendingMove.value = { ...response, intervention }
     emit('update:open', false)
-    emit('rescheduled', { ...response, intervention })
   } catch (error: unknown) {
     if (await handleAuthError(error)) {
+      isStale.value = false
       emit('update:open', false)
       return
     }
@@ -225,9 +253,27 @@ const submit = async (force: boolean): Promise<void> => {
   }
 }
 
-const handleCloseAutoFocus = (event: Event): void => {
-  if (isMoved.value) {
+/**
+ * Restores focus once the content unmounted, after its exit animation. After a move or a timeout,
+ * it leaves focus to the page reload and tells the parent one tick later: the event fires while the
+ * content unmounts, before the modal's `onUnmounted` lifts `aria-hidden` from the page, whose live
+ * region would otherwise miss the announcement.
+ * Relies on reka-ui FocusScope emitting during `scope.stop()`, before the modal's post-flush
+ * `onUnmounted` (reka-ui 2.7, Vue 3.5).
+ * @param event - `closeAutoFocus` event of the dialog content
+ */
+const handleCloseAutoFocus = async (event: Event): Promise<void> => {
+  const moved: ProRescheduledEvent | null = pendingMove.value
+  if (moved || isStale.value) {
     event.preventDefault()
+    pendingMove.value = null
+    isStale.value = false
+    await nextTick()
+    if (moved) {
+      emit('rescheduled', moved)
+    } else {
+      emit('stale')
+    }
     return
   }
   if (props.trigger?.isConnected) {

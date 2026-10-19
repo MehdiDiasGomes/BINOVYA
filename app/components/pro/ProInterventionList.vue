@@ -63,6 +63,7 @@
       :intervention="rescheduledIntervention"
       :trigger="rescheduleTrigger"
       @rescheduled="emit('rescheduled', $event)"
+      @stale="emit('stale')"
     />
   </div>
 </template>
@@ -118,6 +119,7 @@ const props = withDefaults(
 const emit = defineEmits<{
   retry: []
   rescheduled: [moved: ProRescheduledEvent]
+  stale: []
 }>()
 
 const isRescheduleOpen: Ref<boolean> = ref(false)

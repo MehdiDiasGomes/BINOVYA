@@ -76,10 +76,10 @@ export default {
   dayStatus: {
     title: {
       closedWithBookings:
-        '{weekday} is closed: one intervention to move | {weekday} is closed: {n} interventions to move',
+        '{weekday} is closed: one intervention to move | {weekday} is closed: {bookings} interventions to move',
       closed: '{weekday} is closed',
       overCapacity:
-        'Over capacity: {n} bookings for one slot | Over capacity: {n} bookings for {capacity} slots',
+        'Over capacity: {bookings} bookings for one slot | Over capacity: {bookings} bookings for {capacity} slots',
     },
     reason: {
       closedRule: 'The {weekday} rule closes this day: customers cannot book it.',
@@ -202,6 +202,8 @@ export default {
       tooFrequent:
         'This intervention has already been moved several times in the last hour. Please try again later.',
       generic: 'The move could not be saved. Please try again in a moment.',
+      timeout:
+        'The server is slow to answer. The move may have been saved: the list will refresh when you close this window, check the date before trying again.',
     },
   },
   availability: {
@@ -225,6 +227,7 @@ export default {
       increase: 'Increase the capacity {context}',
       decrease: 'Decrease the capacity {context}',
       followRule: 'Follow the rule',
+      rulePlaceholder: '{count} (rule)',
     },
     rules: {
       title: 'Capacity per weekday',
@@ -254,10 +257,13 @@ export default {
       saving: 'Saving…',
       saved: 'Exception for {date} saved.',
       saveError: 'The exception could not be saved. Please try again in a moment.',
+      saveErrorFor: 'The exception for {date} could not be saved. Please try again in a moment.',
       invalid: 'The exception is not valid. Fix the flagged fields.',
       remove: 'Remove the exception',
       removed: 'Exception for {date} removed: the day follows the {weekday} rule again.',
       removeError: 'The exception could not be removed. Please try again in a moment.',
+      removeErrorFor:
+        'The exception for {date} could not be removed. Please try again in a moment.',
     },
     days: {
       title: 'Exceptions and days to watch',

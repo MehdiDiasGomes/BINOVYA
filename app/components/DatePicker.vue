@@ -29,9 +29,18 @@
           </button>
         </PopoverTrigger>
         <PopoverContent
+          v-if="isPanelMounted"
           :aria-label="props.label"
+          side="bottom"
           align="start"
-          :class="cn(FLOATING_PANEL_CLASS, 'w-auto max-w-[calc(100vw-1rem)] p-2 sm:p-4')"
+          :side-flip="false"
+          :collision-padding="8"
+          :class="
+            cn(
+              FLOATING_PANEL_CLASS,
+              'w-auto max-h-(--reka-popover-content-available-height) max-w-[calc(100vw-1rem)] overflow-x-hidden overflow-y-auto p-2 sm:p-4',
+            )
+          "
           @open-auto-focus.prevent
         >
           <CalendarRoot
@@ -44,7 +53,7 @@
             :week-starts-on="weekStart"
             :calendar-label="$t('common.datePicker.calendar')"
             weekday-format="short"
-            :fixed-weeks="false"
+            fixed-weeks
             prevent-deselect
             initial-focus
             class="w-[min(20rem,calc(100vw-2rem-2px))]"
@@ -176,6 +185,7 @@ const emit = defineEmits<{
 const { t, locale } = useI18n()
 const today: Readonly<Ref<string>> = useBusinessToday()
 const isOpen: Ref<boolean> = ref(false)
+const isPanelMounted: Ref<boolean> = ref(false)
 
 const toDateValue = (value: string): DateValue | undefined =>
   isIsoDate(value) ? parseDate(value) : undefined
@@ -202,6 +212,7 @@ const placeholder: Ref<DateValue> = ref(selectedDate.value ?? defaultMonthDate()
 
 watch(isOpen, (open: boolean): void => {
   if (open) {
+    isPanelMounted.value = true
     placeholder.value = selectedDate.value ?? defaultMonthDate()
   }
 })

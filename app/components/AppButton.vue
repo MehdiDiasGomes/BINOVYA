@@ -18,7 +18,7 @@
     <slot v-else name="leading">
       <Icon v-if="props.icon" :name="props.icon" :size="16" aria-hidden="true" class="shrink-0" />
     </slot>
-    <span class="min-w-0">
+    <span class="contents *:min-w-0">
       <slot />
     </span>
     <Icon

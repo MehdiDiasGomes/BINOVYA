@@ -73,6 +73,8 @@ export const PRO_AVAILABILITY_HORIZON_DAYS: number = 365
 
 export const PRO_AVAILABILITY_MAX_RANGE_DAYS: number = 400
 
+export const PRO_RESCHEDULE_TIMEOUT_MS: number = 15000
+
 export const PRO_RESCHEDULE_FORCEABLE_CODES: ProRescheduleForceableCode[] = [
   'outOfArea',
   'dayClosed',

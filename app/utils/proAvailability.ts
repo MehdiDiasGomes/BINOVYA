@@ -57,7 +57,9 @@ export const dayStatus = (day: ProDayOverview): ProDayStatus | null => {
 
 /**
  * Titles the status of a day, shared by the planning panel, its announcement and the availability
- * day cards.
+ * day cards. The plural form follows the capacity for an over capacity day and the number of
+ * bookings otherwise; no named parameter is called `n` or `count`, since vue-i18n would take it as
+ * the plural index instead of the explicit one.
  * @param day - Overview of the day
  * @param locale - BCP 47 locale of the page
  * @param t - Translation function of the page
@@ -75,7 +77,7 @@ export const dayStatusTitle = (
   return t(
     `pro.dayStatus.title.${status.kind}`,
     {
-      n: status.count,
+      bookings: status.count,
       capacity: day.capacity,
       weekday: capitalizeFirst(formatWeekday(day.weekday, locale), locale),
     },

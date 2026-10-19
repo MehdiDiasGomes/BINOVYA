@@ -130,7 +130,6 @@
 </template>
 
 <script setup lang="ts">
-import type { BookingAddress } from '@/types/booking'
 import type { FocusTarget } from '@/types/button'
 import type { ProDayOverrideRequest, ProDayOverview, ProWeekdayRule } from '@/types/proAvailability'
 import type { z } from 'zod'
@@ -145,12 +144,7 @@ import {
 import { addDaysToIsoDate, formatFullDate, formatWeekday, parseIsoDate } from '@/utils/date'
 import { isInvalidAddressError } from '@/utils/fetchError'
 import { focusFirstElement } from '@/utils/focus'
-import {
-  daySectorText,
-  hasDayOverride,
-  isNotableDay,
-  weekdayCapacity,
-} from '@/utils/proAvailability'
+import { daySectorText, hasDayOverride, weekdayCapacity } from '@/utils/proAvailability'
 import { dayCapacitySchema, normalizeDayNote } from '@/utils/proAvailabilityValidation'
 
 const props = withDefaults(
@@ -183,18 +177,20 @@ const { t, locale } = useI18n()
 const today: Readonly<Ref<string>> = useBusinessToday()
 const { handleAuthError } = useProAuthError()
 
-const capacityDraft: Ref<number | null> = ref(null)
-const noteDraft: Ref<string> = ref('')
-const sectorAddress: Ref<BookingAddress | null> = ref(null)
-const isStoredSectorRemoved: Ref<boolean> = ref(false)
-const capacityError: Ref<string> = ref('')
-const sectorError: Ref<string> = ref('')
-const feedback: Ref<string> = ref('')
+const {
+  capacityDraft,
+  noteDraft,
+  sectorAddress,
+  isStoredSectorRemoved,
+  capacityError,
+  sectorError,
+  feedback,
+  resetAfterRefresh,
+} = useProDayOverrideDrafts({ date: () => props.date, day: () => props.day })
 const isFeedbackError: Ref<boolean> = ref(false)
 const isSaving: Ref<boolean> = ref(false)
 const isRemoving: Ref<boolean> = ref(false)
 const saveButtonRef: Ref<FocusTarget | null> = ref(null)
-let isResetPending: boolean = false
 
 const maxDate: ComputedRef<string> = computed(() =>
   addDaysToIsoDate(today.value, PRO_AVAILABILITY_HORIZON_DAYS),
@@ -202,9 +198,9 @@ const maxDate: ComputedRef<string> = computed(() =>
 
 const isBusy: ComputedRef<boolean> = computed(() => isSaving.value || isRemoving.value)
 
-const weekday: ComputedRef<number> = computed(() =>
-  props.date ? parseIsoDate(props.date).getDay() : 0,
-)
+const weekdayOf = (date: string): number => (date ? parseIsoDate(date).getDay() : 0)
+
+const weekday: ComputedRef<number> = computed(() => weekdayOf(props.date))
 
 const weekdayName: ComputedRef<string> = computed(() => formatWeekday(weekday.value, locale.value))
 
@@ -233,49 +229,12 @@ const capacityHint: ComputedRef<string> = computed(
     `${ruleText.value} ${t('pro.availability.override.capacityHint', { max: PRO_DAY_CAPACITY_MAX })}`,
 )
 
-const dateLabel = (): string => formatFullDate(props.date, locale.value)
+const dateLabel = (date: string): string => formatFullDate(date, locale.value)
 
-const resetDrafts = (): void => {
-  const day: ProDayOverview | null = props.day
-  capacityDraft.value = day?.capacitySource === 'override' ? day.capacity : null
-  noteDraft.value = day?.note ?? ''
-  sectorAddress.value = null
-  isStoredSectorRemoved.value = false
-  capacityError.value = ''
-  sectorError.value = ''
-}
-
-watch(
-  () => props.date,
-  (): void => {
-    isResetPending = false
-    feedback.value = ''
-    resetDrafts()
-  },
-  { immediate: true },
-)
-
-watch(capacityDraft, (): void => {
-  capacityError.value = ''
-})
-
-watch(
-  () => props.day,
-  (): void => {
-    if (isResetPending) {
-      isResetPending = false
-      resetDrafts()
-    }
-  },
-)
-
-const resetAfterRefresh = (savedDay: ProDayOverview | null): void => {
-  if (!props.day && !(savedDay && isNotableDay(savedDay))) {
-    resetDrafts()
-    return
-  }
-  isResetPending = true
-}
+const failureText = (key: 'saveError' | 'removeError', date: string): string =>
+  props.date === date
+    ? t(`pro.availability.override.${key}`)
+    : t(`pro.availability.override.${key}For`, { date: dateLabel(date) })
 
 const report = (message: string, isError: boolean): void => {
   feedback.value = message
@@ -316,10 +275,10 @@ const buildRequest = (): ProDayOverrideRequest | null => {
   }
 }
 
-const reportSaveFailure = async (error: unknown): Promise<void> => {
-  const isSectorRefused: boolean = isInvalidAddressError(error)
+const reportSaveFailure = async (error: unknown, date: string): Promise<void> => {
+  const isSectorRefused: boolean = props.date === date && isInvalidAddressError(error)
   sectorError.value = isSectorRefused ? t('pro.availability.errors.sector') : ''
-  report(isSectorRefused ? sectorError.value : t('pro.availability.override.saveError'), true)
+  report(isSectorRefused ? sectorError.value : failureText('saveError', date), true)
   if (isSectorRefused) {
     await nextTick()
     focusFirstElement([SECTOR_FIELD_ID])
@@ -327,7 +286,8 @@ const reportSaveFailure = async (error: unknown): Promise<void> => {
 }
 
 const save = async (): Promise<void> => {
-  if (isBusy.value || !props.date) {
+  const date: string = props.date
+  if (isBusy.value || !date) {
     return
   }
   capacityError.value = ''
@@ -341,14 +301,14 @@ const save = async (): Promise<void> => {
   emit('pending')
   try {
     const savedDay: ProDayOverview | null = await $fetch<ProDayOverview | null>(
-      `/api/pro/availability/overrides/${encodeURIComponent(props.date)}`,
+      `/api/pro/availability/overrides/${encodeURIComponent(date)}`,
       { method: 'PUT', body: request },
     )
-    resetAfterRefresh(savedDay)
-    report(t('pro.availability.override.saved', { date: dateLabel() }), false)
+    resetAfterRefresh(date, savedDay)
+    report(t('pro.availability.override.saved', { date: dateLabel(date) }), false)
   } catch (error: unknown) {
     if (!(await handleAuthError(error))) {
-      await reportSaveFailure(error)
+      await reportSaveFailure(error, date)
     }
   } finally {
     isSaving.value = false
@@ -356,25 +316,29 @@ const save = async (): Promise<void> => {
 }
 
 const remove = async (): Promise<void> => {
-  if (isBusy.value || !props.date) {
+  const date: string = props.date
+  if (isBusy.value || !date) {
     return
   }
   isRemoving.value = true
   emit('pending')
   try {
     const savedDay: ProDayOverview | null = await $fetch<ProDayOverview | null>(
-      `/api/pro/availability/overrides/${encodeURIComponent(props.date)}`,
+      `/api/pro/availability/overrides/${encodeURIComponent(date)}`,
       { method: 'DELETE' },
     )
-    resetAfterRefresh(savedDay)
-    saveButtonRef.value?.focus()
+    resetAfterRefresh(date, savedDay)
+    if (props.date === date) {
+      saveButtonRef.value?.focus()
+    }
+    const weekdayLabel: string = formatWeekday(weekdayOf(date), locale.value)
     report(
-      t('pro.availability.override.removed', { date: dateLabel(), weekday: weekdayName.value }),
+      t('pro.availability.override.removed', { date: dateLabel(date), weekday: weekdayLabel }),
       false,
     )
   } catch (error: unknown) {
     if (!(await handleAuthError(error))) {
-      report(t('pro.availability.override.removeError'), true)
+      report(failureText('removeError', date), true)
     }
   } finally {
     isRemoving.value = false

@@ -31,3 +31,15 @@ export const isInvalidAddressError = (error: unknown): boolean =>
  */
 export const isForbiddenOriginError = (error: unknown): boolean =>
   readFetchErrorCode(error) === FORBIDDEN_ORIGIN_CODE
+
+/**
+ * Tells whether `$fetch` gave up because its `timeout` option elapsed before the server answered,
+ * in which case the server may still have applied the request.
+ * @param error - Error thrown by `$fetch`
+ * @returns True when no response arrived and the cause is ofetch's `TimeoutError`
+ */
+export const isFetchTimeoutError = (error: unknown): boolean =>
+  error instanceof FetchError &&
+  !error.response &&
+  error.cause instanceof Error &&
+  error.cause.name === 'TimeoutError'
