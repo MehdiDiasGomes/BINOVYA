@@ -14,6 +14,7 @@
             type="button"
             :aria-labelledby="`${props.id}-label ${props.id}`"
             :aria-describedby="ariaDescribedBy"
+            :aria-invalid="props.error ? 'true' : undefined"
             :class="
               cn(
                 FIELD_INPUT_CLASS,
@@ -30,7 +31,7 @@
         </PopoverTrigger>
         <PopoverContent
           v-if="isPanelMounted"
-          :aria-label="props.label"
+          :aria-label="$t('common.datePicker.dialog', { label: props.label })"
           side="bottom"
           align="start"
           :side-flip="false"
@@ -41,7 +42,7 @@
               'w-auto max-h-(--reka-popover-content-available-height) max-w-[calc(100vw-1rem)] overflow-x-hidden overflow-y-auto p-2 sm:p-4',
             )
           "
-          @open-auto-focus.prevent
+          @open-auto-focus="focusCalendarDay"
         >
           <CalendarRoot
             #default="{ grid, weekDays }"
@@ -55,7 +56,6 @@
             weekday-format="short"
             fixed-weeks
             prevent-deselect
-            initial-focus
             class="w-[min(20rem,calc(100vw-2rem-2px))]"
             @update:model-value="handleSelect"
           >
@@ -91,15 +91,28 @@
                     :class="CALENDAR_CELL_WRAPPER_CLASS"
                   >
                     <CalendarCellTrigger
+                      #default="{ dayValue }"
                       :day="day"
                       :month="month.value"
                       :class="CALENDAR_CELL_CLASS"
-                    />
+                      v-bind="markedDayAttributes(day)"
+                    >
+                      {{ dayValue }}
+                      <span
+                        v-if="markedDayCount(day) > 0"
+                        aria-hidden="true"
+                        :class="CALENDAR_MARKED_DAY_DOT_CLASS"
+                      />
+                    </CalendarCellTrigger>
                   </CalendarCell>
                 </CalendarGridRow>
               </CalendarGridBody>
             </CalendarGrid>
           </CalendarRoot>
+          <p v-if="hasMarkedDays" class="mt-3 flex items-center gap-2 px-1 text-sm text-ink/70">
+            <span aria-hidden="true" :class="CALENDAR_MARKED_DOT_CLASS" />
+            {{ $t('common.datePicker.markedLegend') }}
+          </p>
         </PopoverContent>
       </Popover>
       <AppButton
@@ -120,10 +133,15 @@
 </template>
 
 <script setup lang="ts">
-import { parseDate, type DateValue } from '@internationalized/date'
+import { parseDate, startOfMonth, type DateValue } from '@internationalized/date'
 import { CalendarCellTrigger, CalendarRoot } from 'reka-ui'
+import { getLastFirstDayOfWeek } from 'reka-ui/date'
 
-import type { CalendarWeekStart } from '@/types/calendar'
+import type {
+  CalendarDayAttributes,
+  CalendarVisibleRange,
+  CalendarWeekStart,
+} from '@/types/calendar'
 
 import {
   CalendarCell,
@@ -143,13 +161,16 @@ import {
   CALENDAR_CELL_WRAPPER_CLASS,
   CALENDAR_HEAD_CELL_CLASS,
   CALENDAR_HEADING_CLASS,
+  CALENDAR_MARKED_DAY_DOT_CLASS,
+  CALENDAR_MARKED_DOT_CLASS,
   CALENDAR_NAV_BUTTON_CLASS,
   FIELD_ERROR_CLASS,
   FIELD_INPUT_CLASS,
   FLOATING_PANEL_CLASS,
 } from '@/constants/booking'
+import { CALENDAR_GRID_DAY_COUNT } from '@/constants/calendar'
 import { cn } from '@/lib/utils'
-import { mondayWeekStart } from '@/utils/calendar'
+import { calendarDayAttributes, mondayWeekStart } from '@/utils/calendar'
 import { formatMediumDate } from '@/utils/date'
 import { isIsoDate } from '@/utils/dateValidation'
 import { describedByIds } from '@/utils/field'
@@ -166,6 +187,7 @@ const props = withDefaults(
     isRequired?: boolean
     isLabelHidden?: boolean
     describedBy?: string
+    markedDays?: Record<string, number>
   }>(),
   {
     modelValue: '',
@@ -175,12 +197,18 @@ const props = withDefaults(
     isRequired: true,
     isLabelHidden: false,
     describedBy: undefined,
+    markedDays: () => ({}),
   },
 )
 
 const emit = defineEmits<{
   'update:modelValue': [value: string]
+  visibleRange: [range: CalendarVisibleRange]
 }>()
+
+const CALENDAR_FOCUSED_DAY_SELECTOR: string = '[data-reka-calendar-cell-trigger][tabindex="0"]'
+
+const ISO_MONTH_LENGTH: number = 7
 
 const { t, locale } = useI18n()
 const today: Readonly<Ref<string>> = useBusinessToday()
@@ -210,12 +238,62 @@ const defaultMonthDate = (): DateValue => {
 
 const placeholder: Ref<DateValue> = ref(selectedDate.value ?? defaultMonthDate()) as Ref<DateValue>
 
+const visibleFrom: ComputedRef<DateValue> = computed(() =>
+  getLastFirstDayOfWeek(startOfMonth(placeholder.value), weekStart.value, locale.value),
+)
+
+const visibleFromKey: ComputedRef<string> = computed(() => visibleFrom.value.toString())
+
+let emittedFrom: string = ''
+
+const emitVisibleRange = (): void => {
+  if (visibleFromKey.value === emittedFrom) {
+    return
+  }
+  emittedFrom = visibleFromKey.value
+  emit('visibleRange', {
+    from: visibleFrom.value.toString(),
+    to: visibleFrom.value.add({ days: CALENDAR_GRID_DAY_COUNT - 1 }).toString(),
+  })
+}
+
 watch(isOpen, (open: boolean): void => {
   if (open) {
     isPanelMounted.value = true
     placeholder.value = selectedDate.value ?? defaultMonthDate()
+    emitVisibleRange()
+    return
+  }
+  emittedFrom = ''
+})
+
+watch(visibleFromKey, (): void => {
+  if (isOpen.value) {
+    emitVisibleRange()
   }
 })
+
+const markedDayCount = (day: DateValue): number => props.markedDays[day.toString()] ?? 0
+
+const markedDayAttributes = (day: DateValue): CalendarDayAttributes => {
+  const count: number = markedDayCount(day)
+  return count > 0
+    ? calendarDayAttributes(day, locale.value, (date: string): string =>
+        t('common.datePicker.markedDay', { date, total: count }, count),
+      )
+    : {}
+}
+
+const visibleMonthKey: ComputedRef<string> = computed(() =>
+  startOfMonth(placeholder.value).toString().slice(0, ISO_MONTH_LENGTH),
+)
+
+const hasMarkedDays: ComputedRef<boolean> = computed(() =>
+  Object.entries(props.markedDays).some(
+    ([date, count]: [string, number]): boolean =>
+      count > 0 && date.slice(0, ISO_MONTH_LENGTH) === visibleMonthKey.value,
+  ),
+)
 
 const isClearable: ComputedRef<boolean> = computed(
   () => !props.isRequired && Boolean(selectedDate.value),
@@ -233,6 +311,21 @@ const ariaDescribedBy: ComputedRef<string | undefined> = computed(
       .filter((value: string | undefined): value is string => Boolean(value))
       .join(' ') || undefined,
 )
+
+/**
+ * Moves focus to the selected or current day when the calendar panel opens.
+ * @param event - `openAutoFocus` event of the popover content
+ */
+const focusCalendarDay = (event: Event): void => {
+  const day: HTMLElement | null =
+    event.target instanceof HTMLElement
+      ? event.target.querySelector<HTMLElement>(CALENDAR_FOCUSED_DAY_SELECTOR)
+      : null
+  if (day) {
+    event.preventDefault()
+    day.focus()
+  }
+}
 
 const handleSelect = (value: DateValue | undefined): void => {
   if (value) {

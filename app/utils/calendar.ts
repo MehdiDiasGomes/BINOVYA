@@ -1,6 +1,8 @@
-import { getDayOfWeek, parseDate } from '@internationalized/date'
+import { getDayOfWeek, parseDate, toCalendarDate, type DateValue } from '@internationalized/date'
 
-import type { CalendarWeekStart } from '@/types/calendar'
+import type { CalendarDayAttributes, CalendarWeekStart } from '@/types/calendar'
+
+import { formatFullDate } from '@/utils/date'
 
 const KNOWN_MONDAY: string = '2024-01-01'
 
@@ -12,3 +14,18 @@ const KNOWN_MONDAY: string = '2024-01-01'
  */
 export const mondayWeekStart = (locale: string): CalendarWeekStart =>
   getDayOfWeek(parseDate(KNOWN_MONDAY), locale) as CalendarWeekStart
+
+/**
+ * Builds the `aria-label` of a reka-ui calendar day that carries extra information.
+ * @param day - Day of the cell
+ * @param locale - Locale of the calendar
+ * @param describe - Builds the full name from the long date, such as « lundi 19 octobre 2026 »
+ * @returns Attributes to bind on `CalendarCellTrigger`
+ */
+export const calendarDayAttributes = (
+  day: DateValue,
+  locale: string,
+  describe: (fullDate: string) => string,
+): CalendarDayAttributes => ({
+  'aria-label': describe(formatFullDate(toCalendarDate(day).toString(), locale)),
+})

@@ -47,6 +47,17 @@ export const CALENDAR_CELL_WRAPPER_CLASS: string =
 export const CALENDAR_RECOMMENDED_CLASS: string =
   'bg-turquoise/15 ring-1 ring-inset ring-turquoise-deep data-[selected]:ring-0'
 
+export const CALENDAR_DOT_BASE_CLASS: string = 'size-1.5 rounded-full bg-current'
+
+export const CALENDAR_DAY_DOT_CLASS: string = `${CALENDAR_DOT_BASE_CLASS} absolute bottom-1`
+
+const CALENDAR_MARKED_DOT_ENTER_CLASS: string =
+  'duration-press ease-brand motion-safe:animate-in motion-safe:fade-in'
+
+export const CALENDAR_MARKED_DOT_CLASS: string = `${CALENDAR_DOT_BASE_CLASS} shrink-0 ${CALENDAR_MARKED_DOT_ENTER_CLASS}`
+
+export const CALENDAR_MARKED_DAY_DOT_CLASS: string = `${CALENDAR_DOT_BASE_CLASS} absolute bottom-0.5 ${CALENDAR_MARKED_DOT_ENTER_CLASS}`
+
 export const CALENDAR_HEAD_CELL_CLASS: string =
   'flex-1 pb-2 text-center text-xs font-bold uppercase text-ink/70'
 

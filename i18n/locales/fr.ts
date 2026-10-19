@@ -157,10 +157,13 @@ export default {
     fieldValue: '{label} : {value}',
     datePicker: {
       calendar: 'Calendrier',
+      dialog: 'Choisir la date : {label}',
       placeholder: 'Choisir une date',
       previousMonth: 'Mois précédent',
       nextMonth: 'Mois suivant',
       clear: 'Effacer la date « {label} »',
+      markedLegend: 'Point : jour avec au moins une intervention, à faire ou terminée',
+      markedDay: '{date} | {date}, une intervention | {date}, {total} interventions',
     },
   },
   seo: {

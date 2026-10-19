@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { signedMunicipalitySchema } from './bookingSchemas'
 
+import { CALENDAR_GRID_DAY_COUNT } from '@/constants/calendar'
 import { PHOTO_KINDS } from '@/constants/photos'
 import {
   PRO_AVAILABILITY_HORIZON_DAYS,
@@ -44,6 +45,15 @@ export const proInterventionsQuerySchema = z
 export const proAvailabilityQuerySchema = z
   .object({ from: isoDateSchema.optional(), to: isoDateSchema.optional() })
   .refine(query => !query.from || !query.to || query.from <= query.to, { path: ['to'] })
+
+export const proInterventionDaysQuerySchema = z
+  .object({ from: isoDateSchema, to: isoDateSchema })
+  .refine(
+    query =>
+      query.from <= query.to &&
+      query.to <= addDaysToIsoDate(query.from, CALENDAR_GRID_DAY_COUNT - 1),
+    { path: ['to'] },
+  )
 
 export const proDateParamsSchema = z.object({ date: proHorizonDateSchema })
 
