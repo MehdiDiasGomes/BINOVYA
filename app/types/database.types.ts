@@ -18,6 +18,13 @@ type RescheduleRefusal =
   | 'past_date'
   | 'too_far'
   | 'too_frequent'
+type SetPhotoRefusal = 'not_found' | 'not_paid' | 'future_date' | 'invalid_kind' | 'invalid_path'
+type CompleteRefusal =
+  | 'not_found'
+  | 'already_completed'
+  | 'not_paid'
+  | 'future_date'
+  | 'missing_photos'
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json }
 
 type Table<Row, Required extends keyof Row = never> = {
@@ -78,6 +85,8 @@ type BookingRow = {
   reminder_sent_at: string | null
   day_of_sms_sent_at: string | null
   completed_at: string | null
+  completed_without_photos: boolean
+  photos_notified_at: string | null
   rescheduled_at: string | null
   reschedule_count: number
   reschedule_window_start: string | null
@@ -113,6 +122,7 @@ type InterventionPhotoRow = {
   kind: PhotoKind
   storage_path: string
   created_at: string
+  updated_at: string
 }
 
 type AvailabilityRuleRow = {
@@ -236,6 +246,24 @@ export type Database = {
           new_date: string | null
           overridden_reason: RescheduleOverridable | null
           overridden_reasons: RescheduleOverridable[] | null
+        }[]
+      }
+      admin_set_intervention_photo: {
+        Args: { p_booking_id: string; p_kind: PhotoKind; p_storage_path: string }
+        Returns: {
+          ok: boolean
+          reason: SetPhotoRefusal | null
+          replaced: boolean | null
+        }[]
+      }
+      admin_complete_booking: {
+        Args: { p_booking_id: string; p_force?: boolean }
+        Returns: {
+          ok: boolean
+          reason: CompleteRefusal | null
+          send_photos_mail: boolean | null
+          without_photos: boolean | null
+          booking_date: string | null
         }[]
       }
       admin_day_overview: {
