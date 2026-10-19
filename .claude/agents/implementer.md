@@ -79,6 +79,17 @@ Each one was caught by a review. Check your change against this list before repo
   text only on blur): emitting a value equal to the current model triggers no re-render, so the
   field keeps showing stale text. Write the text back (`input.value` + an `input` event) when
   you take over its behaviour.
+- A page live region that must announce while or right after a reka modal (Dialog, AlertDialog)
+  closes, with `role="status"` alone: `hideOthers` only spares `[aria-live]`, so give it an
+  explicit `aria-live`, and emit the announcing event from `closeAutoFocus` after a `nextTick`.
+- A named i18n param `n` or `count` next to a different plural number: vue-i18n picks the form
+  from `named.count`, then `named.n`, before the 3rd argument of `t`. Name the shown value
+  otherwise (`bookings`, `value`).
+- A state change on blur (re-emitted value, cleared error, conditional button) that inserts or
+  removes content above a button: the mousedown on that button blurs the field, the button moves
+  and the click is lost. Apply input while typing, and never emit an unchanged value.
+- A client `timeout` on a write treated as a failure: the server may still commit. Say the result
+  is unknown and reload the data instead of inviting a retry.
 - Explicit types everywhere, including `safeParse` results and Node results in `scripts/`
   (`Socket`, `SpawnSyncReturns<string>`…). `scripts/` is not covered by `nuxi typecheck`: check it
   with `tsc --noEmit` on a scratch tsconfig extending `.nuxt/tsconfig.node.json`.

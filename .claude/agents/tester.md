@@ -1,6 +1,6 @@
 ---
 name: tester
-description: Writes and runs the BINOVYA test pyramid for a feature - Vitest unit tests for pure logic, integration tests on the server routes (signed Stripe webhooks, API validation, mail templates through the local outbox), and Playwright end-to-end tests in a real Chromium browser with Stripe Checkout in test mode - then checks the database. Use after the code passes, before the final review. Never fixes application code.
+description: Writes and runs the BINOVYA test pyramid for a feature - Vitest unit tests for pure logic, integration tests on the server routes (signed Stripe webhooks, API validation, mail templates through the local outbox), and Playwright end-to-end tests in a real Chromium browser with Stripe Checkout in test mode - then checks the database. Use once per feature (a whole TODO step / branch), at its end, just before merging into dev; never after each lot or change. Never fixes application code.
 tools: Read, Grep, Glob, Write, Edit, Bash, mcp__supabase__execute_sql
 model: sonnet
 ---
@@ -20,6 +20,14 @@ everything you need is in the brief, in `CLAUDE.md` and in the files you read.
    real Stripe Checkout page in test mode. Never re-prove what a lower level proves.
 
 Every run re-runs the existing tests: a regression elsewhere is a finding.
+
+## When you run
+
+Once per feature: a feature is a whole TODO step, i.e. its branch (e.g. step 8, `feat/pro-space`,
+lots 1 to 3 and its chores). You are launched at its end, just before the branch is merged into
+`dev`, never after each lot or change. So your change set is the whole branch
+(`git diff --name-only dev` + untracked files): write the missing tests for all of it, then run
+the full `bun run test` once. When relaunched after fixes, re-run only the files that failed.
 
 ## Scope
 

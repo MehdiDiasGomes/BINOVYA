@@ -104,28 +104,40 @@ In a single message, once `ui-stylist` has finished, since both audit the final 
   keep them for the final summary.
 - Get the checks of step 3 from the fixing agent's report.
 
-## 7. Tests (`tester`)
+## 7. Tests (`tester`), only at the end of the feature
+
+A feature is a whole TODO step, i.e. its branch (e.g. step 8, `feat/pro-space`, lots 1 to 3 and
+its chores). Tests are written and run once per feature, just before merging the branch into
+`dev`, never after each lot or change: code that keeps changing makes earlier runs wasted time.
+For a lot or any delivery that does not close the TODO step, skip this step and go to step 8.
+When it is unclear whether the step is complete, ask the user.
 
 1. Launch `tester` with: the feature description, the TODO step, the spec sections, the change
-   set, and for each level what to prove:
+   set of the whole branch (`git diff --name-only dev` + untracked files), the decisions taken
+   during the feature, and for each level what to prove:
    - unit: the new or changed pure functions and schemas (rules, edge values)
    - integration: the new or changed server routes and webhooks (status codes, `data.code`,
      database effects, signed Stripe events)
    - end-to-end: the critical visitor journeys only (pages, actions, expected messages and
      database states, including error and cancel paths)
 
-   plus the decisions taken with the user and the "À vérifier dans le navigateur" lists of
-   `implementer` and `ui-stylist`.
+   plus the "À vérifier dans le navigateur" lists of `implementer` and `ui-stylist`, and the
+   "Pour tester" sections of every review of the feature. The tester writes the missing tests
+   for the whole branch, then runs the full `bun run test` (unit, integration, e2e).
 
 2. ⛔ (environment: secret mismatch, server to restart, live key): relay the manual action to the
    user, wait for confirmation, then launch a new `tester`.
 3. ⚠️: launch a new `implementer` (or `ui-stylist` for visual items) with the failures quoted
-   verbatim, then a new `tester` to re-run. Max 2 re-runs, then the failures go to the user.
+   verbatim, then a new `tester` that re-runs only the failing files. Max 2 re-runs, then the
+   failures go to the user.
+4. Once green, the final review (step 8) covers the whole branch, then docs (step 9), then the
+   user merges into `dev`.
 
 ## 8. Final review (loop, max 2 re-runs)
 
 1. Launch `code-reviewer` with: the feature description, the change set, the check outputs, all
-   previous reports including the e2e report, and the list of what you fixed. Tell it which pass
+   previous reports (including the tester report when step 7 ran), and the list of what you
+   fixed. Tell it which pass
    this is.
 2. If the verdict is ⛔ or ⚠️: launch a new `implementer` with the findings quoted verbatim, then a
    new `code-reviewer` with the previous review, the fixes and the pass number (pass 2, then 3).
@@ -144,8 +156,9 @@ Do not commit. Give the user a table with one row per item marked ✅ or ❌:
 | Étape | Agent | Résultat |
 | ----- | ----- | -------- |
 
-followed by: findings left open with their severity, manual actions for the user, the e2e result
-table, a short numbered list of what `tester` could not prove automatically (animations from
+followed by: findings left open with their severity, manual actions for the user, the test
+result table when step 7 ran (otherwise say the tests run at the end of the feature, before the
+merge into `dev`), a short numbered list of what was not proved automatically (animations from
 ui-stylist, a pass with the system "reduce motion" setting on, screen reader), and the suggested
 gitmoji commit message(s).
 The user commits with `/ship`.
