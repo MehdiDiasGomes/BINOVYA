@@ -21,6 +21,8 @@ ses réservations et les photos avant/après depuis son espace client.
 7. Après l'intervention, l'admin dépose une photo avant et une photo après. Le client reçoit un
    mail l'informant que ses photos sont disponibles dans son espace client, avec un tutoriel pas
    à pas pour s'y connecter. Le lien du bouton est à décider à l'étape 8 (voir `TODO.md`).
+   « Terminer l'intervention » est disponible une fois les photos ajoutées ; l'admin peut forcer
+   la fin sans photos, après confirmation. Dans ce cas, aucun mail photos n'est envoyé.
 8. Le client demande un lien de connexion sur `/login`, puis consulte ses réservations et ses
    photos aussi souvent qu'il le souhaite, pendant 7 jours après chaque clic sur un lien.
 
@@ -83,31 +85,41 @@ stripe_payment_intent_id              status (new | answered | closed)
 expires_at
 reminder_sent_at
 day_of_sms_sent_at
+rescheduled_at, reschedule_count,
+reschedule_window_start
 completed_at
 
 availability_rules            availability_overrides        booking_settings (1 ligne)
 ------------------            ----------------------        --------------------------
 weekday (0 à 6)               date                          depot_latitude, depot_longitude
-max_bookings (0 = fermé)      max_bookings (0 = fermé)      service_area_radius_km
-                              sector_latitude               day_sector_radius_km
-                              sector_longitude              min_lead_days, horizon_days
+max_bookings (0 à 50,         max_bookings (null = suit     service_area_radius_km
+  0 = fermé)                    la règle, 0 = fermé, ≤ 50)  day_sector_radius_km
+                              sector_latitude               min_lead_days, horizon_days
+                              sector_longitude
+                              sector_label
+                              note (500 caractères au plus)
 ```
 
 Fonctions réservées au serveur : `get_availability` (statut de chaque jour pour une adresse),
 `create_booking` (contrôle, calcul du prix et blocage de la place en une transaction),
 `confirm_booking_payment` (confirme un paiement reçu, sous le verrou du jour),
 `expire_stale_bookings` (libère les réservations non payées), `claim_login_link` (plafond d'envoi
-des liens de connexion client), `claim_admin_login_link` (idem pour les admins).
-`has_recent_sign_in()` et `is_admin()` servent aux policies RLS.
+des liens de connexion client), `claim_admin_login_link` (idem pour les admins), `day_check`
+(statut d'un jour pour une adresse, partagé par `day_status` et le déplacement admin),
+`admin_day_overview` (capacité effective et réservations de chaque jour d'une plage) et
+`admin_reschedule_booking` (déplace une réservation payée). `has_recent_sign_in()` et
+`is_admin()` servent aux policies RLS.
 
 ## Règles
 
 - **Créneau** : le client réserve un jour, jamais une heure. Le passage ce jour-là est garanti.
 - **Capacité** : `availability_rules` fixe le nombre d'interventions par jour de semaine,
-  `availability_overrides` gère les exceptions (congés, jours fériés, journée renforcée).
+  `availability_overrides` gère les exceptions (congés, jours fériés, journée renforcée). Voir
+  « Disponibilités » plus bas pour ce que règle l'admin.
 - **Secteur du jour** : la première réservation d'un jour fixe son secteur. Le jour ne reste
   ouvert qu'aux adresses situées à moins de **15 km** de ce point. L'admin peut aussi
-  imposer à l'avance le secteur d'un jour.
+  imposer à l'avance le secteur d'un jour, par commune : ce secteur prend alors la place de la
+  première réservation.
 - **Adresse signée** : seule une adresse choisie dans la recherche est acceptée, son jeton
   valant 24 h. Si le serveur refuse le jeton (expiré, par exemple un brouillon restauré plus de
   24 h après, ou adresse modifiée), le client revient à l'étape des coordonnées : le champ
@@ -226,6 +238,45 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins).
   pages 1 à 1000, chaque page ajoute une entrée d'historique (`push`) ; une page au-delà de la
   dernière ramène à la dernière. Tri par date puis date de création. Le paiement s'affiche
   « Remboursé » pour une réservation annulée.
+- **Disponibilités** (`/pro/availability`) : l'admin règle la capacité de chaque jour de semaine,
+  de 0 à `PRO_DAY_CAPACITY_MAX` (50). 0 ferme le jour. Un jour sans règle est fermé. Il peut
+  aussi créer l'exception d'une date : capacité (vide = suit la règle, 0 = fermé), secteur imposé
+  par commune et note de 500 caractères au plus. Une exception sans aucune valeur est supprimée.
+  Les jours passés ne se modifient pas et l'horizon est de 365 jours à partir d'aujourd'hui
+  (Europe/Paris). Les nouveaux réglages s'appliquent aux réservations suivantes ; les
+  réservations déjà payées ne bougent pas.
+- **Secteur par commune** : l'admin cherche une commune, pas une adresse. France : IGN
+  `type=municipality`, libellé `<nom> (<code postal>)`. Luxembourg : liste fixe des 27 communes
+  proches du dépôt (`server/utils/luxembourgCommunes.ts`), libellé `<nom> (LU)`, code postal
+  vide. Le jeton de la commune a le même format que celui d'une adresse (24 h) mais un contexte de
+  signature distinct : un jeton d'adresse n'est pas accepté pour une commune, ni l'inverse. Une
+  commune expirée ou modifiée est refusée (`invalidAddress`) et l'admin doit la rechercher de
+  nouveau.
+- **Statut d'un jour** (`/pro`) : un jour fermé qui garde des interventions payées affiche un
+  panneau d'avertissement « N interventions à déplacer » ; un jour fermé sans réservation, un
+  panneau d'information ; un jour qui contient plus de réservations que sa capacité (après un
+  déplacement forcé), un avertissement de dépassement. Les liens « Rouvrir » et « Augmenter »
+  mènent à `/pro/availability?date=…` tant que la date est modifiable.
+- **« À déplacer »** : une intervention `paid` dont le jour est fermé (par la règle ou par une
+  exception) porte le badge « À déplacer » dans le planning et la liste. Un jour en dépassement
+  de capacité n'en marque aucune. Une intervention `completed` ou annulée n'est jamais marquée.
+- **Déplacement par l'admin** (bouton « Changer la date », `ProRescheduleDialog`) : ne vaut que
+  pour une réservation `paid`. L'admin choisit une date d'aujourd'hui à +365 jours.
+  - Refus jamais forçables : date passée (`pastDate`), même date (`sameDate`), réservation non
+    payée (`notPaid`), réservation inconnue (`notFound`), date invalide (`invalidDate`), date
+    au-delà de 365 jours (`tooFar`), plus de 3 déplacements par heure pour une même réservation
+    (`tooFrequent`, réponse 429).
+  - Refus forçables avec « Forcer quand même » : adresse hors zone (`outOfArea`), jour fermé
+    (`dayClosed`), jour complet (`dayFull`), secteur d'un autre jour (`outOfSector`). Les
+    contrôles sont ceux d'une réservation client (zone, jour fermé, capacité, secteur), sans
+    compter la réservation déplacée. Le délai minimum et l'horizon de réservation du client ne
+    s'appliquent pas. Les contrôles forcés sont renvoyés (`overriddenCodes`) et annoncés.
+  - Effets : `reminder_sent_at` et `day_of_sms_sent_at` sont remis à zéro, pour que les rappels
+    repartent sur la nouvelle date. Le client reçoit un mail de changement de date, avec la clé
+    d'idempotence `booking-reschedule-<uuid>-<id>` : un mail par déplacement, même si la
+    réservation revient à sa date d'origine. La clé du rappel devient
+    `booking-reminder-<date>-<id>` : une réservation déplacée dans la fenêtre de rappel reçoit un
+    nouveau rappel pour sa nouvelle date.
 - **Lien du mail « photos disponibles »** : à trancher au lot 3 de l'étape 8. Défaut proposé à
   l'utilisateur : option A, lien vers `/login`.
 - **SMS** : tâche quotidienne (`pg_cron`), les colonnes `*_sent_at` empêchent les doublons.
@@ -240,6 +291,14 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins).
   secteur. Parade : l'admin impose le secteur du jour à l'avance.
 - **Zone desservie** : sans distance maximale autour du dépôt, n'importe quelle adresse en
   France pourrait réserver. D'où la limite de 30 km.
+- **Jour fermé avec interventions** : fermer un jour (règle ou exception) ne déplace rien. Les
+  interventions payées restent sur ce jour, marquées « À déplacer », jusqu'à ce que l'admin les
+  déplace une à une. Seul un jour fermé marque ; un jour en dépassement de capacité n'affiche
+  qu'un statut.
+- **Clé de rappel par date non vérifiée en intégration** : `booking-reminder-<date>-<id>` est
+  attendue par `tests/integration/email/booking-reminder.test.ts`, mais ce test refuse de
+  tourner tant que de vraies réservations payées sont dans la fenêtre J+1..J+2. Il n'a pas
+  été rejoué pour le lot 2 (les tests tournent à la fin de l'étape 8).
 
 - **Anti-abus** : champ piège et une seule réservation en attente par client pour l'instant. La
   limite de débit par IP sur `/api/booking` et `/api/booking/release` (Cloudflare) est reportée

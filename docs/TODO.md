@@ -71,7 +71,8 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [x] Mail de rappel avant le passage (tâche `booking:reminders`, J-1 à J-2)
 - [x] Habillage BINOVYA de tous les mails (mise en page commune, CSS inliné à l'envoi)
 - [ ] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée, tutoriel
-      pas à pas en secours. Gabarit prêt (`sendPhotosAvailableEmail`), envoi pas encore branché,
+      pas à pas en secours. Envoyé seulement si l'intervention a des photos : une fin forcée sans
+      photos n'envoie pas ce mail. Gabarit prêt (`sendPhotosAvailableEmail`), envoi pas encore branché,
       déclenchement à l'étape 8. Le lien du bouton « Voir mes photos » est à décider au lot 3 de l'étape 8 :
       lien simple vers `/login` (option A, cohérent avec « Suivre ma réservation » du mail de
       confirmation et avec l'option C), ou `createLoginLink` hors du plafond de `claim_login_link`
@@ -96,7 +97,8 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 8. Espace BINOVYA Pro
 
-Lot 1 sur 3 fait (accès, planning, liste, itinéraire) ; les lots 2 et 3 couvrent le reste.
+Lots 1 et 2 faits (accès, planning, liste, itinéraire ; disponibilités et déplacement d'une
+intervention). Le lot 3 couvre les photos et la fin d'intervention.
 
 - [x] Accès admin (`app_metadata.role`)
 - [x] Planning du jour, mobile
@@ -104,17 +106,38 @@ Lot 1 sur 3 fait (accès, planning, liste, itinéraire) ; les lots 2 et 3 couvre
 - [x] Bouton « Itinéraire Google Maps »
 - [ ] Appliquer dans l'ordre les migrations `20261017000000_admin_login_link` et
       `20261017010000_admin_session_rule` (SQL Editor)
-- [ ] Lot 2 : migration qui écrit les appels `is_admin()` des policies en `(select
+- [x] Appliquer les migrations du lot 2 `20261017020000_pro_availability_admin` et
+      `20261017030000_pro_availability_hardening` (SQL Editor, vérifiées en base : `day_check`,
+      `admin_reschedule_booking`, `admin_day_overview` et `is_admin` existent)
+- [x] Lot 2 : migration qui écrit les appels `is_admin()` des policies en `(select
 public.is_admin())` (fonction plpgsql, évaluée par ligne) et ajoute `is_admin` à `Functions`
       de `app/types/database.types.ts`
-- [ ] Lots 2 et 3 : revérifier l'admin par `auth.getUser()` avant toute écriture (un rôle retiré ne
-      coupe l'accès qu'après 1 h au plus avec `getClaims`)
+- [x] Lot 2 : revérifier l'admin par `auth.getUser()` avant toute écriture (`requireAdminForWrite`,
+      un rôle retiré ne coupe l'accès qu'après 1 h au plus avec `getClaims`)
+- [ ] Lot 3 : même revérification (`requireAdminForWrite`) sur les routes d'écriture des photos et
+      de la fin d'intervention
 - [ ] Chore : déplacer les constantes de classes de formulaire et de calendrier de
       `app/constants/booking.ts` vers `app/constants/form.ts`
-- [ ] Bloquer une journée, changer une date, imposer le secteur d'un jour
-- [ ] Modifier la capacité par jour de semaine
+- [x] Bloquer une journée, changer une date, imposer le secteur d'un jour (`/pro/availability`,
+      secteur par commune)
+- [x] Modifier la capacité par jour de semaine
+- [x] Déplacer une intervention depuis l'espace Pro (`ProRescheduleDialog`), avec « Forcer quand
+      même » pour les refus qui le permettent, et mail au client
+- [x] Navigation latérale Pro (`ProNavPanel`), bouton commun `AppButton`, panneau d'état du jour
+      et badge « À déplacer »
+- [ ] Chore : migrer la croix de fermeture de `ProRescheduleDialog` (bouton natif) vers
+      `AppButton` en icône seule, avec la migration des boutons de la réservation, du devis et
+      du contact vers `AppButton`
+- [ ] Chore (facultatif) : déplacer « Suivre la règle » de `ProCapacityField` sur la ligne du
+      libellé
+- [ ] Chore e2e : une session admin partagée (`storageState` Playwright) à la place de la
+      connexion par lien magique de chaque test (43 connexions, `signInNewAdmin` instable, parfois
+      bloqué sur `/pro/confirm`)
+- [ ] Lancer `bun run test` une fois, à la fin de l'étape (après le lot 3), avant la fusion dans
+      `dev` : les tests des lots 1 et 2 sont écrits mais pas rejoués lot par lot
 - [ ] Photos avant/après depuis le téléphone
-- [ ] « Terminer l'intervention », disponible après l'ajout des photos
+- [ ] « Terminer l'intervention », disponible après l'ajout des photos ; l'admin peut forcer la
+      fin sans photos, après confirmation
 - [ ] Photos avant/après et facture dans l'espace client (retirées de `/account` à l'étape 7,
       emplacements « Bientôt disponible » sur `/account/bookings/[id]`, mentions légales françaises
       de la facture à fixer avec le client)
@@ -155,6 +178,11 @@ Tout se prépare et se teste en local, sans serveur. La mise en place sur le VPS
 
 ## 11. CI/CD
 
+- [ ] Typecheck : `bunx nuxi typecheck` échoue sur cette machine (`npx` récupère vue-tsc 3.3.13
+      avec TypeScript 7) et le projet n'a ni script `typecheck` ni `vue-tsc` en devDependency.
+      Ajouter `vue-tsc` en devDependency et un script `typecheck`, puis corriger les 5 erreurs
+      existantes (`HeroSection.vue`, `ServicesSection.vue`, `TrustStripSection.vue`,
+      `LanguageSwitcherDesktop.vue`, `LanguageSwitcherMobile.vue`)
 - [ ] CI : lint, formatage, typecheck, tests, build
 - [ ] CI : lancer `bun scripts/test-run.ts unit integration` (autonome, sans e2e ni clé Resend)
       sur une VM neuve : installer Bun et la CLI Stripe, avec le cache du fournisseur (clés

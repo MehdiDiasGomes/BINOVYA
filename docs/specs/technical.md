@@ -74,6 +74,15 @@
   fait avec `timingSafeEqual`.
 - `requireSignedAddress` est appelé par `POST /api/booking`, `POST /api/quote` et
   `POST /api/booking/availability` : jeton absent, modifié ou expiré donne 400 `invalidAddress`.
+- **Recherche de commune** : `/api/address/search` accepte `kind=address` (défaut) ou
+  `kind=municipality`, pour le secteur imposé d'un jour (espace Pro). France : IGN avec
+  `type=municipality`, libellé `<nom> (<code postal>)`. Luxembourg : pas d'appel externe, recherche
+  dans la liste fixe `LUXEMBOURG_COMMUNES` (`server/utils/luxembourgCommunes.ts`, 27 communes à
+  moins de 35 km du dépôt, au centroïde de leur limite officielle), sans accent ni casse, libellé
+  `<nom> (LU)`, code postal vide. Le jeton a le même format mais le contexte
+  `binovya-municipality-v1` : `requireSignedMunicipality` refuse un jeton d'adresse et
+  `requireSignedAddress` refuse un jeton de commune. Un code postal vide n'est accepté que pour
+  le Luxembourg (`municipalityDetailsSchema`, `signedMunicipalitySchema`).
 - Disponibilités : `POST /api/booking/availability` (corps JSON, l'adresse signée, 4 Ko max).
   L'ancienne route GET est supprimée et répond 404 : un GET aurait mis les coordonnées dans l'URL
   et les journaux.
@@ -182,7 +191,7 @@
 - Mails en français uniquement, quelle que soit la langue du site.
 - Gabarits dans `app/templates/email/` : `layout` (mise en page commune), `labels` (textes),
   `bookingDetails` (bloc récapitulatif), `bookingCustomerEmails` (confirmation, rappel,
-  remboursement), `bookingAdminEmail` (alerte BINOVYA), `photosAvailableEmail`, `accountEmails`
+  remboursement, changement de date), `bookingAdminEmail` (alerte BINOVYA), `photosAvailableEmail`, `accountEmails`
   (lien de connexion client et admin, alerte de suppression), `contactEmail` et `quoteEmail`.
 - Logique d'envoi dans `server/utils/bookingEmails.ts` et `server/utils/accountEmails.ts` : le
   client reçoit les mails avec `NUXT_CONTACT_EMAIL_TO` en `replyTo`.
@@ -196,12 +205,15 @@
 | Alerte admin (réservation payée) | Idem, à `NUXT_CONTACT_EMAIL_TO`                        |
 | Annulation et remboursement      | Webhook, `refund_required` ou `not_payable`            |
 | Rappel                           | Tâche `booking:reminders` (voir « Tâches planifiées ») |
-| Photos disponibles               | Gabarit prêt, pas encore appelé (étape 8)              |
+| Changement de date               | `POST /api/pro/bookings/[id]/reschedule`, après succès |
+| Photos disponibles               | Gabarit prêt, pas encore appelé (étape 8, lot 3)       |
 
 - Pas de mail de remboursement si la charge était déjà remboursée (`charge_already_refunded`) :
   un événement Stripe rejoué ne prévient pas deux fois.
 - Clés d'idempotence Resend `booking-confirmation-<id>`, `booking-admin-alert-<id>`,
-  `booking-refund-<id>`, `booking-reminder-<id>`, `booking-photos-<id>` et
+  `booking-refund-<id>`, `booking-reminder-<date>-<id>` (la date de l'intervention annoncée : une
+  réservation déplacée reçoit un nouveau rappel), `booking-reschedule-<uuid>-<id>` (un uuid neuf par
+  déplacement), `booking-photos-<id>` et
   `account-deletion-<id>-<heure de la demande>` (l'heure change après une demande remise à zéro,
   un nouvel essai envoie donc une nouvelle alerte). Resend les garde 24 heures. Le lien de
   connexion n'en a pas : chaque lien est unique.
@@ -593,27 +605,39 @@ select evtname, evtevent, evtfoid::regproc from pg_event_trigger where evtname =
 
 ## Espace Pro
 
-Règles métier : [booking-system.md](./booking-system.md). Lot 1 sur 3 de l'étape 8 (accès,
-planning, liste, itinéraire). Photos, capacité et « Terminer l'intervention » viennent aux lots 2
-et 3.
+Règles métier : [booking-system.md](./booking-system.md). Lots 1 et 2 sur 3 de l'étape 8 (accès,
+planning, liste, itinéraire ; disponibilités et déplacement d'une intervention). Photos et
+« Terminer l'intervention » viennent au lot 3.
 
 ### Pages et mise en page
 
 - Pages : `/pro/login` (demande du lien), `/pro/confirm` (vérification du lien, comme
-  `/account/confirm`), `/pro` (planning du jour) et `/pro/interventions` (liste filtrée). Toutes
-  en `noindex, nofollow` ; `/pro/confirm` envoie aussi `referrer: no-referrer`.
-- Layout `pro` (`app/layouts/pro.vue`) : en-tête sombre, navigation avec `aria-current`, menu
-  burger sous `sm:`.
+  `/account/confirm`), `/pro` (planning du jour), `/pro/interventions` (liste filtrée) et
+  `/pro/availability` (capacité par jour de semaine, exception d'une date, jours à signaler,
+  paramètre `?date=` pour ouvrir une date). Toutes en `noindex, nofollow` ; `/pro/confirm` envoie
+  aussi `referrer: no-referrer`.
+- Layout `pro` (`app/layouts/pro.vue`) : barre latérale fixe (`ProNavPanel`) à partir de
+  `PRO_SIDEBAR_MIN_WIDTH` (1024 px, requête `PRO_SIDEBAR_QUERY`), en-tête sombre avec menu burger
+  en dessous. Le burger ouvre la même navigation dans un panneau `Dialog` reka-ui
+  (`PRO_NAV_SHEET_ID`) qui se ferme au passage au mode barre latérale ; le focus revient alors sur
+  le premier lien de la barre, sinon sur le bouton du menu. Sans session admin, ni barre ni
+  burger, seulement le nom de la marque.
+- `ProNavPanel.vue` : liens de `PRO_NAV_ITEMS` (planning, interventions, disponibilités) avec
+  `aria-current`, adresse de l'admin connecté et bouton de déconnexion.
 
 ### Routes serveur
 
 - `POST /api/pro/auth/login` : `handleLoginRequest` avec la RPC `claim_admin_login_link` et
   `sendAdminLoginLinkEmail`.
 - `GET /api/pro/planning?date=` : interventions `paid` et `completed` du jour (aujourd'hui en
-  Europe/Paris sans `date`) et coordonnées du dépôt.
+  Europe/Paris sans `date`), coordonnées du dépôt et `day` (`ProDayOverview` du jour, ou `null`
+  si `admin_day_overview` échoue : l'erreur est journalisée et le planning reste affiché).
+  Chaque intervention porte `isToMove`.
 - `GET /api/pro/interventions?status&from&to&page` : page de 50 interventions. `status` vaut
   `all` par défaut, `page` va de 1 à 1000. `from` postérieur à `to` donne 400 (le navigateur
-  l'écarte avant l'appel).
+  l'écarte avant l'appel). Les dates des interventions `paid` de la page passent par
+  `admin_day_overview` (un appel par plage de 400 jours au plus, `loadDayOverviewsOfDates`) pour
+  poser `isToMove` ; si l'appel échoue, la liste s'affiche sans badge (erreur journalisée).
 - Ordre des deux `GET`, identique : `Cache-Control: private, no-store` posé en premier, puis
   `requireAdmin`, puis la validation Zod (`server/utils/proSchemas.ts`, 400), puis la lecture avec
   le client Supabase de la session, donc sous la RLS `is_admin()`. Une erreur de lecture donne 500.
@@ -622,6 +646,33 @@ et 3.
 - Page au-delà du total : PostgREST répond `PGRST103` (plage non satisfaisable). La route refait
   alors une requête qui ne fait que compter et renvoie une page vide avec le total, pour que le
   navigateur retourne à la dernière page.
+- Routes du lot 2, toutes avec `Cache-Control: private, no-store`. Les lectures passent par
+  `requireAdmin`. Les écritures passent par `assertSameOrigin`, puis `requireAdminForWrite`
+  (voir plus bas), puis la taille du corps, puis Zod, et écrivent avec le rôle `service_role` : la
+  RLS n'autorise plus aucune écriture à `authenticated`.
+  - `GET /api/pro/availability?from&to` : règles par jour de semaine et jours « notables »
+    (`isNotableDay` : exception, jour fermé avec interventions payées, ou plus de réservations que
+    la capacité). Par défaut d'aujourd'hui à +365 jours (`PRO_AVAILABILITY_HORIZON_DAYS`), au
+    plus 400 jours (`PRO_AVAILABILITY_MAX_RANGE_DAYS`), sinon 400. Réponse
+    `{ from, to, rules, days }`.
+  - `PUT /api/pro/availability/rules` (2 Ko) : `{ rules: [{ weekday, maxBookings }] }`, 1 à 7
+    jours distincts, capacité de 0 à `PRO_DAY_CAPACITY_MAX` (50). Un seul `upsert`, donc toutes
+    les règles ou aucune. Renvoie les 7 règles.
+  - `PUT /api/pro/availability/overrides/[date]` (4 Ko) : corps `maxBookings` (nombre ou
+    `null`), `note` (texte ou `null`) et `sector` (commune signée, `null` ou absent). Une date
+    invalide ou au-delà de l'horizon donne 400, une date passée 422. `sector` absent garde le
+    secteur enregistré, `null` l'efface. Une commune au jeton invalide donne 400 `invalidAddress`. Une note vide
+    devient `null`. Une exception laissée sans capacité, sans secteur et sans note est supprimée.
+    Renvoie le `ProDayOverview` du jour.
+  - `DELETE /api/pro/availability/overrides/[date]` : mêmes contrôles de date (400, 422). Supprimer
+    une exception absente réussit. Renvoie le `ProDayOverview` du jour.
+  - `POST /api/pro/bookings/[id]/reschedule` (1 Ko) : `{ date, force }`. Réponse
+    `{ bookingId, oldDate, newDate, overriddenCodes }`. Les refus portent `data.code` :
+    `notFound` 404 (aussi pour un identifiant qui n'est pas un uuid), `invalidDate` 400,
+    `tooFar` 400 (aussi levé par Zod, au-delà de 365 jours), `notPaid` 422, `sameDate` 422,
+    `pastDate` 422, `tooFrequent` 429, `outOfArea`, `dayClosed`, `dayFull` et `outOfSector` 409
+    (forçables avec `force: true`). Le mail au client part après la réponse
+    (`event.waitUntil(sendBookingRescheduleEmail)`, qui ne lève jamais).
 
 ### Fonctions serveur
 
@@ -641,7 +692,29 @@ et 3.
   (voulu : il part à l'admin lui-même).
 - `loadDayInterventions`, `loadInterventionsPage`, `loadDepot` (`server/utils/proInterventions.ts`)
   : lectures sous RLS. Les profils sont lus à part, par lot d'identifiants. Tri du planning par
-  code postal puis adresse, de la liste par date puis date de création.
+  code postal puis adresse, de la liste par date puis date de création. `paidInterventionDates` et
+  `flagInterventionsToMove` posent `isToMove` : intervention `paid` dont le jour est fermé, jamais
+  un jour seulement en dépassement de capacité.
+- `requireAdminForWrite` (`server/utils/adminSession.ts`) : `requireAdmin`, puis relit le compte
+  par `auth.getUser()` (appel à Supabase Auth, pas seulement le jeton). 401 si l'identifiant
+  diffère ou si Auth ne répond pas, 403 si le rôle a été retiré ou si le compte est banni. Pourquoi :
+  un rôle retiré reste lisible dans le jeton jusqu'à 1 h. Employé par les quatre routes
+  d'écriture du lot 2 ; le lot 3 devra l'employer aussi.
+- `server/utils/proAvailability.ts` : `loadDayOverviews`, `loadDayOverview`,
+  `loadDayOverviewsOfDates` (appels de `admin_day_overview`, service role), `loadWeekdayRules`
+  (7 règles, un jour sans règle vaut 0), `saveWeekdayRules`, `saveDayOverride` (upsert puis
+  suppression si l'exception est vide) et `deleteDayOverride`. Une erreur de lecture donne 500
+  `Availability unavailable`, une erreur d'écriture 500 `Availability not saved`.
+- `server/utils/proReschedule.ts` : `rescheduleBooking` appelle `admin_reschedule_booking` et
+  traduit la ligne de refus (`reason`) en erreur HTTP avec `data.code`. `proSchemas.ts` : le
+  schéma `proHorizonDateSchema` marque l'issue « trop loin » pour que la route réponde `tooFar`
+  (`isBeyondProHorizon`) plutôt que `invalidDate`.
+- `sendBookingRescheduleEmail` (`server/utils/bookingEmails.ts`) : mail de changement de date au
+  client, clé d'idempotence `booking-reschedule-<uuid>-<id>` avec un uuid neuf à chaque appel
+  (un mail par déplacement, même aller-retour dans la journée). Le rappel
+  (`server/utils/bookingReminders.ts`) a maintenant la clé `booking-reminder-<date>-<id>` : sans
+  la date, un rappel déjà envoyé aurait bloqué celui de la nouvelle date. Le `update` de
+  `reminder_sent_at` est conditionné à la date annoncée.
 
 ### Base de données
 
@@ -656,8 +729,41 @@ et 3.
 - `is_admin()` (plpgsql, `stable`) : vrai si `app_metadata.role = 'admin'` ET si
   `oldest_link_sign_in_at()` a moins de 7 jours. Une session par mot de passe n'est donc jamais
   admin. Elle était en SQL simple (rôle seul) : en plpgsql elle n'est plus remplacée par son
-  corps dans les requêtes et s'évalue par ligne dans certaines policies (voir « Risques acceptés »).
+  corps dans les requêtes et s'évalue par ligne si la policy l'appelle directement. Depuis la
+  migration `20261017020000`, toutes les policies l'écrivent `(select public.is_admin())` : elle
+  est évaluée une fois par requête. Déclarée dans `Functions` de `app/types/database.types.ts`.
 - `has_recent_sign_in()` : inchangée dans son comportement (voir « Espace client »).
+- Migrations du lot 2, appliquées et vérifiées en base :
+  - `20261017020000_pro_availability_admin` : contraintes (capacité ≤ 50, latitude et longitude
+    bornées, note ≤ 500 caractères) ; `day_check(date, lat, lon, exclude_booking, apply_bounds)`,
+    qui reprend la logique de `day_status` (fermé, complet, `outOfSector`, disponible) en ignorant
+    au besoin une réservation et les bornes de délai minimum et d'horizon ; `day_status` garde sa
+    signature et son comportement en appelant `day_check` ; `admin_day_overview` ; première
+    version d'`admin_reschedule_booking` ; retrait des écritures `authenticated` sur `bookings`
+    (UPDATE), `availability_rules` et `availability_overrides` (il ne reste que des policies
+    `select` admin) ; réécriture des policies en `(select public.is_admin())`.
+  - `20261017030000_pro_availability_hardening` : colonne `availability_overrides.sector_label`
+    (1 à 300 caractères, seulement avec des coordonnées) ; colonnes `bookings.rescheduled_at`,
+    `reschedule_count` et `reschedule_window_start` ; `admin_reschedule_booking` refait avec
+    `too_far` et `too_frequent` et `overridden_reasons` (tableau) ; `admin_day_overview` renvoie
+    `sector_label` et ne renvoie plus les coordonnées de la première réservation (adresse d'un
+    client) ; écritures de `price_grid`, `booking_settings` et `quote_requests` réservées au
+    serveur (policies `select` admin seulement), `INSERT`, `DELETE` et `TRUNCATE` de `bookings`
+    retirés à `anon` et `authenticated`.
+- `admin_day_overview(p_from, p_to)` : une ligne par date (400 jours au plus, sinon exception
+  `INVALID_RANGE`) avec capacité effective et sa source (`rule` ou `override`), `is_closed`,
+  secteur imposé et son libellé, note, réservations actives (comptées dans la capacité) et
+  payées (à déplacer si le jour est fermé).
+- `admin_reschedule_booking(p_booking_id, p_new_date, p_force)` : verrouille la réservation
+  (`for update`) puis les deux jours (verrous consultatifs, dans l'ordre des dates). Refus jamais
+  forçables, dans l'ordre : `not_found`, `not_paid`, `invalid_date`, `same_date`, `past_date`,
+  `too_far` (plus de 365 jours), `too_frequent` (quatrième déplacement dans la même heure).
+  Contrôles forçables : `out_of_area` puis ceux de `day_check` (`day_closed`, `day_full`,
+  `out_of_sector`). Sans `p_force`, le premier refuse ; avec, tous ceux qui échouent sont
+  renvoyés dans `overridden_reasons`. Elle remet `reminder_sent_at` et `day_of_sms_sent_at` à
+  zéro et compte le déplacement. Un nouvel essai après un délai dépassé côté navigateur est donc
+  protégé côté base : même date (`same_date`) ou plafond (`too_frequent`).
+- `day_check`, `admin_day_overview` et `admin_reschedule_booking` sont réservées à `service_role`.
 - Créer un admin SANS mot de passe : invitation du tableau de bord Supabase, ou
   `auth.admin.createUser` sans `password`, avec `email_confirm: true` et
   `app_metadata: { role: 'admin' }`. Pas de fiche `profiles`. Un mot de passe ne donnerait de toute
@@ -667,7 +773,8 @@ et 3.
 
 ### Client
 
-- Middlewares : `admin` (protège `/pro` et `/pro/interventions` ; sans session valide renvoie vers
+- Middlewares : `admin` (protège `/pro`, `/pro/interventions` et `/pro/availability` ; sans session
+  valide renvoie vers
   `/pro/login`, avec `?access=denied` si la session n'est pas admin, avec `?session=expired` si la
   session admin a plus de 7 jours) et `admin-guest` (renvoie un admin connecté de `/pro/login` vers
   `/pro`). Les avis passent par `NoticeBanner.vue`. `customer` et `guest` renvoient un admin vers
@@ -692,9 +799,74 @@ et 3.
   ou vers une ancre met le focus sur le titre ciblé, sinon sur le bouton.
 - `DatePicker.vue` : `Popover` shadcn et `CalendarRoot` / `CalendarCellTrigger` de reka-ui. Nom
   accessible par `aria-labelledby` (libellé et valeur), `isLabelHidden` pour masquer le libellé,
-  bornes `min` / `max`, lundi en premier, pas de grille fixe à 6 semaines. Les classes du calendrier
+  bornes `min` / `max`, lundi en premier. Le calendrier montre toujours 6 semaines (`fixed-weeks`),
+  s'ouvre toujours sous son champ (`side-flip` désactivé) et défile en interne quand la place
+  manque (`max-h` sur la hauteur disponible de reka). Le panneau n'est monté qu'à la première
+  ouverture (`isPanelMounted`). Pourquoi : dans reka-ui 2.7.0, un popover téléporté et toujours
+  monté dans un dialogue perturbe le `FocusScope` et fait perdre l'autofocus du dialogue. À
+  revérifier pour tout composant téléporté monté dans un dialogue. Les classes du calendrier
   sont partagées avec `BookingCalendar` dans `app/constants/booking.ts` (déplacement vers
   `app/constants/form.ts` prévu, voir `TODO.md`). Le filtre de statut est un `Select` shadcn.
+- `AppButton.vue` et `buttonClass` (`app/constants/buttons.ts`, `cva`) : bouton ou lien commun.
+  Variantes `primary`, `secondary`, `destructive`, `warning`, `onDark`, `onDarkWarning`,
+  `onDarkGhost` et `onDarkOutline`, tailles `md` (48 px) et `sm` (44 px). Props `to` (lien interne,
+  `NuxtLink`), `href`, `icon`, `trailingIcon`, `isLoading` et `isDisabled`. Un bouton bloqué (en
+  chargement ou désactivé) porte `aria-disabled` plutôt que `disabled`, pour garder le focus et
+  la lecture par un lecteur d'écran ; son clic est annulé, et un lien bloqué devient un `a` avec
+  `role="link"` sans `href`. Le contenu est dans un `span` `contents *:min-w-0` : ainsi un
+  bouton en icône seule (texte `sr-only`) reste centré. `focus()` est exposé. Utilisé par les
+  pages Pro, la connexion, l'espace client et `DatePicker` ; les boutons de la réservation, du
+  devis et du contact restent à migrer (`TODO.md`).
+- `ProDayStatusPanel.vue` (planning) : titre, raison, note du jour, conseil et deux actions
+  (« Déplacer l'intervention » / « Déplacer les interventions », ou « Choisir les interventions à
+  déplacer » en dépassement de capacité ; il met le focus sur le premier « Changer la date » de
+  la liste, sinon sur son titre. Puis « Rouvrir ce jour » ou « Augmenter la capacité de ce jour », lien vers
+  `/pro/availability?date=` tant que la date est modifiable).
+  Contenu calculé par `dayStatus` et `dayStatusTitle` (`app/utils/proAvailability.ts`). La forme
+  plurielle du titre vient du 3ᵉ argument de `t` ; aucun paramètre nommé ne s'appelle `n` ou
+  `count` dans ces titres, car vue-i18n choisirait la forme plurielle d'après eux avant
+  l'argument explicite.
+- `ProCapacityField.vue` : champ numérique (`NumberField` reka) de 0 à `PRO_DAY_CAPACITY_MAX`
+  avec boutons plus et moins de 44 px. Dans une exception de date (`isNullable`), le champ vide
+  affiche en gris la valeur de la règle (« N (règle) », `rulePlaceholder`) alors que la valeur
+  enregistrée reste vide (`null` = suit la règle) ; les flèches et les boutons partent de cette
+  valeur. Le texte tapé est appliqué au fil de la frappe (limité aux bornes) et une valeur
+  inchangée n'est jamais réémise. Pourquoi : reka n'applique le texte qu'au `blur`, et le
+  changement de mise en page provoqué au-dessus de « Enregistrer » (bouton « Suivre la règle »,
+  jour fermé, erreur) déplaçait le bouton avant la fin du clic, qui tombait à côté.
+  « Suivre la règle » remet `null`.
+- `useProDayOverrideDrafts` : brouillons du formulaire d'exception (capacité, note, commune,
+  erreurs, retour). Remis à zéro au changement de date et après le rechargement qui suit un
+  enregistrement ; la réponse d'une date que l'admin a quittée ne touche pas les brouillons de
+  la date affichée.
+- `ProWeekdayRulesForm`, `ProDayOverrideForm`, `ProDayOverviewList` (jours signalés avec leur
+  bouton de modification) et `ProFormFeedback` : formulaires de `/pro/availability`. Les messages
+  d'enregistrement passent par `useLiveAnnouncement` dans la région `role="status"` de la page.
+- `ProRescheduleDialog.vue` (`Dialog` reka-ui) : fenêtre « Changer la date ». Sur mobile, feuille
+  basse avec une hauteur minimale pour que le calendrier tienne sous le champ ; à partir de
+  `sm:`, fenêtre centrée.
+  - Focus initial sur « Nouvelle date ». Une date vide donne une erreur de champ.
+  - Fermeture bloquée pendant l'envoi : Échap, la croix, « Annuler » et le fond sont sans effet
+    (`handleOpenChange` ; la croix et « Annuler » sont `aria-disabled`).
+  - Délai de la requête `PRO_RESCHEDULE_TIMEOUT_MS`, sans nouvel essai automatique. Au dépassement,
+    le message `pro.reschedule.errors.timeout` précise que le déplacement a peut-être été
+    enregistré, le focus reste sur « Déplacer », et toute fermeture recharge la liste puis place
+    le focus sur son titre. Un nouvel essai est protégé côté serveur (verrou de la ligne,
+    `same_date`, `too_frequent`).
+  - Un refus forçable affiche « Forcer quand même » (variante `destructive`) ; un autre refus
+    redonne le focus à « Déplacer ».
+  - Après un déplacement réussi, la fenêtre se ferme, l'annonce de succès n'est émise qu'une fois
+    le contenu du dialogue démonté (`aria-hidden` retiré de la page), puis la liste se recharge et
+    son titre prend le focus (`useProPageState.handleRescheduled`). Sans déplacement ni délai
+    dépassé, le focus revient sur le bouton « Changer la date » qui a ouvert la fenêtre.
+  - La région `role="status"` de `/pro` et `/pro/interventions` porte `aria-live="polite"`
+    explicite : `hideOthers` de reka épargne seulement les éléments `[aria-live]`, et sans cet
+    attribut l'annonce serait perdue pendant que le dialogue est ouvert.
+  - Dépendance technique : l'ordre d'annonce s'appuie sur reka-ui 2.7 (`FocusScope` émet
+    `closeAutoFocus` pendant `scope.stop()`, et `useHideOthers` retire `aria-hidden` dans un
+    `onUnmounted` après le rendu) et sur Vue 3.5. À revérifier à chaque mise à jour de reka-ui.
+- `ProInterventionCard.vue` : badge « À déplacer » (`isToMove`, texte masqué « jour fermé » pour
+  les lecteurs d'écran) et bouton « Changer la date » pour une intervention `paid`.
 - `ProInterventionCard.vue` : sous 640 px le repli se fait en CSS (`max-sm:`), mais `inert` et
   `aria-hidden` dépendent de `useMediaQuery` seul, pour que le contenu masqué ne soit ni focalisable
   ni lu. `MediaCardSkeleton.vue` a les props `tallRows` et `collapsedRows` pour garder la même
@@ -723,10 +895,9 @@ installe.
 
 ### Risques acceptés
 
-- Un rôle admin retiré ne coupe l'accès qu'après 1 h au plus, durée de vie du jeton lu par
-  `getClaims`. Parade prévue aux lots 2 et 3 : `auth.getUser()` avant toute écriture.
-- `is_admin()` est évaluée par ligne dans certaines policies. Parade prévue au lot 2 : l'écrire
-  `(select public.is_admin())` dans les policies, qui est alors évaluée une fois par requête.
+- Un rôle admin retiré ne coupe la lecture qu'après 1 h au plus, durée de vie du jeton lu par
+  `getClaims`. Les écritures du lot 2 relisent le compte par `auth.getUser()`
+  (`requireAdminForWrite`) ; celles du lot 3 devront le faire aussi.
 - Adresse admin dédiée et non publiée : n'importe qui peut en demander un lien, et 5 liens sur 24 h
   verrouillent l'admin pour le reste de la journée.
 - Un appel à `/api/pro/*` avec une session par mot de passe révoque globalement les sessions de
@@ -734,13 +905,44 @@ installe.
 
 ### Tests
 
+- Cadence : les tests (unitaires, d'intégration, e2e) sont écrits et lancés une fois par
+  fonctionnalité, c'est-à-dire pour toute l'étape 8 (`feat/pro-space`), à la fin du lot 3 et avant
+  la fusion dans `dev`, pas après chaque lot. Les revues de code suivent en revanche chaque
+  passage. Les fichiers du lot 2 ci-dessous sont écrits mais n'ont pas été rejoués : aucun
+  décompte de tests pour le lot 2.
 - Tests dans `tests/{unit,integration,e2e}/pro/`, aide `tests/support/admin.ts` (création d'un
   admin directement dans Auth, lecture des compteurs, nettoyage).
+- Tests du lot 2 :
+  - Unitaires : `tests/unit/pro/pro-availability.test.ts` (statut d'un jour, titres, secteur,
+    codes de refus), `pro-availability-schemas.test.ts` (schémas Zod), `pro-availability-server.test.ts`
+    (lectures et écritures), `pro-reschedule-server.test.ts` (déplacement, `isToMove`),
+    `pro-day-override-drafts.test.ts` ;
+    `tests/unit/booking/municipality-token.test.ts`,
+    `tests/unit/email/booking-reschedule-email.test.ts`,
+    `tests/unit/shared/button-class.test.ts` et `fetch-error.test.ts`.
+  - Intégration : `tests/integration/pro/pro-availability-access.test.ts` (accès),
+    `pro-availability-write.test.ts` (écritures), `pro-reschedule.test.ts` (déplacement),
+    `pro-to-move.test.ts` (badge) ; `tests/integration/booking/address-search-municipality.test.ts`
+    et `tests/integration/email/booking-reschedule.test.ts` (un mail par déplacement).
+  - E2E : `tests/e2e/pro/pro-availability.spec.ts`, `pro-availability-form.spec.ts`,
+    `pro-reschedule.spec.ts` et `pro-date-picker.spec.ts`.
+  - Aides : `tests/support/pro.ts` (dates lointaines réservées aux tests, lecture et nettoyage
+    des exceptions et des règles, sessions admin) et `tests/support/pro-fixtures.ts` (faux client
+    Supabase et jeux de données des tests unitaires). `tests/e2e/support/pro.ts` complété.
 - `tests/integration/booking/booking-reminders.test.ts` et
   `tests/integration/email/booking-reminder.test.ts` refusent de tourner tant que de vraies
-  réservations payées (ou de démonstration) sont dans la fenêtre de rappel.
+  réservations payées (ou de démonstration) sont dans la fenêtre de rappel. La clé de rappel par
+  date (`booking-reminder-<date>-<id>`) n'est donc vérifiée que sur une base sans telles
+  réservations.
 - E2E instable : `tests/e2e/pro/pro-interventions.spec.ts:152` (`ERR_ABORTED` pendant un
   rechargement du serveur de dev).
+- E2E lent et fragile : chaque test ouvre sa propre session admin par lien magique (43
+  connexions), et `signInNewAdmin` reste parfois bloqué sur `/pro/confirm`. Une session partagée
+  (`storageState`) est prévue, voir `TODO.md`.
+- Vérification de types : `bunx nuxi typecheck` échoue sur cette machine (`npx` récupère vue-tsc
+  3.3.13 avec TypeScript 7) ; le projet n'a ni script `typecheck` ni `vue-tsc` en devDependency, et
+  5 erreurs existaient déjà (`HeroSection.vue`, `ServicesSection.vue`, `TrustStripSection.vue`,
+  `LanguageSwitcherDesktop.vue`, `LanguageSwitcherMobile.vue`). Voir `TODO.md`, étape 11.
 
 ## Hébergement
 
@@ -956,8 +1158,9 @@ Le job `expire-stale-bookings` (`*/5 * * * *`) appelle `public.expire_stale_book
   manqué, et un envoi échoué est retenté le lendemain.
 - Utilise `createServiceRoleClient()` (`server/utils/supabaseServiceClient.ts`), envoie un mail
   toutes les 600 ms au plus pour rester sous la limite de débit de Resend, puis remplit
-  `reminder_sent_at` (seulement s'il est encore vide). Une seule instance Nuxt doit tourner, sinon
-  deux instances enverraient le même rappel.
+  `reminder_sent_at` (seulement s'il est encore vide et si la réservation est toujours à la date
+  annoncée). Une seule instance Nuxt doit tourner, sinon deux instances enverraient le même
+  rappel. Un déplacement admin remet `reminder_sent_at` à zéro (voir « Espace Pro »).
 - La planification n'existe que dans un build de production (`NODE_ENV=production`). En dev,
   aucun cron : on lance la tâche à la main avec `GET /_nitro/tasks/booking:reminders`, une route
   qui n'existe qu'en dev.
@@ -1078,11 +1281,11 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 
 - `tests/{unit,integration,e2e}/<domaine>/` avec les domaines `account`, `booking`, `contact`,
   `email`, `pro`, `shared` et `scripts`. Noms de fichiers en kebab-case. Les aides communes sont dans
-  `tests/support/` (`api`, `db`, `seed`, `env`, `dates`, `account`, `admin`, `outbox`) ; celles propres au
-  e2e dans `tests/e2e/support/`.
+  `tests/support/` (`api`, `db`, `seed`, `env`, `dates`, `account`, `admin`, `outbox`, `pro`,
+  `pro-fixtures`) ; celles propres au e2e dans `tests/e2e/support/`.
 - Un test d'intégration par gabarit de mail, dans `tests/integration/email/` : confirmation,
-  alerte admin de paiement, remboursement après paiement tardif, rappel, lien de connexion,
-  alerte de suppression, contact et devis. Ils lisent l'outbox (`tests/support/outbox.ts`). Le
+  alerte admin de paiement, remboursement après paiement tardif, rappel, changement de date,
+  lien de connexion, alerte de suppression, contact et devis. Ils lisent l'outbox (`tests/support/outbox.ts`). Le
   mail « photos disponibles » n'a qu'un test unitaire jusqu'à l'étape 8.
 - Les autres tests ne vérifient pas les mails, sauf les parcours qui en ont besoin (lien de
   connexion) et l'idempotence.
@@ -1138,8 +1341,12 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
   JSON), alors que l'application exige un nombre. À trancher dans une future migration.
 - Sans `NUXT_SITE_URL`, `POST /api/booking` journalise deux fois l'erreur (`assertCheckoutSiteUrl`
   puis `resolveSiteUrl`). Sans conséquence.
-- `is_admin()` n'est pas encore déclarée dans `Functions` de `app/types/database.types.ts`
-  (`TODO.md`, étape 8, lot 2).
+- La région `role="status"` de `/pro/availability` n'a pas d'`aria-live="polite"` explicite, contrairement
+  à `/pro` et `/pro/interventions` (là où un dialogue peut être ouvert). Sans conséquence tant que
+  la page n'ouvre aucun dialogue, à ajouter sinon.
+- reka-ui 2.7 : deux comportements internes sont utilisés (ordre d'émission de `closeAutoFocus`
+  du dialogue de déplacement, et `FocusScope` d'un popover téléporté dans un dialogue). À
+  revérifier à chaque mise à jour de reka-ui (voir « Espace Pro », client).
 - `tests/e2e/customer-area.spec.ts` approche la limite de 350 lignes (310) : le découper avant d'y
   ajouter des tests.
 - La branche « développement » de `isMailConfigured()` (valeur inconnue refusée, outbox permise)

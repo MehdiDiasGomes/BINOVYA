@@ -169,6 +169,14 @@ bun run format:check
 bunx nuxi typecheck
 ```
 
+> Known issue: `bunx nuxi typecheck` currently fails on some machines (`npx` pulls vue-tsc 3.3.13
+> with TypeScript 7) and 5 type errors already exist. A `typecheck` script with `vue-tsc` as a
+> devDependency is planned, see `docs/TODO.md` (step 11).
+
+Automated tests (`bun run test:unit`, `test:integration`, `test:e2e`) are run once per feature,
+meaning a whole TODO step and its branch, at the end and before merging into `dev`, not after
+each lot or change. Code reviews still follow every pass.
+
 2. Verify the application builds correctly:
 
 ```bash
