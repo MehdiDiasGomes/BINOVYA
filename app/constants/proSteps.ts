@@ -3,6 +3,7 @@ import type {
   ProProgressView,
   ProStepId,
   ProStepPhotoKinds,
+  ProStepState,
 } from '@/types/proSteps'
 
 export const PRO_STEPS: [ProStepId, ...ProStepId[]] = ['directions', 'before', 'after', 'recap']
@@ -25,8 +26,18 @@ export const PRO_PROGRESS_VIEWS: Record<ProInterventionProgress, ProProgressView
   cancelled: { labelKey: 'pro.progress.cancelled', icon: 'CircleX' },
 }
 
-export const PRO_STEP_ITEM_CLASS: string =
-  'flex h-full min-h-22 flex-col items-center justify-center gap-0.5 rounded-xl border px-0.5 py-1.5 text-center'
+export const PRO_STEP_SEGMENT_CLASS: string =
+  'relative flex min-h-11 w-full items-center rounded-sm'
+
+export const PRO_STEP_BAR_CLASS: string =
+  'block h-2 w-full rounded-full border-2 transition-colors duration-press ease-brand motion-reduce:transition-none'
+
+export const PRO_STEP_BAR_TONES: Record<ProStepState, string> = {
+  current: 'h-3 border-navy-800 bg-navy-800',
+  done: 'border-primary bg-primary',
+  skipped: 'border-dashed border-amber-700 bg-amber-700/25',
+  todo: 'border-ink/50 bg-transparent',
+}
 
 export const PRO_STEP_LINK_CLASS: string =
-  'transition-colors duration-press ease-brand focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none'
+  'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2'

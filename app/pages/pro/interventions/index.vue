@@ -18,7 +18,7 @@
       <div
         role="search"
         :aria-label="$t('pro.list.filters.label')"
-        class="grid gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4 lg:items-start"
+        class="grid grid-cols-1 gap-4 rounded-2xl border border-border bg-white p-5 shadow-sm sm:grid-cols-2 lg:grid-cols-4 lg:items-start"
       >
         <div>
           <span class="mb-1.5 block text-sm font-bold text-ink">
@@ -55,6 +55,8 @@
           :label="$t('pro.list.filters.from')"
           :max="draft.to"
           :is-required="false"
+          :marked-days="markedDays"
+          @visible-range="loadDays"
         />
         <DatePicker
           :id="TO_FIELD_ID"
@@ -63,6 +65,8 @@
           :min="draft.from"
           :error="rangeError"
           :is-required="false"
+          :marked-days="markedDays"
+          @visible-range="loadDays"
         />
         <div class="sm:pt-6.5">
           <AppButton variant="secondary" class="w-full" @click="resetFilters">
@@ -175,6 +179,8 @@ const {
   actionNotice,
   handleRescheduled,
 } = useProPageState({ data: result, status, error, refresh })
+
+const { markedDays, loadDays } = useProInterventionDays(result)
 
 const total: ComputedRef<number> = computed(() => result.value?.total ?? 0)
 

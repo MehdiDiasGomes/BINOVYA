@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-dvh bg-paper">
+  <div class="flex min-h-dvh flex-col bg-paper">
     <a
       href="#main-content"
       class="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground focus:shadow-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
@@ -41,6 +41,7 @@
           <MenuToggleButton
             ref="menuButton"
             :is-open="isMenuOpen"
+            :is-morphing="false"
             :controls="PRO_NAV_SHEET_ID"
             :class="MENU_ICON_BUTTON_CLASS"
             @toggle="toggle"
@@ -70,9 +71,45 @@
         </DialogRoot>
       </div>
     </header>
-    <main id="main-content" tabindex="-1" :class="cn('focus:outline-none', isAdmin && 'lg:pl-64')">
+    <main
+      id="main-content"
+      tabindex="-1"
+      :class="cn('flex-1 focus:outline-none', isAdmin && 'lg:pl-64')"
+    >
       <slot />
     </main>
+    <footer :class="cn('bg-navy-950 text-sm text-white/80', isAdmin && 'lg:pl-64')">
+      <div
+        class="flex flex-col items-start border-t border-white/10 px-4 py-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:px-8"
+      >
+        <nav :aria-label="$t('pro.footer.navLabel')" class="sm:order-last">
+          <ul class="flex flex-wrap items-center gap-x-3">
+            <li>
+              <NuxtLink :to="localePath('/legal')" :class="FOOTER_LINK_CLASS">
+                {{ $t('footer.info.legal') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <span aria-hidden="true" class="mr-3 hidden text-white/60 sm:inline">·</span>
+              <NuxtLink :to="localePath('/privacy')" :class="FOOTER_LINK_CLASS">
+                {{ $t('footer.info.privacy') }}
+              </NuxtLink>
+            </li>
+            <li>
+              <span aria-hidden="true" class="mr-3 hidden text-white/60 sm:inline">·</span>
+              <NuxtLink :to="localePath('/')" :class="cn(FOOTER_LINK_CLASS, 'gap-1')">
+                {{ $t('pro.footer.backToSite') }}
+                <Icon name="ArrowUpRight" :size="14" aria-hidden="true" />
+              </NuxtLink>
+            </li>
+          </ul>
+        </nav>
+        <span aria-hidden="true" class="hidden text-white/60 sm:inline">·</span>
+        <p class="pb-2 sm:order-first sm:pb-0">
+          {{ $t('pro.footer.copyright', { year: currentYear }) }}
+        </p>
+      </div>
+    </footer>
   </div>
 </template>
 
@@ -107,7 +144,11 @@ const BRAND_LINK_CLASS: string = cn(
 const MENU_ICON_BUTTON_CLASS: string =
   'size-11 rounded-lg transition-colors duration-press ease-brand hover:bg-white/10 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none'
 
+const FOOTER_LINK_CLASS: string =
+  'inline-flex min-h-11 items-center rounded-md px-1 transition-colors duration-press ease-brand hover:text-white hover:underline hover:underline-offset-4 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none'
+
 const localePath = useLocalePath()
+const currentYear: number = new Date().getFullYear()
 const { isAdmin } = useAdminSession()
 const {
   isOpen: isMenuOpen,

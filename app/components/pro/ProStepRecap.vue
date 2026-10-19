@@ -3,7 +3,7 @@
     <p class="text-[15px] text-ink/80">
       {{ props.isCompleted ? $t('pro.steps.completed.recapText') : $t('pro.steps.recap.text') }}
     </p>
-    <ul class="grid gap-4 sm:grid-cols-2">
+    <ul class="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <li v-for="kind in PHOTO_KINDS" :key="kind">
         <ProPhotoSlot :kind="kind" :upload="props.upload" :context="props.context" />
       </li>

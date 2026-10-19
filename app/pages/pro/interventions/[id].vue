@@ -1,7 +1,6 @@
 <template>
   <div class="min-h-[70vh]">
     <p class="sr-only" role="status" aria-live="polite">{{ liveStatus }}</p>
-    <p class="sr-only" role="status" aria-live="polite">{{ photoNotice }}</p>
     <div class="mx-auto max-w-[720px] space-y-6 px-4 pb-16 pt-6 sm:px-8 sm:pt-10">
       <NuxtLink :to="localePath(backRoute)" :class="BACK_LINK_CLASS">
         <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
@@ -9,19 +8,29 @@
       </NuxtLink>
 
       <header>
-        <p
-          v-if="progress"
-          class="mb-2 flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[1.5px] text-primary"
-        >
-          <Icon :name="progress.icon" :size="16" aria-hidden="true" class="shrink-0" />
-          {{ $t(progress.labelKey) }}
-        </p>
-        <span
-          v-else
-          class="mb-2 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary"
-        >
-          {{ $t('pro.steps.eyebrow') }}
-        </span>
+        <template v-if="isHeaderMetaShown">
+          <Motion
+            v-if="progress"
+            as="p"
+            :initial="{ opacity: 0, y: CONTENT_ENTER_OFFSET }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="CONTENT_ENTER_TRANSITION"
+            class="mb-2 flex items-center gap-2 text-[12.5px] font-black uppercase tracking-[1.5px] text-primary"
+          >
+            <Icon :name="progress.icon" :size="16" aria-hidden="true" class="shrink-0" />
+            {{ $t(progress.labelKey) }}
+          </Motion>
+          <Motion
+            v-else
+            as="span"
+            :initial="{ opacity: 0, y: CONTENT_ENTER_OFFSET }"
+            :animate="{ opacity: 1, y: 0 }"
+            :transition="CONTENT_ENTER_TRANSITION"
+            class="mb-2 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary"
+          >
+            {{ $t('pro.steps.eyebrow') }}
+          </Motion>
+        </template>
         <h1
           ref="titleRef"
           tabindex="-1"
@@ -29,17 +38,26 @@
         >
           {{ heading }}
         </h1>
-        <p v-if="intervention" class="mt-1.5 break-words text-[15px] text-ink/80">
-          {{ intervention.address }}
-        </p>
-        <div
-          v-else-if="isLoading"
-          aria-hidden="true"
-          class="mt-1.5 flex h-lh items-center text-[15px]"
+        <Motion
+          v-if="intervention && isHeaderMetaShown"
+          as="p"
+          :initial="{ opacity: 0, y: CONTENT_ENTER_OFFSET }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="CONTENT_ENTER_TRANSITION"
+          class="mt-1.5 break-words text-[15px] text-ink/80"
         >
-          <SkeletonBlock class="h-3.5 w-2/3" />
-        </div>
-        <ProToMoveBadge v-if="intervention?.isToMove" class="mt-3" />
+          {{ intervention.address }}
+        </Motion>
+        <Motion
+          v-if="intervention?.isToMove"
+          as="div"
+          :initial="{ opacity: 0, y: CONTENT_ENTER_OFFSET }"
+          :animate="{ opacity: 1, y: 0 }"
+          :transition="CONTENT_ENTER_TRANSITION"
+          class="mt-3"
+        >
+          <ProToMoveBadge />
+        </Motion>
       </header>
 
       <ProInterventionPageSkeleton v-if="isLoading" />
@@ -258,10 +276,11 @@ const announceAndReload = async (notice: string): Promise<void> => {
 
 const upload: ProPhotoUploadState = useProPhotoUpload({
   intervention: () => intervention.value ?? null,
+  announce,
   onOutdated: announceAndReload,
 })
 
-const { photos, notice: photoNotice } = upload
+const { photos } = upload
 
 const mode: ComputedRef<ProInterventionMode | null> = computed(() =>
   intervention.value ? interventionMode(intervention.value, today.value) : null,
@@ -288,6 +307,10 @@ watch(bookingId, (): void => {
 })
 
 useProStepHistory((): ProInterventionMode | null => displayMode.value)
+
+const isHeaderMetaShown: ComputedRef<boolean> = computed(
+  () => !isLoading.value && displayMode.value !== 'steps',
+)
 
 const modeTitleKey: ComputedRef<string> = computed(() =>
   displayMode.value === 'completed'

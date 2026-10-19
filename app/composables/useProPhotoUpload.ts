@@ -32,17 +32,17 @@ const uploadErrorCode = (error: unknown): ProPhotoErrorCode | null => {
  * to a JPEG in the browser, then sent as the raw body of
  * `PUT /api/pro/bookings/[id]/photos/[kind]`. One upload at a time, held by the page so it goes on
  * while the admin changes step. The stored flags are kept locally until the page reloads the
- * intervention, and the JPEG just sent is shown as a preview. A failure is announced in the page
- * live region, whatever step is shown. A timeout leaves the result unknown: the page is told to
- * reload instead of the admin being invited to retry.
- * @param options - Intervention getter and the handler asking the page to reload with a notice
- * @returns Photo flags, previews, busy state, error with its kind, status message and the upload
- * action
+ * intervention, and the JPEG just sent is shown as a preview. Progress, success and failure are
+ * announced in the page live region, whatever step is shown. A timeout leaves the result unknown:
+ * the page is told to reload instead of the admin being invited to retry.
+ * @param options - Intervention getter, the page announcer and the handler asking the page to
+ * reload with a notice
+ * @returns Photo flags, previews, busy state, error with its kind and the upload action
  */
 export const useProPhotoUpload = (options: ProPhotoUploadOptions): ProPhotoUploadState => {
   const { t } = useI18n()
   const { handleAuthError } = useProAuthError()
-  const { message: notice, announce, clear } = useLiveAnnouncement()
+  const { announce } = options
   let isActive: boolean = true
   const photos: Ref<ProInterventionPhotos> = ref({
     ...(options.intervention()?.photos ?? NO_PHOTOS),
@@ -112,7 +112,6 @@ export const useProPhotoUpload = (options: ProPhotoUploadOptions): ProPhotoUploa
         return
       }
       if (isFetchTimeoutError(error)) {
-        clear()
         await options.onOutdated(t('pro.photos.errors.timeout', kindParams(kind)))
         return
       }
@@ -150,7 +149,6 @@ export const useProPhotoUpload = (options: ProPhotoUploadOptions): ProPhotoUploa
     phase,
     errorMessage,
     errorKind,
-    notice,
     upload,
   }
 }

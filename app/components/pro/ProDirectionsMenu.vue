@@ -5,7 +5,7 @@
         variant="secondary"
         icon="Navigation"
         trailing-icon="ChevronDown"
-        class="w-full gap-2.5"
+        :class="cn('w-full gap-2.5', props.triggerClass)"
       >
         {{ $t('pro.directions.action') }}
         <span class="sr-only">{{ props.context }}</span>
@@ -52,6 +52,7 @@
 <script setup lang="ts">
 import type { NavigationAppLink, NavigationPlatform } from '@/types/navigationApps'
 import type { MapsStop } from '@/types/pro'
+import type { HTMLAttributes } from 'vue'
 
 import {
   DropdownMenu,
@@ -60,15 +61,18 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { cn } from '@/lib/utils'
 import { detectNavigationPlatform, navigationAppLinks } from '@/utils/navigationApps'
 
 const props = withDefaults(
   defineProps<{
     stop: MapsStop
     context?: string
+    triggerClass?: HTMLAttributes['class']
   }>(),
   {
     context: '',
+    triggerClass: undefined,
   },
 )
 

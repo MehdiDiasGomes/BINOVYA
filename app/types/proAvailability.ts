@@ -71,6 +71,8 @@ export type ProDayStatusKind = 'closedWithBookings' | 'closed' | 'overCapacity'
 
 export type ProDayStatusTone = 'warning' | 'info'
 
+export type ProDayAlertTone = ProDayStatusTone | 'urgent'
+
 export type ProDayStatus = {
   kind: ProDayStatusKind
   tone: ProDayStatusTone

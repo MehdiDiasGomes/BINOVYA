@@ -56,10 +56,9 @@ export const dayStatus = (day: ProDayOverview): ProDayStatus | null => {
 }
 
 /**
- * Titles the status of a day, shared by the planning panel, its announcement and the availability
- * day cards. The plural form follows the capacity for an over capacity day and the number of
- * bookings otherwise; no named parameter is called `n` or `count`, since vue-i18n would take it as
- * the plural index instead of the explicit one.
+ * Titles the status of a day, for the availability day cards and as the fallback of
+ * `dayAlertTitle`. The plural form follows the capacity for an over capacity day and the number of
+ * bookings otherwise.
  * @param day - Overview of the day
  * @param locale - BCP 47 locale of the page
  * @param t - Translation function of the page
@@ -83,6 +82,38 @@ export const dayStatusTitle = (
     },
     status.kind === 'overCapacity' ? day.capacity : status.count,
   )
+}
+
+/**
+ * Counts the paid interventions a day forces the admin to move: all of them on a closed day, the
+ * bookings beyond the capacity otherwise, at most the paid ones still to do.
+ * @param day - Overview of the day
+ * @returns Number of interventions to move, 0 when the day needs nothing
+ */
+export const dayMoveCount = (day: ProDayOverview): number => {
+  if (day.isClosed) {
+    return day.paidCount
+  }
+  return Math.max(0, Math.min(day.activeCount - day.capacity, day.paidCount))
+}
+
+/**
+ * Titles the alert of a day of the BINOVYA Pro planning: the urgent number of interventions to
+ * move when there is one, the status title of the day otherwise.
+ * @param day - Overview of the day
+ * @param locale - BCP 47 locale of the page
+ * @param t - Translation function of the page
+ * @returns Title such as « 2 interventions à déplacer d’urgence », empty for a normal day
+ */
+export const dayAlertTitle = (
+  day: ProDayOverview,
+  locale: string,
+  t: ProPluralTranslate,
+): string => {
+  const moveCount: number = dayMoveCount(day)
+  return moveCount > 0
+    ? t('pro.dayStatus.urgent.title', { bookings: moveCount }, moveCount)
+    : dayStatusTitle(day, locale, t)
 }
 
 /**

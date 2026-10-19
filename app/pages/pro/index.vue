@@ -33,8 +33,10 @@
           :model-value="selectedDate"
           :label="$t('pro.planning.dateLabel')"
           is-label-hidden
+          :marked-days="markedDays"
           class="min-w-0"
           @update:model-value="selectDate"
+          @visible-range="loadDays"
         />
         <AppButton
           variant="secondary"
@@ -106,7 +108,7 @@
                   class="gap-2.5"
                 >
                   <template #leading>
-                    <GoogleMapsIcon :size="16" />
+                    <GoogleMapsIcon :size="20" class="size-5" />
                   </template>
                   {{ roundLinkLabel(index) }}
                   <span class="sr-only">{{ $t('pro.newTab') }}</span>
@@ -133,12 +135,7 @@
           :transition="CONTENT_ENTER_TRANSITION"
           class="mb-6"
         >
-          <ProDayStatusPanel
-            :day="loadedDay"
-            :status="loadedDayStatus"
-            :can-move="hasPaidIntervention"
-            @move="focusFirstReschedule"
-          />
+          <ProDayStatusPanel :day="loadedDay" :status="loadedDayStatus" />
         </Motion>
         <ProInterventionList
           ref="listRef"
@@ -169,7 +166,7 @@ import { GOOGLE_MAPS_MAX_WAYPOINTS } from '@/constants/pro'
 import { addDaysToIsoDate, formatFullDate } from '@/utils/date'
 import { isIsoDate } from '@/utils/dateValidation'
 import { roundDirectionsUrls } from '@/utils/googleMaps'
-import { dayStatus, dayStatusTitle } from '@/utils/proAvailability'
+import { dayAlertTitle, dayStatus } from '@/utils/proAvailability'
 
 definePageMeta({
   layout: 'pro',
@@ -213,6 +210,8 @@ const {
   handleRescheduled,
 } = useProPageState({ data: planning, status, error, refresh })
 
+const { markedDays, loadDays } = useProInterventionDays(planning)
+
 const dayLabel: ComputedRef<string> = computed(() =>
   formatFullDate(selectedDate.value, locale.value),
 )
@@ -241,16 +240,6 @@ const loadedDayStatus: ComputedRef<ProDayStatus | null> = computed(() =>
   loadedDay.value ? dayStatus(loadedDay.value) : null,
 )
 
-const hasPaidIntervention: ComputedRef<boolean> = computed(() =>
-  (planning.value?.interventions ?? []).some(intervention => intervention.status === 'paid'),
-)
-
-const focusFirstReschedule = (): void => {
-  if (!listRef.value?.focusFirstReschedule()) {
-    listTitleRef.value?.focus()
-  }
-}
-
 const roundLinkLabel = (index: number): string =>
   roundUrls.value.length > 1
     ? t('pro.planning.round.part', { part: index + 1, total: roundUrls.value.length })
@@ -271,9 +260,7 @@ const liveStatus: ComputedRef<string> = computed(() => {
   }
   const count: number = planning.value?.interventions.length ?? 0
   const countText: string = t('pro.planning.count', { date: dayLabel.value, n: count }, count)
-  const statusTitle: string = loadedDay.value
-    ? dayStatusTitle(loadedDay.value, locale.value, t)
-    : ''
+  const statusTitle: string = loadedDay.value ? dayAlertTitle(loadedDay.value, locale.value, t) : ''
   return statusTitle
     ? t('pro.planning.loadedStatus', { count: countText, status: statusTitle })
     : countText

@@ -10,7 +10,7 @@
     >
       {{ $t('pro.availability.days.empty', { date: untilLabel }) }}
     </Motion>
-    <ul v-else class="grid gap-4 md:grid-cols-2">
+    <ul v-else class="grid grid-cols-1 gap-4 md:grid-cols-2">
       <Reveal
         v-for="(day, index) in props.days"
         :key="day.date"

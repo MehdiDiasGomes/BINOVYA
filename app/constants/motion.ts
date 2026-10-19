@@ -38,3 +38,9 @@ export const FEEDBACK_OFFSET: number = STEP_OFFSET / 2
 export const STEP_TRANSITION: TweenTransition = { duration: 0.22, ease: MOTION_EASE }
 
 export const POP_SPRING: SpringTransition = { type: 'spring', stiffness: 260, damping: 18 }
+
+export const ACCORDION_ENTER_ACTIVE_CLASS: string =
+  'transition-[grid-template-rows,opacity] duration-lift ease-[cubic-bezier(0.37,0,0.63,1)] motion-reduce:transition-none'
+
+export const ACCORDION_LEAVE_ACTIVE_CLASS: string =
+  'transition-[grid-template-rows,opacity] duration-press ease-brand motion-reduce:transition-none'

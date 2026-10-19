@@ -13,6 +13,11 @@ export default {
     signedInAs: 'Signed in as',
     closeMenu: 'Close the menu',
   },
+  footer: {
+    navLabel: 'BINOVYA website links',
+    copyright: '© {year} BINOVYA',
+    backToSite: 'Back to the website',
+  },
   loadError: 'The interventions could not be loaded.',
   retry: 'Try again',
   newTab: '(opens in a new tab)',
@@ -97,10 +102,18 @@ export default {
         'The intervention already paid is still planned on this day: change its date, the customer is told by email. | The {n} interventions already paid are still planned on this day: change their date, each customer is told by email.',
       overCapacity:
         'Move at least one of them or increase the capacity of this day. | Move at least {n} of them or increase the capacity of this day.',
+      overCapacityNoMove: 'Increase the capacity of this day.',
     },
     note: 'Note: {note}',
-    move: 'Move the intervention | Move the interventions',
-    chooseToMove: 'Choose the interventions to move',
+    urgent: {
+      title: '{bookings} intervention to move urgently | {bookings} interventions to move urgently',
+      instruction: {
+        closedWithBookings:
+          'On each intervention marked "@:{\'pro.intervention.toMove\'}", open the ⋯ menu (More actions) then choose "@:{\'pro.intervention.reschedule\'}".',
+        overCapacity:
+          'To move an intervention, open its ⋯ menu (More actions) then choose "@:{\'pro.intervention.reschedule\'}".',
+      },
+    },
     reopen: 'Reopen this day',
     increase: 'Increase the capacity of this day',
   },
@@ -148,7 +161,6 @@ export default {
     phone: 'Phone',
     bins: 'Bins',
     plan: 'Plan',
-    payment: 'Payment',
     household: 'General waste collection',
     recycling: 'Recycling collection',
     unknownDays: 'Not provided',

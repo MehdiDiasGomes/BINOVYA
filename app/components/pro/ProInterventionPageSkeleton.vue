@@ -4,8 +4,10 @@
       <div class="flex h-lh items-center text-sm">
         <SkeletonBlock class="h-3.5 w-28" />
       </div>
-      <div class="mt-3 grid grid-cols-4 gap-2">
-        <SkeletonBlock v-for="step in PRO_STEPS.length" :key="step" class="h-22 rounded-xl" />
+      <div class="mt-1 grid grid-cols-4 gap-1.5">
+        <div v-for="step in PRO_STEPS.length" :key="step" :class="PRO_STEP_SEGMENT_CLASS">
+          <SkeletonBlock :class="PRO_STEP_BAR_CLASS" />
+        </div>
       </div>
     </div>
     <div>
@@ -13,41 +15,25 @@
         <SkeletonBlock class="h-5 w-40" />
       </div>
       <div class="space-y-5">
-        <div class="text-[15px]">
-          <div class="flex h-lh items-center">
-            <SkeletonBlock class="h-3.5 w-full" />
-          </div>
-          <div class="flex h-lh items-center">
-            <SkeletonBlock class="h-3.5 w-full" />
-          </div>
-          <div class="flex h-lh items-center">
-            <SkeletonBlock class="h-3.5 w-2/3" />
-          </div>
-        </div>
         <div class="rounded-2xl border border-border bg-white p-4 text-[15px] shadow-sm">
-          <div class="flex h-lh items-center">
-            <SkeletonBlock class="h-3.5 w-4/5" />
+          <div class="flex items-center gap-3">
+            <SkeletonBlock class="size-10 shrink-0 rounded-full" />
+            <div class="flex h-lh min-w-0 flex-1 items-center">
+              <SkeletonBlock class="h-3.5 w-4/5" />
+            </div>
           </div>
-        </div>
-        <div class="grid gap-3">
-          <SkeletonBlock class="h-12 w-full rounded-lg" />
-          <SkeletonBlock class="h-12 w-full rounded-lg" />
+          <div class="mt-4 flex gap-3 border-t border-border pt-4">
+            <SkeletonBlock class="h-12 min-w-0 flex-1 rounded-lg" />
+            <SkeletonBlock class="size-12 shrink-0 rounded-lg" />
+          </div>
         </div>
         <SkeletonBlock class="h-12 w-full rounded-lg" />
       </div>
     </div>
-    <div class="rounded-2xl border border-border bg-white p-5 shadow-sm">
-      <div class="flex h-lh items-center text-lg">
-        <SkeletonBlock class="h-4 w-48" />
-      </div>
-      <div class="mt-3 grid gap-2 text-[15px]">
-        <div v-for="row in 8" :key="row" :class="DETAIL_ROW_CLASS">
-          <div class="flex h-lh items-center">
-            <SkeletonBlock class="h-3.5 w-20" />
-          </div>
-          <div :class="cn('flex items-center', row === 1 ? 'min-h-11' : 'h-lh')">
-            <SkeletonBlock class="h-3.5 w-32" />
-          </div>
+    <div class="rounded-2xl border border-border bg-white shadow-sm">
+      <div class="flex min-h-12 items-center px-5 py-3 text-lg">
+        <div class="flex h-lh items-center">
+          <SkeletonBlock class="h-4 w-32" />
         </div>
       </div>
     </div>
@@ -55,7 +41,5 @@
 </template>
 
 <script setup lang="ts">
-import { DETAIL_ROW_CLASS } from '@/constants/mediaCard'
-import { PRO_STEPS } from '@/constants/proSteps'
-import { cn } from '@/lib/utils'
+import { PRO_STEP_BAR_CLASS, PRO_STEP_SEGMENT_CLASS, PRO_STEPS } from '@/constants/proSteps'
 </script>

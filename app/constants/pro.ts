@@ -1,3 +1,4 @@
+import type { MediaCardTone } from '@/types/mediaCard'
 import type { ProBookingStatus, ProNavItem, ProStatusFilter } from '@/types/pro'
 import type { ProRescheduleErrorCode, ProRescheduleForceableCode } from '@/types/proAvailability'
 import type { ProCompleteErrorCode, ProPhotoErrorCode } from '@/types/proPhotos'
@@ -38,6 +39,8 @@ export const PRO_STATUS_FILTERS: [ProStatusFilter, ...ProStatusFilter[]] = [
 export const PRO_INTERVENTIONS_PAGE_SIZE: number = 50
 
 export const PRO_INTERVENTIONS_MAX_PAGE: number = 1000
+
+export const PRO_SKELETON_MOBILE_ROW_COUNT: number = 6
 
 export const PRO_SKELETON_DETAIL_ROWS: number = 2
 
@@ -122,3 +125,12 @@ export const PRO_COMPLETE_ERROR_CODES: ProCompleteErrorCode[] = [
   'futureDate',
   'missingPhotos',
 ]
+
+export const PRO_ROW_SHELL_CLASS: string =
+  'relative isolate flex min-h-20 min-w-0 items-center gap-3 rounded-2xl border border-white/10 px-3 py-2.5 text-white shadow-md shadow-navy-950/30 transition-[translate,scale,box-shadow] duration-lift ease-brand has-[a:active]:scale-[0.99] [@media(hover:hover)]:motion-safe:has-[a:hover]:not-has-[a:active]:-translate-y-0.5 [@media(hover:hover)]:has-[a:hover]:shadow-lg motion-reduce:transition-none motion-reduce:has-[a:active]:scale-100'
+
+export const PRO_ROW_TONE_CLASSES: Record<MediaCardTone, string> = {
+  success: 'bg-emerald-300/15 text-emerald-300',
+  info: 'bg-cyan-300/15 text-cyan-300',
+  neutral: 'bg-slate-300/15 text-slate-300',
+}

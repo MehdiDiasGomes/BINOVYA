@@ -8,6 +8,7 @@ export type ProPhotoPreviews = Record<ProPhotoKind, string>
 
 export type ProPhotoUploadOptions = {
   intervention: () => ProIntervention | null
+  announce: (text: string) => Promise<void>
   onOutdated: (notice: string) => Promise<void>
 }
 
@@ -18,7 +19,6 @@ export type ProPhotoUploadState = {
   phase: Readonly<Ref<ProPhotoPhase>>
   errorMessage: Readonly<Ref<string>>
   errorKind: Readonly<Ref<ProPhotoKind | null>>
-  notice: Readonly<Ref<string>>
   upload: (kind: ProPhotoKind, file: File) => Promise<void>
 }
 

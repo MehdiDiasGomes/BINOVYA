@@ -52,17 +52,20 @@ export default {
     next: 'Continue',
     skip: 'Skip this photo',
     directions: {
-      text: 'Open the directions in your navigation app. You can also continue without opening them.',
-      call: 'Call {phone}',
+      addressLabel: 'Address:',
+      call: 'Call {name} on {phone}',
+      arrived: "I'm on site",
     },
     photo: {
       text: {
         before: 'Take the photo of the bins before cleaning.',
         after: 'Take the photo of the bins after cleaning.',
       },
-      continueHint: 'Add the photo to continue, or skip this step.',
-      skipHint:
+      toClean: 'To clean',
+      skipWarning:
         'Without both photos, the intervention is finished without a photos email to the customer.',
+      skipConfirm: 'Yes, skip',
+      skipCancel: 'Cancel',
     },
     photoError: {
       link: 'Go to the step: {name}',
@@ -88,7 +91,7 @@ export default {
       text: 'This intervention was cancelled and refunded.',
     },
     details: {
-      title: 'Intervention details',
+      toggle: 'More info',
     },
   },
 }

@@ -3,50 +3,22 @@
     <p class="text-sm font-bold text-ink">
       {{ $t('pro.steps.counter', { current: props.currentStep, total: props.steps.length }) }}
     </p>
-    <ol class="mt-3 grid grid-cols-4 gap-1.5 sm:gap-2">
-      <li v-for="step in props.steps" :key="step.id" class="min-w-0">
+    <ol class="mt-1 grid grid-cols-4 gap-1.5">
+      <li v-for="step in props.steps" :key="step.id" :class="cn('min-w-0', PRO_STEP_SEGMENT_CLASS)">
+        <span aria-hidden="true" :class="cn(PRO_STEP_BAR_CLASS, PRO_STEP_BAR_TONES[step.state])" />
         <span
           v-if="step.state === 'current'"
           aria-current="step"
-          :class="cn(PRO_STEP_ITEM_CLASS, 'border-primary bg-primary text-white')"
+          class="absolute inset-0 rounded-sm"
         >
-          <span aria-hidden="true" class="font-heading text-base font-black leading-5">{{
-            step.number
-          }}</span>
-          <span class="sr-only">{{ $t('pro.steps.stepNumber', { number: step.number }) }}</span>
-          <span class="hyphens-auto break-words text-xs font-bold">{{
-            $t(`pro.steps.names.${step.id}`)
-          }}</span>
-          <span class="sr-only">{{ $t('pro.steps.states.current') }}</span>
+          <span class="sr-only">{{ stepLabel(step) }}</span>
         </span>
         <NuxtLink
           v-else
           :to="{ query: { ...route.query, [PRO_STEP_QUERY]: String(step.number) } }"
-          :class="
-            cn(
-              PRO_STEP_ITEM_CLASS,
-              PRO_STEP_LINK_CLASS,
-              'border-border bg-white text-ink hover:border-primary',
-            )
-          "
+          :class="cn('absolute inset-0 rounded-sm', PRO_STEP_LINK_CLASS)"
         >
-          <Icon
-            v-if="step.state === 'done'"
-            name="Check"
-            :size="18"
-            aria-hidden="true"
-            class="my-px shrink-0"
-          />
-          <span v-else aria-hidden="true" class="font-heading text-base font-black leading-5">
-            {{ step.number }}
-          </span>
-          <span class="sr-only">{{ $t('pro.steps.stepNumber', { number: step.number }) }}</span>
-          <span class="hyphens-auto break-words text-xs font-bold">{{
-            $t(`pro.steps.names.${step.id}`)
-          }}</span>
-          <span :class="cn('text-xs text-ink/80', step.state === 'todo' && 'sr-only')">
-            {{ $t(`pro.steps.states.${step.state}`) }}
-          </span>
+          <span class="sr-only">{{ stepLabel(step) }}</span>
         </NuxtLink>
       </li>
     </ol>
@@ -56,7 +28,13 @@
 <script setup lang="ts">
 import type { ProStepItem } from '@/types/proSteps'
 
-import { PRO_STEP_ITEM_CLASS, PRO_STEP_LINK_CLASS, PRO_STEP_QUERY } from '@/constants/proSteps'
+import {
+  PRO_STEP_BAR_CLASS,
+  PRO_STEP_BAR_TONES,
+  PRO_STEP_LINK_CLASS,
+  PRO_STEP_QUERY,
+  PRO_STEP_SEGMENT_CLASS,
+} from '@/constants/proSteps'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(
@@ -70,5 +48,14 @@ const props = withDefaults(
   },
 )
 
+const { t } = useI18n()
+
 const route = useRoute()
+
+const stepLabel = (step: ProStepItem): string =>
+  [
+    t('pro.steps.stepNumber', { number: step.number }),
+    t(`pro.steps.names.${step.id}`),
+    t(`pro.steps.states.${step.state}`),
+  ].join(' ')
 </script>

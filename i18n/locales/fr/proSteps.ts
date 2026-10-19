@@ -52,16 +52,19 @@ export default {
     next: 'Continuer',
     skip: 'Passer cette photo',
     directions: {
-      text: 'Ouvrez l’itinéraire dans votre application de navigation. Vous pouvez aussi continuer sans l’ouvrir.',
-      call: 'Appeler {phone}',
+      addressLabel: 'Adresse :',
+      call: 'Appeler {name} au {phone}',
+      arrived: 'Je suis sur place',
     },
     photo: {
       text: {
         before: 'Prenez la photo des bacs avant le nettoyage.',
         after: 'Prenez la photo des bacs après le nettoyage.',
       },
-      continueHint: 'Ajoutez la photo pour continuer, ou passez cette étape.',
-      skipHint: 'Sans les deux photos, l’intervention se termine sans mail photos au client.',
+      toClean: 'À nettoyer',
+      skipWarning: 'Sans les deux photos, l’intervention se termine sans mail photos au client.',
+      skipConfirm: 'Oui, passer',
+      skipCancel: 'Annuler',
     },
     photoError: {
       link: 'Aller à l’étape : {name}',
@@ -87,7 +90,7 @@ export default {
       text: 'Cette intervention a été annulée et remboursée.',
     },
     details: {
-      title: 'Informations de l’intervention',
+      toggle: 'Plus d’infos',
     },
   },
 }

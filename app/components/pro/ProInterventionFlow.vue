@@ -30,6 +30,7 @@
           <ProStepPhoto
             v-else-if="currentKind"
             :key="currentKind"
+            :intervention="props.intervention"
             :kind="currentKind"
             :upload="props.upload"
             :context="props.context"

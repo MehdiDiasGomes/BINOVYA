@@ -1,19 +1,50 @@
 <template>
-  <div ref="rootRef">
-    <ul v-if="props.isLoading" aria-hidden="true" class="grid gap-6 md:grid-cols-2">
+  <div>
+    <ul
+      v-if="props.isLoading"
+      aria-hidden="true"
+      class="grid grid-cols-1 gap-3 sm:gap-6 md:grid-cols-2"
+    >
       <li
-        v-for="placeholder in ACCOUNT_SKELETON_CARD_COUNT"
+        v-for="placeholder in skeletonCount"
         :key="placeholder"
-        :class="cn(placeholder > ACCOUNT_SKELETON_MOBILE_CARD_COUNT && 'hidden md:block')"
+        :class="
+          cn(
+            'min-w-0',
+            placeholder > PRO_SKELETON_MOBILE_ROW_COUNT && 'max-sm:hidden',
+            placeholder > ACCOUNT_SKELETON_MOBILE_CARD_COUNT && 'sm:max-md:hidden',
+            placeholder > ACCOUNT_SKELETON_CARD_COUNT && 'md:hidden',
+          )
+        "
       >
-        <MediaCardSkeleton :detail-rows="skeletonRows" :has-footer="false" stack-rows>
-          <template #action>
-            <div class="flex items-center gap-3">
-              <SkeletonBlock surface="dark" class="h-12 flex-1 rounded-full" />
-              <SkeletonBlock surface="dark" class="size-12 shrink-0 rounded-full" />
+        <div :class="cn(PRO_ROW_SHELL_CLASS, MEDIA_CARD_TONES.info.surface, 'sm:hidden')">
+          <SkeletonBlock surface="dark" class="size-10 shrink-0 rounded-full" />
+          <div class="min-w-0 flex-1">
+            <div class="flex h-lh items-center font-heading text-base leading-tight">
+              <SkeletonBlock surface="dark" class="h-4 w-2/3" />
             </div>
-          </template>
-        </MediaCardSkeleton>
+            <div class="text-sm">
+              <div class="flex h-lh items-center">
+                <SkeletonBlock surface="dark" class="h-3.5 w-full" />
+              </div>
+              <div class="flex h-lh items-center">
+                <SkeletonBlock surface="dark" class="h-3.5 w-1/2" />
+              </div>
+            </div>
+          </div>
+          <SkeletonBlock surface="dark" class="size-11 shrink-0 rounded-full" />
+          <SkeletonBlock surface="dark" class="size-5 shrink-0" />
+        </div>
+        <div class="hidden h-full sm:block">
+          <MediaCardSkeleton :detail-rows="skeletonRows" :has-footer="false" stack-rows>
+            <template #action>
+              <div class="flex items-center gap-3">
+                <SkeletonBlock surface="dark" class="h-12 flex-1 rounded-full" />
+                <SkeletonBlock surface="dark" class="size-12 shrink-0 rounded-full" />
+              </div>
+            </template>
+          </MediaCardSkeleton>
+        </div>
       </li>
     </ul>
 
@@ -44,11 +75,12 @@
       {{ props.emptyText }}
     </Motion>
 
-    <ul v-else class="grid gap-6 md:grid-cols-2">
+    <ul v-else class="grid grid-cols-1 gap-3 sm:gap-6 md:grid-cols-2">
       <Reveal
         v-for="(intervention, index) in props.interventions"
         :key="intervention.id"
         as="li"
+        class="min-w-0"
         :delay="Math.min(index, REVEAL_MAX_STAGGER_STEPS) * REVEAL_STAGGER"
       >
         <ProInterventionCard
@@ -84,13 +116,19 @@ import {
   ACCOUNT_SKELETON_CARD_COUNT,
   ACCOUNT_SKELETON_MOBILE_CARD_COUNT,
 } from '@/constants/account'
+import { MEDIA_CARD_TONES } from '@/constants/mediaCard'
 import {
   CONTENT_ENTER_OFFSET,
   CONTENT_ENTER_TRANSITION,
   REVEAL_MAX_STAGGER_STEPS,
   REVEAL_STAGGER,
 } from '@/constants/motion'
-import { PRO_SKELETON_DETAIL_ROWS, PRO_SKELETON_DETAIL_ROWS_WITH_DATE } from '@/constants/pro'
+import {
+  PRO_ROW_SHELL_CLASS,
+  PRO_SKELETON_DETAIL_ROWS,
+  PRO_SKELETON_DETAIL_ROWS_WITH_DATE,
+  PRO_SKELETON_MOBILE_ROW_COUNT,
+} from '@/constants/pro'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(
@@ -134,25 +172,13 @@ const openReschedule = (intervention: ProIntervention, trigger: HTMLElement | nu
   isRescheduleOpen.value = true
 }
 
+const skeletonCount: number = Math.max(ACCOUNT_SKELETON_CARD_COUNT, PRO_SKELETON_MOBILE_ROW_COUNT)
+
 const skeletonRows: ComputedRef<number> = computed(() =>
   props.showDate ? PRO_SKELETON_DETAIL_ROWS_WITH_DATE : PRO_SKELETON_DETAIL_ROWS,
 )
 
 const retryButton: Ref<FocusTarget | null> = ref(null)
 
-const rootRef: Ref<HTMLElement | null> = ref(null)
-
-/**
- * Moves keyboard focus to the « More actions » button, holding « Change the date », of the first
- * intervention still to do.
- * @returns True when a button received focus
- */
-const focusFirstReschedule = (): boolean => {
-  const button: HTMLButtonElement | null | undefined =
-    rootRef.value?.querySelector<HTMLButtonElement>('[data-pro-reschedule]')
-  button?.focus()
-  return Boolean(button)
-}
-
-defineExpose({ retryButton, focusFirstReschedule })
+defineExpose({ retryButton })
 </script>

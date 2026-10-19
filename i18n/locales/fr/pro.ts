@@ -13,6 +13,11 @@ export default {
     signedInAs: 'Connecté en tant que',
     closeMenu: 'Fermer le menu',
   },
+  footer: {
+    navLabel: 'Liens du site BINOVYA',
+    copyright: '© {year} BINOVYA',
+    backToSite: 'Retour au site',
+  },
   loadError: 'Les interventions n’ont pas pu être chargées.',
   retry: 'Réessayer',
   newTab: '(s’ouvre dans un nouvel onglet)',
@@ -98,10 +103,19 @@ export default {
         'L’intervention déjà payée reste prévue ce jour : changez sa date, le client est prévenu par mail. | Les {n} interventions déjà payées restent prévues ce jour : changez leur date, chaque client est prévenu par mail.',
       overCapacity:
         'Déplacez-en au moins une ou augmentez la capacité de ce jour. | Déplacez-en au moins {n} ou augmentez la capacité de ce jour.',
+      overCapacityNoMove: 'Augmentez la capacité de ce jour.',
     },
     note: 'Note : {note}',
-    move: 'Déplacer l’intervention | Déplacer les interventions',
-    chooseToMove: 'Choisir les interventions à déplacer',
+    urgent: {
+      title:
+        '{bookings} intervention à déplacer d’urgence | {bookings} interventions à déplacer d’urgence',
+      instruction: {
+        closedWithBookings:
+          "Sur chaque intervention marquée « @:{'pro.intervention.toMove'} », ouvrez le menu ⋯ (Plus d’actions) puis choisissez « @:{'pro.intervention.reschedule'} ».",
+        overCapacity:
+          "Pour déplacer une intervention, ouvrez son menu ⋯ (Plus d’actions) puis choisissez « @:{'pro.intervention.reschedule'} ».",
+      },
+    },
     reopen: 'Rouvrir ce jour',
     increase: 'Augmenter la capacité de ce jour',
   },
@@ -149,7 +163,6 @@ export default {
     phone: 'Téléphone',
     bins: 'Bacs',
     plan: 'Formule',
-    payment: 'Paiement',
     household: 'Collecte ordures ménagères',
     recycling: 'Collecte tri',
     unknownDays: 'Non renseigné',
