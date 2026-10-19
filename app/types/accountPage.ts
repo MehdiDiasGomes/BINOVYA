@@ -11,6 +11,7 @@ export type AccountPageStateOptions = {
   retryRef: Readonly<Ref<FocusTarget | null>>
   hasLoaded: Readonly<Ref<boolean>>
   loadedFocusRef?: Readonly<Ref<HTMLElement | null>>
+  hasContent?: Readonly<Ref<boolean>>
   onAuthError?: (statusCode: number) => Promise<void>
 }
 

@@ -12,7 +12,7 @@ import {
 import { parseSecureUrl } from '@/utils/link'
 
 type PhotosAvailableEmailData = BookingEmailData & {
-  loginUrl: string
+  accountUrl: string
   siteUrl: string
 }
 
@@ -21,7 +21,8 @@ const siteLink = (siteUrl: string, escape: Escape): string =>
 
 /**
  * Builds the email telling the customer that the before and after photos are available.
- * @param data - Completed booking, its customer, the one-click login URL and the site URL
+ * @param data - Completed booking, its customer, the customer area login page (`/login`, empty to
+ * omit the button) and the site URL
  * @param escape - Function escaping untrusted text for HTML
  * @returns Subject and HTML body of the email
  */
@@ -39,13 +40,12 @@ export const generatePhotosAvailableEmail = (
       emailParagraph(
         `Notre intervention du ${escape(bookingDateLabel(data))} au ${escape(data.address)} est terminée. Les photos avant et après de vos bacs vous attendent dans votre espace client.`,
       ),
-      emailButton('Voir mes photos', escape(data.loginUrl)),
-      emailParagraph(
-        'Ce bouton vous connecte en un clic. Si le lien a expiré, suivez ces étapes :',
-      ),
+      data.accountUrl ? emailButton('Voir mes photos', escape(data.accountUrl)) : '',
+      emailParagraph('Pour accéder à votre espace client :'),
       emailSteps([
-        `Rendez-vous sur ${siteLink(data.siteUrl, escape)}.`,
-        'Cliquez sur « Espace client ».',
+        data.accountUrl
+          ? `Cliquez sur « Voir mes photos », ou rendez-vous sur ${siteLink(data.siteUrl, escape)} puis cliquez sur « Espace client ».`
+          : `Rendez-vous sur ${siteLink(data.siteUrl, escape)} puis cliquez sur « Espace client ».`,
         `Saisissez votre adresse mail : <strong>${escape(data.email)}</strong>.`,
         'Ouvrez le mail que vous recevez et cliquez sur le lien de connexion.',
       ]),

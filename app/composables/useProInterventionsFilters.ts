@@ -3,38 +3,13 @@ import type {
   ProInterventionsFiltersState,
   ProInterventionsQuery,
   ProNavigationOptions,
-  ProStatusFilter,
 } from '@/types/pro'
-import type { LocationQuery, LocationQueryRaw } from 'vue-router'
+import type { LocationQueryRaw } from 'vue-router'
 
-import { PRO_INTERVENTIONS_MAX_PAGE, PRO_STATUS_FILTERS } from '@/constants/pro'
-import { isIsoDate } from '@/utils/dateValidation'
-
-const readString = (query: LocationQuery, key: string): string | null => {
-  const value: unknown = query[key]
-  return typeof value === 'string' ? value : null
-}
-
-const readStatus = (query: LocationQuery): ProStatusFilter => {
-  const value: string | null = readString(query, 'status')
-  return PRO_STATUS_FILTERS.find(filter => filter === value) ?? 'all'
-}
-
-const readDate = (query: LocationQuery, key: string, fallback: string): string => {
-  const value: string | null = readString(query, key)
-  if (value === null) {
-    return fallback
-  }
-  return isIsoDate(value) ? value : ''
-}
+import { readDate, readListPage, readStatusFilter } from '@/utils/proInterventionsQuery'
 
 const isSameFilters = (left: ProFiltersDraft, right: ProFiltersDraft): boolean =>
   left.status === right.status && left.from === right.from && left.to === right.to
-
-const readPage = (query: LocationQuery): number => {
-  const page: number = Number(readString(query, 'page'))
-  return Number.isInteger(page) && page >= 1 && page <= PRO_INTERVENTIONS_MAX_PAGE ? page : 1
-}
 
 /**
  * Keeps the filters and the page of the interventions list in sync with the URL.
@@ -49,12 +24,12 @@ export const useProInterventionsFilters = (): ProInterventionsFiltersState => {
   const applied: ComputedRef<ProFiltersDraft> = computed((): ProFiltersDraft => {
     const from: string = readDate(route.query, 'from', today.value)
     const to: string = readDate(route.query, 'to', '')
-    return { status: readStatus(route.query), from, to: from && to && from > to ? '' : to }
+    return { status: readStatusFilter(route.query), from, to: from && to && from > to ? '' : to }
   })
 
   const draft: ProFiltersDraft = reactive({ ...applied.value })
 
-  const currentPage: ComputedRef<number> = computed(() => readPage(route.query))
+  const currentPage: ComputedRef<number> = computed(() => readListPage(route.query))
 
   const query: ComputedRef<ProInterventionsQuery> = computed(() => ({
     status: applied.value.status,

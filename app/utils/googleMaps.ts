@@ -1,16 +1,9 @@
 import type { GeoPoint } from '@/types/booking'
 import type { MapsStop } from '@/types/pro'
 
-import { GOOGLE_MAPS_DIRECTIONS_URL, GOOGLE_MAPS_MAX_WAYPOINTS } from '@/constants/pro'
-
-const hasCoordinates = (point: GeoPoint): boolean =>
-  Number.isFinite(point.latitude) &&
-  Number.isFinite(point.longitude) &&
-  Math.abs(point.latitude) <= 90 &&
-  Math.abs(point.longitude) <= 180
-
-const mapsLocation = (stop: MapsStop): string =>
-  hasCoordinates(stop) ? `${stop.latitude},${stop.longitude}` : stop.address.trim()
+import { GOOGLE_MAPS_DIRECTIONS_URL } from '@/constants/navigationApps'
+import { GOOGLE_MAPS_MAX_WAYPOINTS } from '@/constants/pro'
+import { stopLocation } from '@/utils/geo'
 
 const directionsUrlFrom = (params: URLSearchParams): string =>
   `${GOOGLE_MAPS_DIRECTIONS_URL}?${params.toString()}`
@@ -23,7 +16,7 @@ const directionsUrlFrom = (params: URLSearchParams): string =>
  */
 export const directionsUrl = (stop: MapsStop): string =>
   directionsUrlFrom(
-    new URLSearchParams({ api: '1', destination: mapsLocation(stop), travelmode: 'driving' }),
+    new URLSearchParams({ api: '1', destination: stopLocation(stop), travelmode: 'driving' }),
   )
 
 /**
@@ -39,7 +32,7 @@ export const roundDirectionsUrls = (depot: GeoPoint, stops: MapsStop[]): string[
     return []
   }
   const depotLocation: string = `${depot.latitude},${depot.longitude}`
-  const points: string[] = [depotLocation, ...stops.map(mapsLocation), depotLocation]
+  const points: string[] = [depotLocation, ...stops.map(stopLocation), depotLocation]
   const urls: string[] = []
   for (let start: number = 0; start < points.length - 1; start += GOOGLE_MAPS_MAX_WAYPOINTS + 1) {
     const end: number = Math.min(start + GOOGLE_MAPS_MAX_WAYPOINTS + 1, points.length - 1)

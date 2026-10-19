@@ -33,6 +33,8 @@ export const CONTENT_ENTER_TRANSITION: TweenTransition = {
 
 export const STEP_OFFSET: number = 16
 
+export const FEEDBACK_OFFSET: number = STEP_OFFSET / 2
+
 export const STEP_TRANSITION: TweenTransition = { duration: 0.22, ease: MOTION_EASE }
 
 export const POP_SPRING: SpringTransition = { type: 'spring', stiffness: 260, damping: 18 }

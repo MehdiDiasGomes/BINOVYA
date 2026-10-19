@@ -1,7 +1,6 @@
 import type {
   AccountBookingStatus,
   AccountNavIcon,
-  AccountPhotoKind,
   AccountStatusIcon,
   CustomerSessionStatus,
 } from '@/types/account'
@@ -27,7 +26,24 @@ export const SIGN_OUT_TIMEOUT_MS = 3000
 
 export const ACCOUNT_BOOKING_STATUSES: AccountBookingStatus[] = ['paid', 'completed', 'cancelled']
 
-export const ACCOUNT_PHOTO_KINDS: AccountPhotoKind[] = ['before', 'after']
+/**
+ * Lifetime of the signed URLs of the before and after photos, generated at each view of a booking
+ * page: long enough to look at the photos and open them full size, short enough that a copied or
+ * leaked URL stops working within minutes, while the session itself lasts 7 days.
+ */
+export const ACCOUNT_PHOTO_URL_LIFETIME_SECONDS: number = 10 * 60
+
+export const ACCOUNT_PHOTO_URL_REFRESH_MARGIN_SECONDS: number = 60
+
+export const PAYMENT_RECEIPT_TIMEOUT_MS: number = 4000
+
+export const PAYMENT_RECEIPT_CACHE_TTL_MS: number = 5 * 60 * 1000
+
+export const PAYMENT_RECEIPT_MISS_CACHE_TTL_MS: number = 30 * 1000
+
+export const PAYMENT_RECEIPT_CACHE_MAX_ENTRIES: number = 500
+
+export const STRIPE_RECEIPT_HOST_SUFFIX: string = '.stripe.com'
 
 export const ACCOUNT_STATUS_ICONS: Record<AccountBookingStatus, AccountStatusIcon> = {
   paid: 'CalendarDays',

@@ -1,4 +1,4 @@
-import type { AccountBooking } from '@/types/account'
+import type { AccountBooking, AccountBookingRecord } from '@/types/account'
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -16,8 +16,13 @@ type BookingRow = Pick<
   | 'status'
 >
 
+type BookingRecordRow = BookingRow &
+  Pick<Database['public']['Tables']['bookings']['Row'], 'stripe_payment_intent_id'>
+
 const BOOKING_COLUMNS =
   'id, scheduled_date, address, plan, small_bin_count, large_bin_count, amount_total_cents, status'
+
+const BOOKING_RECORD_COLUMNS = `${BOOKING_COLUMNS}, stripe_payment_intent_id`
 
 const isAccountStatus = (status: string): status is AccountBooking['status'] =>
   (ACCOUNT_BOOKING_STATUSES as string[]).includes(status)
@@ -60,22 +65,28 @@ export const loadAccountBookings = async (
   return data.map(toAccountBooking).filter((booking): booking is AccountBooking => booking !== null)
 }
 
+const toAccountBookingRecord = (row: BookingRecordRow): AccountBookingRecord | null => {
+  const booking: AccountBooking | null = toAccountBooking(row)
+  return booking ? { booking, paymentIntentId: row.stripe_payment_intent_id } : null
+}
+
 /**
  * Loads one paid, completed or cancelled booking of the logged-in customer. Relies on RLS and
  * also filters on the customer, so a booking of someone else reads exactly like a missing one.
  * @param client - Supabase client of the logged-in customer
  * @param customerId - Identifier of the logged-in customer
  * @param bookingId - Identifier of the requested booking
- * @returns The booking, or null when it does not exist or is not visible to this customer
+ * @returns The booking with its Stripe payment intent, server only, or null when it does not
+ * exist or is not visible to this customer
  */
 export const loadAccountBooking = async (
   client: SupabaseClient<Database>,
   customerId: string,
   bookingId: string,
-): Promise<AccountBooking | null> => {
+): Promise<AccountBookingRecord | null> => {
   const { data, error } = await client
     .from('bookings')
-    .select(BOOKING_COLUMNS)
+    .select(BOOKING_RECORD_COLUMNS)
     .eq('id', bookingId)
     .eq('customer_id', customerId)
     .in('status', ACCOUNT_BOOKING_STATUSES)
@@ -83,5 +94,5 @@ export const loadAccountBooking = async (
   if (error) {
     throw createError({ statusCode: 500, statusMessage: 'Booking unavailable' })
   }
-  return data ? toAccountBooking(data) : null
+  return data ? toAccountBookingRecord(data) : null
 }

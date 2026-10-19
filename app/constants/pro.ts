@@ -1,5 +1,6 @@
 import type { ProBookingStatus, ProNavItem, ProStatusFilter } from '@/types/pro'
 import type { ProRescheduleErrorCode, ProRescheduleForceableCode } from '@/types/proAvailability'
+import type { ProCompleteErrorCode, ProPhotoErrorCode } from '@/types/proPhotos'
 
 export const ADMIN_ROLE: string = 'admin'
 
@@ -10,6 +11,8 @@ export const PRO_LOGIN_PATH: string = '/pro/login'
 export const PRO_CONFIRM_PATH: string = '/pro/confirm'
 
 export const PRO_INTERVENTIONS_PATH: string = '/pro/interventions'
+
+export const PRO_INTERVENTION_ROUTE_NAME: string = 'pro-interventions-id'
 
 export const PRO_AVAILABILITY_PATH: string = '/pro/availability'
 
@@ -23,6 +26,8 @@ export const PRO_ACCESS_DENIED_QUERY: string = 'denied'
 
 export const PRO_PLANNING_STATUSES: ProBookingStatus[] = ['paid', 'completed']
 
+export const PRO_PHOTO_STATUSES: ProBookingStatus[] = PRO_PLANNING_STATUSES
+
 export const PRO_LIST_STATUSES: ProBookingStatus[] = ['paid', 'completed', 'cancelled']
 
 export const PRO_STATUS_FILTERS: [ProStatusFilter, ...ProStatusFilter[]] = [
@@ -34,24 +39,17 @@ export const PRO_INTERVENTIONS_PAGE_SIZE: number = 50
 
 export const PRO_INTERVENTIONS_MAX_PAGE: number = 1000
 
-export const PRO_SKELETON_DETAIL_ROWS: number = 6
+export const PRO_SKELETON_DETAIL_ROWS: number = 2
 
 export const PRO_SKELETON_DATE_ROWS: number = 1
 
 export const PRO_SKELETON_DETAIL_ROWS_WITH_DATE: number =
   PRO_SKELETON_DETAIL_ROWS + PRO_SKELETON_DATE_ROWS
 
-export const PRO_SKELETON_PHONE_ROW: number = 0
-
-export const PRO_SKELETON_COLLAPSED_ROWS: number = PRO_SKELETON_PHONE_ROW + 1
-
-export const PRO_CARD_EXPANDED_MIN_WIDTH: number = 640
-
-export const PRO_CARD_EXPANDED_QUERY: string = `(min-width: ${PRO_CARD_EXPANDED_MIN_WIDTH}px)`
-
-export const GOOGLE_MAPS_DIRECTIONS_URL: string = 'https://www.google.com/maps/dir/'
-
 export const GOOGLE_MAPS_MAX_WAYPOINTS: number = 9
+
+export const PRO_DIALOG_CONTENT_CLASS: string =
+  'fixed inset-x-0 bottom-0 z-50 max-h-[calc(100dvh-1rem)] w-full overflow-y-auto rounded-t-2xl border border-border bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink shadow-lg ease-brand focus-visible:outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-12 data-[state=closed]:duration-press data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-12 data-[state=open]:duration-lift sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:top-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6 sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none'
 
 export const PRO_DIALOG_OVERLAY_CLASS: string =
   'fixed inset-0 z-50 bg-navy-950/60 ease-brand data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:duration-press data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:duration-lift motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none'
@@ -91,4 +89,36 @@ export const PRO_RESCHEDULE_ERROR_CODES: ProRescheduleErrorCode[] = [
   'pastDate',
   'tooFar',
   'tooFrequent',
+]
+
+export const INTERVENTION_PHOTOS_BUCKET: string = 'intervention-photos'
+
+export const PRO_PHOTO_MAX_BYTES: number = 5 * 1024 * 1024
+
+export const PRO_PHOTO_MAX_DIMENSION: number = 2000
+
+export const PRO_PHOTO_JPEG_QUALITIES: number[] = [0.85, 0.7, 0.55]
+
+export const PRO_PHOTO_CACHE_CONTROL_SECONDS: string = '60'
+
+export const PRO_PHOTO_UPLOAD_TIMEOUT_MS: number = 60000
+
+export const PRO_COMPLETE_TIMEOUT_MS: number = 15000
+
+export const PRO_PHOTO_ERROR_CODES: ProPhotoErrorCode[] = [
+  'notFound',
+  'notPaid',
+  'futureDate',
+  'invalidKind',
+  'invalidImage',
+  'tooLarge',
+  'unreadable',
+]
+
+export const PRO_COMPLETE_ERROR_CODES: ProCompleteErrorCode[] = [
+  'notFound',
+  'alreadyCompleted',
+  'notPaid',
+  'futureDate',
+  'missingPhotos',
 ]

@@ -1,4 +1,8 @@
-import type { AccountBooking, AccountBookingDetail } from '@/types/account'
+import type {
+  AccountBookingDetail,
+  AccountBookingDocuments,
+  AccountBookingRecord,
+} from '@/types/account'
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -14,14 +18,15 @@ export default defineEventHandler(async (event): Promise<AccountBookingDetail> =
   }
 
   const client: SupabaseClient<Database> = await serverSupabaseClient<Database>(event)
-  const booking: AccountBooking | null = await loadAccountBooking(
+  const record: AccountBookingRecord | null = await loadAccountBooking(
     client,
     customerId,
     params.data.id,
   )
-  if (!booking) {
+  if (!record) {
     throw createError({ statusCode: 404, statusMessage: 'Booking not found' })
   }
 
-  return { booking }
+  const documents: AccountBookingDocuments = await loadAccountBookingDocuments(client, record)
+  return { booking: record.booking, documents }
 })

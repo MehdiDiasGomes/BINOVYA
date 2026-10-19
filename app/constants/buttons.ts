@@ -38,3 +38,6 @@ export const buttonClass: ButtonClassBuilder = cva(BUTTON_BASE_CLASS, {
     size: 'md',
   },
 })
+
+export const BACK_LINK_CLASS: string =
+  'inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-primary underline-offset-4 transition-colors duration-press ease-brand hover:text-navy-800 hover:underline motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2'

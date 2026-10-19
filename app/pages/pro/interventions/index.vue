@@ -87,6 +87,7 @@
           :has-error="hasError"
           :empty-text="$t('pro.list.empty')"
           show-date
+          origin="list"
           @retry="reload"
           @rescheduled="handleRescheduled"
           @stale="reload"
@@ -171,7 +172,7 @@ const {
   isLoading,
   isMounted,
   reload,
-  rescheduleNotice,
+  actionNotice,
   handleRescheduled,
 } = useProPageState({ data: result, status, error, refresh })
 
@@ -219,8 +220,8 @@ const liveStatus: ComputedRef<string> = computed(() => {
   if (!isMounted.value) {
     return ''
   }
-  if (rescheduleNotice.value) {
-    return rescheduleNotice.value
+  if (actionNotice.value) {
+    return actionNotice.value
   }
   if (hasFocusedPage.value) {
     return ''

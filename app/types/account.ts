@@ -32,8 +32,23 @@ export type AccountBooking = {
   status: AccountBookingStatus
 }
 
+export type AccountBookingRecord = {
+  booking: AccountBooking
+  paymentIntentId: string | null
+}
+
+export type AccountBookingPhotos = Record<AccountPhotoKind, string | null>
+
+export type AccountBookingDocuments = {
+  photos: AccountBookingPhotos
+  receiptUrl: string | null
+}
+
+export type AccountLinksRefresh = 'ok' | 'failed' | 'expired'
+
 export type AccountBookingDetail = {
   booking: AccountBooking
+  documents: AccountBookingDocuments
 }
 
 export type AccountDetailRow = {

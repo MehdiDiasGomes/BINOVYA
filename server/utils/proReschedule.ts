@@ -46,17 +46,6 @@ const REJECTIONS: Record<RescheduleRefusal, RescheduleRejection> = {
   out_of_sector: { statusCode: 409, statusMessage: 'Day out of sector', code: 'outOfSector' },
 }
 
-/**
- * Builds the 404 answered for a booking that does not exist, with the `notFound` code.
- * @returns HTTP error to throw
- */
-export const bookingNotFound = (): H3Error =>
-  createError({
-    statusCode: 404,
-    statusMessage: REJECTIONS.not_found.statusMessage,
-    data: { code: REJECTIONS.not_found.code },
-  })
-
 const rescheduleRejection = (reason: RescheduleRefusal): H3Error => {
   const rejection: RescheduleRejection = REJECTIONS[reason]
   return createError({

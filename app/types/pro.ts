@@ -1,5 +1,5 @@
 import type { LucideIconName } from '@/constants/clients'
-import type { AccountBookingStatus, AccountStatusIcon } from '@/types/account'
+import type { AccountBookingStatus, AccountPhotoKind } from '@/types/account'
 import type { BookingPlan, GeoPoint } from '@/types/booking'
 import type { MediaCardTone } from '@/types/mediaCard'
 import type { ProDayOverview } from '@/types/proAvailability'
@@ -9,6 +9,10 @@ import type { RouteLocationRaw } from 'vue-router'
 export type ProBookingStatus = AccountBookingStatus
 
 export type ProStatusFilter = 'all' | ProBookingStatus
+
+export type ProPhotoKind = AccountPhotoKind
+
+export type ProInterventionPhotos = Record<ProPhotoKind, boolean>
 
 export type ProCustomer = {
   firstName: string
@@ -31,6 +35,8 @@ export type ProIntervention = {
   amountTotalCents: number
   status: ProBookingStatus
   isToMove: boolean
+  photos: ProInterventionPhotos
+  completedWithoutPhotos: boolean
 }
 
 export type ProPlanning = {
@@ -62,8 +68,6 @@ export type ProInterventionsQuery = {
 
 export type ProInterventionView = {
   tone: MediaCardTone
-  icon: AccountStatusIcon
-  statusKey: string
   paymentKey: string
 }
 

@@ -5,9 +5,10 @@ import type { FocusTarget } from '@/types/button'
  * Shares the loading state of a customer or BINOVYA Pro area page, moves focus to its title once
  * the first load settles, expires the customer session when the server answers 401, or calls
  * `onAuthError` on 401 and 403 when given, and reloads on demand, focusing the loaded content or
- * the retry button when the error persists.
- * @param options - Fetch state of the page, the elements to focus, whether the content loaded and
- * the optional authentication error handler
+ * the retry button when the error persists. With `hasContent`, a refresh keeps the loaded content
+ * on screen: the page is loading only while it has nothing to show.
+ * @param options - Fetch state of the page, the elements to focus, whether the content loaded,
+ * whether content is on screen and the optional authentication error handler
  * @returns Loading flag, mounted flag to fill live regions client side, and the reload action
  */
 export const useAccountPageState = (options: AccountPageStateOptions): AccountPageState => {
@@ -16,7 +17,9 @@ export const useAccountPageState = (options: AccountPageStateOptions): AccountPa
   const hasFocusedTitle: Ref<boolean> = ref(false)
 
   const isLoading: ComputedRef<boolean> = computed(
-    () => options.status.value === 'idle' || options.status.value === 'pending',
+    () =>
+      (options.status.value === 'idle' || options.status.value === 'pending') &&
+      !options.hasContent?.value,
   )
 
   const focusTitleOnce = async (): Promise<void> => {

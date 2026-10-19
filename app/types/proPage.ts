@@ -20,7 +20,7 @@ export type ProPageState = {
   isLoading: ComputedRef<boolean>
   isMounted: Readonly<Ref<boolean>>
   reload: () => Promise<void>
-  rescheduleNotice: Readonly<Ref<string>>
+  actionNotice: Readonly<Ref<string>>
   handleRescheduled: (moved: ProRescheduledEvent) => Promise<void>
 }
 

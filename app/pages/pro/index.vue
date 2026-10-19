@@ -209,7 +209,7 @@ const {
   isLoading,
   isMounted,
   reload,
-  rescheduleNotice,
+  actionNotice,
   handleRescheduled,
 } = useProPageState({ data: planning, status, error, refresh })
 
@@ -260,8 +260,8 @@ const liveStatus: ComputedRef<string> = computed(() => {
   if (!isMounted.value) {
     return ''
   }
-  if (rescheduleNotice.value) {
-    return rescheduleNotice.value
+  if (actionNotice.value) {
+    return actionNotice.value
   }
   if (isLoading.value) {
     return t('pro.planning.loading')

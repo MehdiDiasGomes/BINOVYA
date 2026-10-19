@@ -6,17 +6,19 @@
         :key="placeholder"
         :class="cn(placeholder > ACCOUNT_SKELETON_MOBILE_CARD_COUNT && 'hidden md:block')"
       >
-        <MediaCardSkeleton
-          :detail-rows="props.skeletonRows"
-          :tall-rows="skeletonTallRows"
-          :collapsed-rows="skeletonCollapsedRows"
-          stack-rows
-        />
+        <MediaCardSkeleton :detail-rows="skeletonRows" :has-footer="false" stack-rows>
+          <template #action>
+            <div class="flex items-center gap-3">
+              <SkeletonBlock surface="dark" class="h-12 flex-1 rounded-full" />
+              <SkeletonBlock surface="dark" class="size-12 shrink-0 rounded-full" />
+            </div>
+          </template>
+        </MediaCardSkeleton>
       </li>
     </ul>
 
     <div v-else-if="props.hasError" role="alert">
-      <p class="flex items-center gap-2 text-sm font-bold text-destructive">
+      <p class="flex items-center gap-2 text-sm font-bold text-red-700">
         <Icon name="CircleAlert" :size="16" aria-hidden="true" />
         {{ $t('pro.loadError') }}
       </p>
@@ -53,6 +55,8 @@
           :intervention="intervention"
           :show-date="props.showDate"
           :title-tag="props.cardTitleTag"
+          :today="today"
+          :origin="props.origin"
           @reschedule="openReschedule(intervention, $event)"
         />
       </Reveal>
@@ -73,6 +77,7 @@ import type { FocusTarget } from '@/types/button'
 import type { MediaCardTitleTag } from '@/types/mediaCard'
 import type { ProIntervention } from '@/types/pro'
 import type { ProRescheduledEvent } from '@/types/proAvailability'
+import type { ProInterventionOrigin } from '@/types/proSteps'
 import type { ShallowRef } from 'vue'
 
 import {
@@ -85,13 +90,7 @@ import {
   REVEAL_MAX_STAGGER_STEPS,
   REVEAL_STAGGER,
 } from '@/constants/motion'
-import {
-  PRO_SKELETON_COLLAPSED_ROWS,
-  PRO_SKELETON_DATE_ROWS,
-  PRO_SKELETON_DETAIL_ROWS,
-  PRO_SKELETON_DETAIL_ROWS_WITH_DATE,
-  PRO_SKELETON_PHONE_ROW,
-} from '@/constants/pro'
+import { PRO_SKELETON_DETAIL_ROWS, PRO_SKELETON_DETAIL_ROWS_WITH_DATE } from '@/constants/pro'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(
@@ -102,7 +101,7 @@ const props = withDefaults(
     emptyText?: string
     showDate?: boolean
     cardTitleTag?: MediaCardTitleTag
-    skeletonRows?: number
+    origin?: ProInterventionOrigin
   }>(),
   {
     interventions: () => [],
@@ -111,8 +110,7 @@ const props = withDefaults(
     emptyText: '',
     showDate: false,
     cardTitleTag: 'h3',
-    skeletonRows: (rawProps: { showDate?: boolean }): number =>
-      rawProps.showDate ? PRO_SKELETON_DETAIL_ROWS_WITH_DATE : PRO_SKELETON_DETAIL_ROWS,
+    origin: 'planning',
   },
 )
 
@@ -121,6 +119,8 @@ const emit = defineEmits<{
   rescheduled: [moved: ProRescheduledEvent]
   stale: []
 }>()
+
+const today: Readonly<Ref<string>> = useBusinessToday()
 
 const isRescheduleOpen: Ref<boolean> = ref(false)
 
@@ -134,12 +134,8 @@ const openReschedule = (intervention: ProIntervention, trigger: HTMLElement | nu
   isRescheduleOpen.value = true
 }
 
-const skeletonTallRows: ComputedRef<number[]> = computed(() => [
-  PRO_SKELETON_PHONE_ROW + (props.showDate ? PRO_SKELETON_DATE_ROWS : 0),
-])
-
-const skeletonCollapsedRows: ComputedRef<number> = computed(
-  () => PRO_SKELETON_COLLAPSED_ROWS + (props.showDate ? PRO_SKELETON_DATE_ROWS : 0),
+const skeletonRows: ComputedRef<number> = computed(() =>
+  props.showDate ? PRO_SKELETON_DETAIL_ROWS_WITH_DATE : PRO_SKELETON_DETAIL_ROWS,
 )
 
 const retryButton: Ref<FocusTarget | null> = ref(null)
@@ -147,7 +143,8 @@ const retryButton: Ref<FocusTarget | null> = ref(null)
 const rootRef: Ref<HTMLElement | null> = ref(null)
 
 /**
- * Moves keyboard focus to the « Change the date » button of the first intervention still to do.
+ * Moves keyboard focus to the « More actions » button, holding « Change the date », of the first
+ * intervention still to do.
  * @returns True when a button received focus
  */
 const focusFirstReschedule = (): boolean => {

@@ -1,20 +1,18 @@
 import type { AccountTranslate } from '@/types/account'
 import type { ProCustomer, ProIntervention, ProInterventionView } from '@/types/pro'
 
-import { ACCOUNT_STATUS_ICONS, ACCOUNT_STATUS_TONES } from '@/constants/account'
+import { ACCOUNT_STATUS_TONES } from '@/constants/account'
 import { WEEKDAYS_MONDAY_FIRST } from '@/constants/booking'
 import { formatWeekday } from '@/utils/date'
 
 /**
- * Maps an intervention to what its card displays: tone, status icon, status and payment labels.
- * A cancelled booking has been refunded, the others are paid.
+ * Maps an intervention to its card tone and payment label. A cancelled booking has been refunded,
+ * the others are paid.
  * @param intervention - Intervention shown in the BINOVYA Pro area
  * @returns Presentation data of the intervention
  */
 export const proInterventionView = (intervention: ProIntervention): ProInterventionView => ({
   tone: ACCOUNT_STATUS_TONES[intervention.status],
-  icon: ACCOUNT_STATUS_ICONS[intervention.status],
-  statusKey: `pro.intervention.statuses.${intervention.status}`,
   paymentKey:
     intervention.status === 'cancelled'
       ? 'pro.intervention.payments.refunded'

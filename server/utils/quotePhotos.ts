@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { MultiPartData } from 'h3'
 
 import { QUOTE_MAX_PHOTO_BYTES, QUOTE_MAX_PHOTOS, QUOTE_PHOTOS_BUCKET } from '@/constants/quote'
+import { hasJpegSignature, hasSignature } from '@/utils/image'
 
 export type QuotePhoto = {
   data: Buffer
@@ -10,24 +11,21 @@ export type QuotePhoto = {
   extension: string
 }
 
-const PNG_SIGNATURE = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
-const JPEG_SIGNATURE = [0xff, 0xd8, 0xff]
-const RIFF_MARKER = 'RIFF'
-const WEBP_MARKER = 'WEBP'
-
-const startsWith = (data: Buffer, signature: number[]): boolean =>
-  signature.every((byte, index) => data[index] === byte)
+const PNG_SIGNATURE: number[] = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]
+const RIFF_SIGNATURE: number[] = [0x52, 0x49, 0x46, 0x46]
+const WEBP_SIGNATURE: number[] = [0x57, 0x45, 0x42, 0x50]
+const WEBP_SIGNATURE_OFFSET: number = 8
 
 const detectImageType = (data: Buffer): Pick<QuotePhoto, 'mimeType' | 'extension'> | null => {
-  if (startsWith(data, JPEG_SIGNATURE)) {
+  if (hasJpegSignature(data)) {
     return { mimeType: 'image/jpeg', extension: 'jpg' }
   }
-  if (startsWith(data, PNG_SIGNATURE)) {
+  if (hasSignature(data, PNG_SIGNATURE)) {
     return { mimeType: 'image/png', extension: 'png' }
   }
   const isWebp: boolean =
-    data.subarray(0, 4).toString('ascii') === RIFF_MARKER &&
-    data.subarray(8, 12).toString('ascii') === WEBP_MARKER
+    hasSignature(data, RIFF_SIGNATURE) &&
+    hasSignature(data.subarray(WEBP_SIGNATURE_OFFSET), WEBP_SIGNATURE)
   return isWebp ? { mimeType: 'image/webp', extension: 'webp' } : null
 }
 

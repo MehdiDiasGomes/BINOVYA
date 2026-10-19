@@ -4,12 +4,15 @@ import type {
   ProBookingStatus,
   ProCustomer,
   ProIntervention,
+  ProInterventionPhotos,
   ProInterventionsFilters,
   ProInterventionsPage,
 } from '@/types/pro'
 import type { ProDayOverview } from '@/types/proAvailability'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { H3Event } from 'h3'
 
+import { serverSupabaseServiceRole } from '#supabase/server'
 import {
   PRO_INTERVENTIONS_PAGE_SIZE,
   PRO_LIST_STATUSES,
@@ -33,12 +36,13 @@ type InterventionRow = Pick<
   | 'recycling_collection_weekdays'
   | 'amount_total_cents'
   | 'status'
+  | 'completed_without_photos'
 >
 
 type CustomerRow = Pick<Tables['profiles']['Row'], 'id' | 'first_name' | 'last_name' | 'phone'>
 
 const INTERVENTION_COLUMNS =
-  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status'
+  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos'
 
 const CUSTOMER_COLUMNS = 'id, first_name, last_name, phone'
 
@@ -69,15 +73,22 @@ const loadCustomers = async (
   return new Map(data.map(row => [row.id, toCustomer(row)]))
 }
 
+const NO_PHOTOS: ProInterventionPhotos = { before: false, after: false }
+
+type InterventionRelations = {
+  customers: Map<string, ProCustomer>
+  photos: Map<string, ProInterventionPhotos>
+}
+
 const toIntervention = (
   row: InterventionRow,
-  customers: Map<string, ProCustomer>,
+  relations: InterventionRelations,
 ): ProIntervention | null =>
   isProStatus(row.status)
     ? {
         id: row.id,
         scheduledDate: row.scheduled_date,
-        customer: customers.get(row.customer_id) ?? null,
+        customer: relations.customers.get(row.customer_id) ?? null,
         address: row.address,
         latitude: row.latitude,
         longitude: row.longitude,
@@ -89,16 +100,25 @@ const toIntervention = (
         amountTotalCents: row.amount_total_cents,
         status: row.status,
         isToMove: false,
+        photos: relations.photos.get(row.id) ?? NO_PHOTOS,
+        completedWithoutPhotos: row.completed_without_photos,
       }
     : null
 
-const withCustomers = async (
+const withRelations = async (
   client: SupabaseClient<Database>,
   rows: InterventionRow[],
 ): Promise<ProIntervention[]> => {
-  const customers: Map<string, ProCustomer> = await loadCustomers(client, rows)
+  const [customers, photos]: [Map<string, ProCustomer>, Map<string, ProInterventionPhotos>] =
+    await Promise.all([
+      loadCustomers(client, rows),
+      loadInterventionPhotoFlags(
+        client,
+        rows.map(row => row.id),
+      ),
+    ])
   return rows
-    .map(row => toIntervention(row, customers))
+    .map(row => toIntervention(row, { customers, photos }))
     .filter((intervention): intervention is ProIntervention => intervention !== null)
 }
 
@@ -124,7 +144,35 @@ export const loadDayInterventions = async (
   if (error) {
     throw unavailable()
   }
-  return withCustomers(client, data)
+  return withRelations(client, data)
+}
+
+/**
+ * Loads one paid, completed or cancelled intervention with its customer and photo flags. Relies on
+ * RLS: the client must carry an admin session.
+ * @param client - Supabase client of the logged-in admin
+ * @param bookingId - Identifier of the booking
+ * @returns The intervention, or null when no such booking is shown in BINOVYA Pro
+ * @throws 500 when the database cannot be read
+ */
+export const loadIntervention = async (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+): Promise<ProIntervention | null> => {
+  const { data, error } = await client
+    .from('bookings')
+    .select(INTERVENTION_COLUMNS)
+    .eq('id', bookingId)
+    .in('status', PRO_LIST_STATUSES)
+    .maybeSingle()
+  if (error) {
+    throw unavailable()
+  }
+  if (!data) {
+    return null
+  }
+  const [intervention]: ProIntervention[] = await withRelations(client, [data])
+  return intervention ?? null
 }
 
 const RANGE_NOT_SATISFIABLE: string = 'PGRST103'
@@ -193,7 +241,7 @@ export const loadInterventionsPage = async (
     throw unavailable()
   }
   return {
-    interventions: await withCustomers(client, data),
+    interventions: await withRelations(client, data),
     total: count ?? 0,
     page,
     pageSize: PRO_INTERVENTIONS_PAGE_SIZE,
@@ -230,6 +278,30 @@ export const paidInterventionDates = (interventions: ProIntervention[]): string[
       .map(intervention => intervention.scheduledDate),
   ),
 ]
+
+/**
+ * Loads the overviews of the days holding paid interventions, to flag the ones to move. The day
+ * rules are read with the secret key; when they cannot be read, no intervention is flagged rather
+ * than the whole page failing.
+ * @param event - Incoming request, after `requireAdmin`
+ * @param interventions - Interventions of a page, a day or a single one
+ * @returns Overviews of their paid days, empty when none or when unavailable
+ */
+export const loadPaidDayOverviews = (
+  event: H3Event,
+  interventions: ProIntervention[],
+): Promise<ProDayOverview[]> => {
+  const dates: string[] = paidInterventionDates(interventions)
+  if (dates.length === 0) {
+    return Promise.resolve([])
+  }
+  return loadDayOverviewsOfDates(serverSupabaseServiceRole<Database>(event), dates).catch(
+    (): ProDayOverview[] => {
+      console.error('Interventions day overviews unavailable')
+      return []
+    },
+  )
+}
 
 /**
  * Marks to move every paid intervention whose day is closed, by its weekday rule or by an

@@ -1,3 +1,6 @@
+import proPhotos from './proPhotos'
+import proSteps from './proSteps'
+
 export default {
   nav: {
     brand: 'BINOVYA Pro',
@@ -137,11 +140,6 @@ export default {
   },
   intervention: {
     unknownCustomer: 'Unknown customer',
-    statuses: {
-      paid: 'To do',
-      completed: 'Done',
-      cancelled: 'Cancelled',
-    },
     payments: {
       paid: 'Paid',
       refunded: 'Refunded',
@@ -155,19 +153,23 @@ export default {
     recycling: 'Recycling collection',
     unknownDays: 'Not provided',
     amount: 'Amount',
-    directions: 'Google Maps directions',
-    directionsContext: 'to {address} (opens in a new tab)',
-    directionsContextDated: 'to {address}, intervention on {date} (opens in a new tab)',
-    showMore: 'Show more',
-    showLess: 'Show less',
-    toggleContext: 'for {name}',
-    toggleContextDated: 'for {name}, intervention on {date}',
+    forName: 'for {name}',
     reschedule: 'Change the date',
-    rescheduleContext: 'of the intervention for {name}',
-    rescheduleContextDated: 'of the intervention for {name} on {date}',
     toMove: 'To move',
     toMoveReason: '(closed day)',
   },
+  directions: {
+    action: 'Directions',
+    menuLabel: 'Open with',
+    apps: {
+      appleMaps: 'Apple Maps',
+      googleMaps: 'Google Maps',
+      waze: 'Waze',
+      other: 'Other app…',
+    },
+  },
+  ...proPhotos,
+  ...proSteps,
   reschedule: {
     title: 'Change the date of the intervention',
     description: '{name}, {address}. Current date: {date}.',

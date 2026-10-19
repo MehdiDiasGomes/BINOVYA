@@ -6,6 +6,7 @@
           <NuxtLink
             :to="localePath(item.path)"
             :class="PRO_NAV_LINK_CLASS"
+            v-bind="sectionAttrs(item.path)"
             @click="emit('navigate')"
           >
             <Icon
@@ -39,16 +40,33 @@
 </template>
 
 <script setup lang="ts">
-import { PRO_NAV_ITEMS, PRO_NAV_LINK_CLASS } from '@/constants/pro'
+import type { ProInterventionOrigin } from '@/types/proSteps'
+
+import { PRO_INTERVENTION_ROUTE_NAME, PRO_NAV_ITEMS, PRO_NAV_LINK_CLASS } from '@/constants/pro'
+import { PRO_ORIGIN_QUERY } from '@/constants/proSteps'
+import { interventionSectionPath, parseOriginQuery } from '@/utils/proSteps'
 
 const emit = defineEmits<{
   navigate: []
 }>()
 
 const localePath = useLocalePath()
+const route = useRoute()
+const getRouteBaseName = useRouteBaseName()
 const { email, leave } = useAdminSession()
 
 const isSigningOut: Ref<boolean> = ref(false)
+
+const sectionPath: ComputedRef<string | null> = computed(() => {
+  if (getRouteBaseName(route) !== PRO_INTERVENTION_ROUTE_NAME) {
+    return null
+  }
+  const origin: ProInterventionOrigin = parseOriginQuery(route.query[PRO_ORIGIN_QUERY])
+  return interventionSectionPath(origin)
+})
+
+const sectionAttrs = (path: string): Record<string, string> =>
+  path === sectionPath.value ? { 'aria-current': 'page' } : {}
 
 const signOut = async (): Promise<void> => {
   if (isSigningOut.value) {

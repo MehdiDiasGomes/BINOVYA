@@ -3,7 +3,12 @@
     <DialogPortal>
       <DialogOverlay :class="PRO_DIALOG_OVERLAY_CLASS" />
       <DialogContent
-        class="fixed inset-x-0 bottom-0 z-50 flex max-h-[calc(100dvh-1rem)] min-h-[min(37.5rem,calc(100dvh-1rem))] w-full flex-col overflow-y-auto rounded-t-2xl border border-border bg-white p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-ink shadow-lg ease-brand focus-visible:outline-none data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-12 data-[state=closed]:duration-press data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-12 data-[state=open]:duration-lift sm:inset-x-auto sm:bottom-auto sm:left-1/2 sm:block sm:min-h-0 sm:top-1/2 sm:w-[calc(100vw-2rem)] sm:max-w-md sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:p-6 sm:data-[state=closed]:slide-out-to-bottom-0 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:slide-in-from-bottom-0 sm:data-[state=open]:zoom-in-95 motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none"
+        :class="
+          cn(
+            PRO_DIALOG_CONTENT_CLASS,
+            'flex min-h-[min(37.5rem,calc(100dvh-1rem))] flex-col sm:block sm:min-h-0',
+          )
+        "
         @open-auto-focus.prevent="focusFirstElement([DATE_FIELD_ID])"
         @close-auto-focus="handleCloseAutoFocus"
       >
@@ -109,9 +114,11 @@ import type { ProRescheduledEvent, ProRescheduleResponse } from '@/types/proAvai
 import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import {
   PRO_AVAILABILITY_HORIZON_DAYS,
+  PRO_DIALOG_CONTENT_CLASS,
   PRO_DIALOG_OVERLAY_CLASS,
   PRO_RESCHEDULE_TIMEOUT_MS,
 } from '@/constants/pro'
+import { cn } from '@/lib/utils'
 import { addDaysToIsoDate, formatFullDate } from '@/utils/date'
 import { isFetchTimeoutError, readFetchErrorCode } from '@/utils/fetchError'
 import { focusFirstElement } from '@/utils/focus'

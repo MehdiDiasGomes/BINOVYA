@@ -20,3 +20,6 @@ export const MEDIA_CARD_TONES: Record<MediaCardTone, MediaCardToneClasses> = {
     eyebrow: 'text-slate-300',
   },
 }
+
+export const DETAIL_ROW_CLASS: string =
+  'flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3'

@@ -10,11 +10,11 @@ import { proCustomerName } from '@/utils/proIntervention'
  * Shares the loading, error and focus handling of a BINOVYA Pro list page on top of
  * `useAccountPageState`: focus on the title after the first load, on the list title or the retry
  * button after a reload, back to the Pro login with the session expired notice on 401, without
- * it on 403. After an intervention is moved, it announces the move and the refusals that were
- * forced, reloads the list and focuses the list title, since the moved card may leave the list.
+ * it on 403. After an intervention is moved, it announces the result with the refusals that were
+ * forced, reloads the list and focuses the list title, since the card may leave the list.
  * @param options - Fetch state of the page
  * @returns Element refs to bind in the template, error and loading flags, the reload action, the
- * move notice and its handler
+ * action notice and the handler of a move
  */
 export const useProPageState = (options: ProPageStateOptions): ProPageState => {
   const { t, locale } = useI18n()
@@ -22,8 +22,8 @@ export const useProPageState = (options: ProPageStateOptions): ProPageState => {
   const titleRef: Ref<HTMLElement | null> = ref(null)
   const listTitleRef: Ref<HTMLElement | null> = ref(null)
   const listRef: ProPageState['listRef'] = ref(null)
-  const { message: rescheduleNotice, announce, clear } = useLiveAnnouncement()
-  let isRefreshingAfterMove: boolean = false
+  const { message: actionNotice, announce, clear } = useLiveAnnouncement()
+  let isRefreshingAfterAction: boolean = false
 
   const retryRef: ComputedRef<FocusTarget | null> = computed(
     () => listRef.value?.retryButton ?? null,
@@ -49,10 +49,20 @@ export const useProPageState = (options: ProPageStateOptions): ProPageState => {
   })
 
   watch(isLoading, (loading: boolean): void => {
-    if (loading && !isRefreshingAfterMove) {
+    if (loading && !isRefreshingAfterAction) {
       clear()
     }
   })
+
+  const announceAndReload = async (notice: string): Promise<void> => {
+    await announce(notice)
+    isRefreshingAfterAction = true
+    try {
+      await reload()
+    } finally {
+      isRefreshingAfterAction = false
+    }
+  }
 
   const handleRescheduled = async (moved: ProRescheduledEvent): Promise<void> => {
     const success: string = t('pro.reschedule.success', {
@@ -60,13 +70,7 @@ export const useProPageState = (options: ProPageStateOptions): ProPageState => {
       date: formatFullDate(moved.newDate, locale.value),
     })
     const forced: string = overriddenReasonsText(moved.overriddenCodes, locale.value, t)
-    await announce(forced ? `${success} ${forced}` : success)
-    isRefreshingAfterMove = true
-    try {
-      await reload()
-    } finally {
-      isRefreshingAfterMove = false
-    }
+    await announceAndReload(forced ? `${success} ${forced}` : success)
   }
 
   return {
@@ -78,7 +82,7 @@ export const useProPageState = (options: ProPageStateOptions): ProPageState => {
     isLoading,
     isMounted,
     reload,
-    rescheduleNotice,
+    actionNotice,
     handleRescheduled,
   }
 }

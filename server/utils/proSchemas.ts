@@ -2,6 +2,7 @@ import { z } from 'zod'
 
 import { signedMunicipalitySchema } from './bookingSchemas'
 
+import { PHOTO_KINDS } from '@/constants/photos'
 import {
   PRO_AVAILABILITY_HORIZON_DAYS,
   PRO_INTERVENTIONS_MAX_PAGE,
@@ -66,3 +67,7 @@ export const proRescheduleSchema = z.object({
   date: proHorizonDateSchema,
   force: z.boolean().default(false),
 })
+
+export const proPhotoKindParamsSchema = z.object({ kind: z.enum(PHOTO_KINDS) })
+
+export const proCompleteSchema = z.object({ force: z.boolean().default(false) })
