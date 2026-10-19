@@ -88,6 +88,15 @@ Each one was caught by a review. Check your change against this list before repo
 - A state change on blur (re-emitted value, cleared error, conditional button) that inserts or
   removes content above a button: the mousedown on that button blurs the field, the button moves
   and the click is lost. Apply input while typing, and never emit an unchanged value.
+- An `AnimatePresence` without `mode` around content holding a ref used for focus: the old child
+  survives its exit, the ref still points to it and the focus falls on `body`. Use a keyed
+  `Motion` with a conditional `initial` (no exit phase) for mode swaps.
+- An `aria-label` on a reka menu / popover content: reka sets `aria-labelledby` to the trigger,
+  which wins, so the label is never read. Put the context in the trigger's name (sr-only).
+- A Nuxt `refresh()` of the page data to update one sub-part: in Nuxt 4 a failed refresh resets
+  `data`, wiping the whole page. Fetch the sub-part with a dedicated `$fetch` and keep the rest.
+- Routes built as raw paths (`/pro/...`) passed to `NuxtLink` or `navigateTo`: wrap them in
+  `useLocalePath()`, otherwise `/en` pages link back to French.
 - A client `timeout` on a write treated as a failure: the server may still commit. Say the result
   is unknown and reload the data instead of inviting a retry.
 - Explicit types everywhere, including `safeParse` results and Node results in `scripts/`
