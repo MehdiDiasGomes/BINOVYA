@@ -641,7 +641,9 @@ select evtname, evtevent, evtfoid::regproc from pg_event_trigger where evtname =
 
 Règles métier : [booking-system.md](./booking-system.md). Les trois lots de l'étape 8 sont faits :
 accès, planning, liste, itinéraire ; disponibilités et déplacement d'une intervention ; photos,
-« Terminer l'intervention » et photos côté client.
+« Terminer l'intervention » et photos côté client. Une passe de désencombrement a suivi (fiche
+d'intervention, lignes mobiles, pied de page, jours marqués des sélecteurs de date, alerte
+urgente du planning) ; la passe de tests de fin d'étape reste à faire.
 
 ### Pages et mise en page
 
@@ -659,6 +661,12 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
   burger, seulement le nom de la marque.
 - `ProNavPanel.vue` : liens de `PRO_NAV_ITEMS` (planning, interventions, disponibilités) avec
   `aria-current`, adresse de l'admin connecté et bouton de déconnexion.
+- Pied de page du layout `pro` : bande navy compacte, décalée de la barre latérale à partir de
+  `lg`. Une `nav` « Liens du site BINOVYA » avec « Mentions légales » (`/legal`), « Politique de
+  confidentialité » (`/privacy`) et « Retour au site » (`/`), puis le copyright. Dans le DOM, la
+  `nav` précède le copyright ; à partir de `sm`, `order` les remet dans l'ordre visuel
+  copyright puis liens (sous `sm`, la `nav` est au-dessus du copyright). Le réordonnancement
+  passe par `order` et non par `display: contents`. Les liens font 44 px de haut (`min-h-11`).
 
 ### Routes serveur
 
@@ -681,6 +689,15 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
   `requireAdmin` et lecture sous RLS que les autres `GET`. Les interventions du planning et de la
   liste portent elles aussi `photos` et `completedWithoutPhotos`
   (`loadInterventionPhotoFlags`).
+- `GET /api/pro/interventions/days?from&to` : nombre d'interventions `paid` et `completed` par
+  jour, pour les points des `DatePicker` (`{ days: [{ date, count }] }`, seulement les jours qui
+  en ont, par date croissante). `from` et `to` sont obligatoires, `from` au plus égal à `to` et
+  `to` au plus 41 jours après `from` (une grille de 42 jours, `CALENDAR_GRID_DAY_COUNT`), sinon 400. Même ordre que les autres `GET` (`requireAdmin` puis Zod puis client de session sous
+  RLS). Le serveur ne lit que `scheduled_date`, par lots de 1 000 lignes (`max_rows` de
+  PostgREST, qui tronquerait sans le dire une réponse plus grande), au plus 3 lots. Exactement
+  3 000 interventions sont acceptées : une lecture de contrôle de la ligne 3 001 doit être
+  vide. Au-delà, ou sur erreur de lecture, 500 `Interventions unavailable`. Les statuts sont
+  ceux du planning, pas du filtre de la liste.
 - Ordre des `GET`, identique : `Cache-Control: private, no-store` posé en premier, puis
   `requireAdmin`, puis la validation Zod (`server/utils/proSchemas.ts`, 400), puis la lecture avec
   le client Supabase de la session, donc sous la RLS `is_admin()`. Une erreur de lecture donne 500.
@@ -759,6 +776,10 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
   code postal puis adresse, de la liste par date puis date de création. `paidInterventionDates` et
   `flagInterventionsToMove` posent `isToMove` : intervention `paid` dont le jour est fermé, jamais
   un jour seulement en dépassement de capacité.
+- `loadInterventionDayCounts` (`server/utils/proInterventionDays.ts`) : compte les interventions
+  par jour sur une plage courte, lot après lot (`loadScheduledDates`, récursive, `range` de
+  PostgREST avec tri par date puis `id` pour des lots stables). Lit sous la RLS : le client doit
+  porter une session admin.
 - `requireAdminForWrite` (`server/utils/adminSession.ts`) : `requireAdmin`, puis relit le compte
   par `auth.getUser()` (appel à Supabase Auth, pas seulement le jeton). 401 si l'identifiant
   diffère ou si Auth ne répond pas, 403 si le rôle a été retiré ou si le compte est banni. Pourquoi :
@@ -893,15 +914,36 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
 - `useBusinessToday` : date du jour en Europe/Paris (`businessToday`, `app/utils/date.ts`),
   recalculée quand l'onglet redevient visible, pour qu'une page laissée ouverte la nuit passe au
   jour suivant.
+- `parseIsoDate` et `toIsoDate` (`app/utils/date.ts`) : `parseIsoDate` pose l'année par
+  `setFullYear`, car `new Date(année, …)` lit les années 0 à 99 comme 1900 à 1999 ; `toIsoDate`
+  écrit l'année sur 4 chiffres (`padStart`) pour rester un `YYYY-MM-DD` valide.
+- `groupPhoneDigits` (`app/utils/phone.ts`) : sépare un numéro français ou luxembourgeois en
+  groupes de chiffres (`+33 6 12 34 56 78`, `06 12 34 56 78`, `+352 26 12 34 56`, `+352 621 123
+456`), pour que le lecteur d'écran le dise groupe par groupe. Un format inconnu est rendu tel
+  quel. Le lien `tel:` garde le numéro brut (`telHref`).
+- `useProInterventionDays(source)` : alimente les points de `DatePicker` sur `/pro` et
+  `/pro/interventions`. Il appelle `GET /api/pro/interventions/days` avec la grille visible
+  (`loadDays`, branché sur `@visible-range`) et garde les comptes dans `markedDays`.
+  - Cache par grille (`from/to`) : une grille déjà chargée n'est pas redemandée. Le cache est
+    vidé quand la donnée de la page (`source`, le planning ou le résultat de la liste) change,
+    car un déplacement ou une fin d'intervention modifie les comptes.
+  - Une réponse périmée est ignorée (jeton par requête) : la page a pu invalider le cache ou
+    changer de grille pendant l'appel.
+  - Les erreurs sont silencieuses (les jours restent sans point, la grille est redemandée à
+    la prochaine ouverture), sauf 401 et 403, traités par `useProAuthError`.
 - `useProInterventionsFilters` : l'URL est la source de vérité (`status`, `from`, `to`, `page`).
   Un brouillon réactif applique les filtres dès qu'ils changent (`isSameFilters` évite un
   changement d'URL identique), sauf si la plage est invalide. `navigateWithQuery` choisit
   `router.replace` pour les filtres et `router.push` pour les pages.
 - `useMobileMenu` et `MenuToggleButton.vue` (accueil et Pro) : nom accessible fixe « Menu » avec
   `aria-expanded`. Échap et tout changement de route ferment le menu. Un lien vers la page courante
-  ou vers une ancre met le focus sur le titre ciblé, sinon sur le bouton.
+  ou vers une ancre met le focus sur le titre ciblé, sinon sur le bouton. `MenuToggleButton`
+  prend la prop `isMorphing` (`true` par défaut) : les trois barres se changent en croix quand le
+  menu est ouvert. Dans le layout Pro, `isMorphing` vaut `false` : le panneau a sa propre croix
+  (✕ de fermeture), la seconde croix ferait doublon.
 - `DatePicker.vue` : `Popover` shadcn et `CalendarRoot` / `CalendarCellTrigger` de reka-ui. Nom
-  accessible par `aria-labelledby` (libellé et valeur), `isLabelHidden` pour masquer le libellé,
+  accessible du bouton par `aria-labelledby` (libellé et valeur), `aria-invalid` quand il y a une
+  erreur, `isLabelHidden` pour masquer le libellé,
   bornes `min` / `max`, lundi en premier. Le calendrier montre toujours 6 semaines (`fixed-weeks`),
   s'ouvre toujours sous son champ (`side-flip` désactivé) et défile en interne quand la place
   manque (`max-h` sur la hauteur disponible de reka). Le panneau n'est monté qu'à la première
@@ -910,6 +952,31 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
   revérifier pour tout composant téléporté monté dans un dialogue. Les classes du calendrier
   sont partagées avec `BookingCalendar` dans `app/constants/booking.ts` (déplacement vers
   `app/constants/form.ts` prévu, voir `TODO.md`). Le filtre de statut est un `Select` shadcn.
+  - Nom du panneau : `aria-label` « Choisir la date : {libellé} » sur le `PopoverContent`.
+    Pourquoi le garder : le bouton déclencheur garde son `id` (il sert à `aria-labelledby` et au
+    retour du focus), donc l'`aria-labelledby` que reka pose sur le contenu pointe dans le vide.
+  - Focus initial par `@open-auto-focus` (`focusCalendarDay`), qui met le focus sur le jour
+    sélectionné ou courant (`tabindex="0"`). Pourquoi pas `initial-focus` : sur Safari et iOS, le
+    piège à focus du `Dialog` modal n'est mis en pause qu'après un `nextTick`, et `initial-focus`
+    fermait le calendrier dans « Changer la date ». Le gestionnaire appelle
+    `event.preventDefault()` puis `focus()` sur la cellule.
+  - Prop `markedDays` (`Record<string, number>`, date ISO vers nombre d'interventions) : un point
+    décoratif (`aria-hidden`) sur le jour, et l'événement `visibleRange` qui donne
+    `{ from, to }` de la grille affichée (42 jours, `CALENDAR_GRID_DAY_COUNT` dans
+    `app/constants/calendar.ts`, à partir du lundi de la semaine du 1ᵉʳ du mois). Il est émis à l'ouverture puis à
+    chaque changement de mois, jamais deux fois pour la même grille tant que le panneau reste
+    ouvert.
+  - Un jour marqué reçoit un `aria-label` complet par `calendarDayAttributes`
+    (`app/utils/calendar.ts`) : « {date longue}, une intervention » ou « …, N interventions ».
+    Pourquoi : reka pose son propre `aria-label` sur la cellule (la date longue), qu'un texte
+    ajouté dans la cellule ne remplacerait pas. `BookingCalendar` s'en sert aussi pour « {date
+    longue}, jour recommandé » (`booking.date.recommendedDay`).
+  - Légende « Point : jour avec au moins une intervention, à faire ou terminée », affichée
+    seulement si au moins un jour du mois affiché est marqué.
+  - Les points ne suivent pas le filtre de statut de la liste : ils comptent les interventions
+    `paid` et `completed`, jours passés compris (voir « Points ouverts »).
+  - Sur `/pro` et `/pro/interventions`, `useProInterventionDays` fournit `markedDays` et
+    `loadDays` (voir « Routes serveur »).
 - `AppButton.vue` et `buttonClass` (`app/constants/buttons.ts`, `cva`) : bouton ou lien commun.
   Variantes `primary`, `secondary`, `destructive`, `warning`, `onDark`, `onDarkWarning`,
   `onDarkGhost` et `onDarkOutline`, tailles `md` (48 px) et `sm` (44 px). Props `to` (lien interne,
@@ -920,15 +987,35 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
   bouton en icône seule (texte `sr-only`) reste centré. `focus()` est exposé. Utilisé par les
   pages Pro, la connexion, l'espace client et `DatePicker` ; les boutons de la réservation, du
   devis et du contact restent à migrer (`TODO.md`).
-- `ProDayStatusPanel.vue` (planning) : titre, raison, note du jour, conseil et deux actions
-  (« Déplacer l'intervention » / « Déplacer les interventions », ou « Choisir les interventions à
-  déplacer » en dépassement de capacité ; il met le focus sur le premier « Changer la date » de
-  la liste, sinon sur son titre. Puis « Rouvrir ce jour » ou « Augmenter la capacité de ce jour », lien vers
-  `/pro/availability?date=` tant que la date est modifiable).
-  Contenu calculé par `dayStatus` et `dayStatusTitle` (`app/utils/proAvailability.ts`). La forme
-  plurielle du titre vient du 3ᵉ argument de `t` ; aucun paramètre nommé ne s'appelle `n` ou
-  `count` dans ces titres, car vue-i18n choisirait la forme plurielle d'après eux avant
-  l'argument explicite.
+- `ProDayStatusPanel.vue` (planning) : alerte du jour, avec `data-tone` (`urgent`, `warning` ou
+  `info`). Elle montre le titre (`h3`), la raison, la note du jour, un conseil, une consigne et
+  un seul lien d'action : « Rouvrir ce jour » ou « Augmenter la capacité de ce jour », vers
+  `/pro/availability?date=` tant que la date est modifiable. Il n'y a plus de bouton « Déplacer
+  l'intervention » ni de mise au focus du premier « Changer la date » (`focusFirstReschedule`
+  n'existe plus) : l'admin déplace depuis le menu « … » de chaque intervention.
+  - Urgente (`data-tone="urgent"`, fond rouge, bordure épaisse) dès que `dayMoveCount` dépasse 0 :
+    titre « N intervention(s) à déplacer d'urgence » (`pro.dayStatus.urgent.title`, via
+    `dayAlertTitle`). La consigne en gras renvoie au menu « ⋯ (Plus d'actions) » puis « Changer
+    la date ». Deux variantes selon `status.kind` : jour fermé (`closedWithBookings`), qui
+    renvoie au badge « À déplacer » ; dépassement de capacité (`overCapacity`), sans badge
+    puisque aucune intervention n'est marquée. Les textes des consignes reprennent
+    `pro.intervention.toMove` et `pro.intervention.reschedule` par messages liés (`@:`), pour
+    rester d'accord avec le badge et le menu.
+  - Le conseil du dépassement se base sur `dayMoveCount` : « Déplacez-en au moins N ou augmentez
+    la capacité » s'il y a des interventions à déplacer, sinon `overCapacityNoMove` (« Augmentez
+    la capacité de ce jour. ») quand aucune intervention `paid` n'est déplaçable ; le panneau
+    garde alors le ton d'avertissement (`warning`, ambre). Un jour fermé et vide reste une
+    information (`info`).
+  - `app/utils/proAvailability.ts` : `dayStatus` (genre et ton), `dayStatusTitle` (titre du
+    statut, aussi celui des cartes de `/pro/availability`), `dayMoveCount` (interventions `paid`
+    à déplacer : toutes celles d'un jour fermé ; sinon les réservations au-delà de la capacité,
+    au plus les `paid`) et `dayAlertTitle` (titre urgent s'il y a quelque chose à déplacer,
+    sinon `dayStatusTitle`). La forme plurielle vient du 3ᵉ argument de `t` ; aucun paramètre
+    nommé ne s'appelle `n` ou `count` dans ces titres, car vue-i18n choisirait la forme plurielle
+    d'après eux avant l'argument explicite.
+  - La région live de `/pro` annonce `dayAlertTitle` après le nombre d'interventions
+    (`pro.planning.loadedStatus`). Le panneau n'a ni `role="alert"` ni focus automatique : il
+    s'ajoute à ce qui est lu au chargement, sans voler le focus.
 - `ProCapacityField.vue` : champ numérique (`NumberField` reka) de 0 à `PRO_DAY_CAPACITY_MAX`
   avec boutons plus et moins de 44 px. Dans une exception de date (`isNullable`), le champ vide
   affiche en gris la valeur de la règle (« N (règle) », `rulePlaceholder`) alors que la valeur
@@ -968,15 +1055,31 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
   - Dépendance technique : l'ordre d'annonce s'appuie sur reka-ui 2.7 (`FocusScope` émet
     `closeAutoFocus` pendant `scope.stop()`, et `useHideOthers` retire `aria-hidden` dans un
     `onUnmounted` après le rendu) et sur Vue 3.5. À revérifier à chaque mise à jour de reka-ui.
-- `ProInterventionCard.vue` : pastille d'avancement (`interventionProgressStatus`,
-  `PRO_PROGRESS_VIEWS` : icône et libellé), badge « À déplacer » (`ProToMoveBadge.vue`, `isToMove`,
-  texte masqué « jour fermé » pour les lecteurs d'écran), détails de la réservation et une action :
-  un lien principal « Commencer », « Continuer » ou « Voir » (`interventionCardAction`) vers la
-  fiche, et le menu « … » (`DropdownMenu`) avec « Changer la date » pour une intervention `paid`.
-  La carte n'a plus de repli mobile ni d'itinéraire (ils sont dans la fiche). Le dialogue de
-  déplacement ne s'ouvre qu'à `closeAutoFocus` du menu (`openPendingReschedule`), pour ne pas se
-  disputer le focus avec lui. `MediaCardSkeleton.vue` garde les props `tallRows` et
-  `collapsedRows` pour la hauteur des squelettes.
+- `ProInterventionCard.vue` : deux rendus de la même intervention, choisis par CSS. Sous `sm`, une
+  ligne compacte sombre (`ProInterventionRow.vue`) ; à partir de `sm`, la carte `MediaCard`.
+  - Logique commune dans `useProInterventionCard` (`app/composables/`) : ton, pastille
+    d'avancement (`interventionProgressStatus`, `PRO_PROGRESS_VIEWS` : icône et libellé), action
+    (`interventionCardAction` : « Commencer », « Continuer » ou « Voir »), route de la fiche, nom du
+    client, sujet pour les lecteurs d'écran, lignes de détail (date si `showDate`, bacs, formule)
+    et `isReschedulable` (intervention `paid`). Les props et leurs défauts sont partagés
+    (`ProInterventionCardProps`, `PRO_INTERVENTION_CARD_DEFAULTS` dans
+    `app/constants/proInterventionCard.ts`).
+  - Ligne mobile : pastille de statut ronde (le libellé du statut est dans un `p` `sr-only`), nom
+    du client tronqué, adresse et détails sur 2 lignes au plus (`line-clamp-2`), badge « À
+    déplacer » (`ProToMoveBadge.vue`, `isToMove`, texte masqué « jour fermé » pour les lecteurs
+    d'écran). Le lien de la fiche est dans le titre et son `after:inset-0` couvre toute la ligne,
+    qui devient cliquable. Le menu `ProRescheduleMenu` est en `relative z-10` au-dessus de ce
+    lien. Les détails sont des `dt` / `dd` en ligne séparés par un point médian, leurs libellés
+    en `sr-only`.
+  - Carte (`sm` et plus) : pastille et libellé en `eyebrow`, badge, détails en `dl`, lien
+    principal puis `ProRescheduleMenu`.
+  - `ProRescheduleMenu.vue` : bouton « … » (nom « Plus d'actions pour {sujet} ») et
+    `DropdownMenu` avec le seul élément « Changer la date ». Le dialogue de déplacement ne
+    s'ouvre qu'à `closeAutoFocus` du menu (`openPendingReschedule`), pour ne pas se disputer le
+    focus avec lui ; l'événement `reschedule` renvoie le bouton « … » pour lui rendre le focus.
+  - Les listes (`ProInterventionList`) sont en `grid-cols-1` sous `md`, deux colonnes ensuite. Le
+    squelette de chargement a une ligne mobile (`PRO_SKELETON_MOBILE_ROW_COUNT`, 6 lignes) et le
+    `MediaCardSkeleton.vue` à partir de `sm` (qui garde ses props `tallRows` et `collapsedRows`).
 - Fiche d'une intervention, `app/pages/pro/interventions/[id].vue` : charge
   `GET /api/pro/interventions/[id]` (`useFetch`, `server: false`) avec `useAccountPageState`
   (401 et 403 traités par `useProAuthError`). Le mode vient de `interventionMode` :
@@ -988,6 +1091,13 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
   filtres et sa page, lus par une liste blanche (`proListQuery`, `interventionBackRoute`) ; sans
   `origin`, il rend le planning du jour de l'intervention. `interventionPageRoute` construit le
   lien de la carte avec cette liste blanche. L'`h1` est le nom du client.
+  - En-tête réduit en mode `steps` (`isHeaderMetaShown`) : seulement le `h1` (et le badge « À
+    déplacer » si besoin). L'étiquette de statut et l'adresse ne s'affichent que dans les autres
+    modes, car l'étape 1 montre déjà l'adresse. Pourquoi : désencombrer l'écran du téléphone, où
+    l'admin ne doit voir que l'étape en cours.
+  - Une seule région `role="status"` pour toute la page (`liveStatus`). Le composable
+    `useProPhotoUpload` reçoit `announce` en option et y envoie ses annonces ; les étapes
+    n'ont aucune région propre.
 - Étapes (`ProInterventionFlow.vue`, `useProInterventionSteps`, `app/utils/proSteps.ts`,
   `app/constants/proSteps.ts`) : 1 Itinéraire, 2 Photo avant, 3 Photo après, 4 Récapitulatif.
   - L'étape est dans `?step=n`. Sans valeur valide, `initialInterventionStep` la déduit des
@@ -1003,12 +1113,34 @@ accès, planning, liste, itinéraire ; disponibilités et déplacement d'une int
     `sr-only` « Étape N sur 4 : »), qui nomme l'étape, rien d'autre n'est annoncé. La première
     étape est annoncée au montage. Après une fin réussie, le focus va au `h2` « Intervention
     terminée ».
-  - `ProInterventionSteps.vue` : barre des quatre étapes (état `current`, `done`, `skipped`, `todo`
-    selon les photos). `ProStepDirections.vue` : adresse, menu `ProDirectionsMenu.vue` et bouton
-    d'appel. `ProStepPhoto.vue` et `ProPhotoSlot.vue` : prise ou remplacement d'une photo, aperçu
-    local. `ProStepRecap.vue` : les deux emplacements, avertissement des photos manquantes et
-    « Terminer l'intervention ». `ProInterventionDetails.vue` : téléphone et détails en bas de
-    page. `ProInterventionPageSkeleton.vue` : squelette de chargement.
+  - `ProInterventionSteps.vue` : compteur « Étape N sur 4 » et quatre segments (état `current`,
+    `done`, `skipped`, `todo` selon les photos). La forme dit l'état sans dépendre de la couleur
+    seule (`PRO_STEP_BAR_TONES`) : faite pleine, en cours plus haute, à faire creuse, passée en
+    pointillé ambre. Chaque segment autre que l'étape courante est un lien (zone de 44 px, texte
+    `sr-only` : numéro, nom, état) ; l'étape courante porte `aria-current="step"`.
+  - `ProStepDirections.vue` (étape 1) : carte « destination » (icône, adresse), menu
+    `ProDirectionsMenu.vue` et bouton d'appel carré en icône seule quand le client a un
+    téléphone (nom accessible : nom du client et numéro groupé). Le bouton « Je suis sur place »
+    passe à l'étape 2.
+  - `ProStepPhoto.vue` et `ProPhotoSlot.vue` : une ligne « À nettoyer » (bacs de la réservation),
+    la consigne, la prise ou le remplacement de la photo avec aperçu local. Sans photo,
+    « Passer cette photo » ouvre une confirmation en ligne (avertissement : sans les deux
+    photos, pas de mail photos au client). Le focus va sur l'avertissement ; « Oui, passer »
+    avance, « Annuler » rend le focus à « Passer cette photo ». Quand la photo arrive, la
+    confirmation disparaît et « Continuer » remplace le bouton, avec le focus si l'admin était sur
+    la confirmation ou sur « Passer ».
+  - `ProStepRecap.vue` : les deux emplacements, avertissement des photos manquantes et
+    « Terminer l'intervention ». `ProInterventionPageSkeleton.vue` : squelette de chargement.
+  - `ProInterventionDetails.vue` : accordéon « Plus d'infos » sous l'étape, fermé par défaut et
+    refermé quand l'identifiant de l'intervention change. Il regroupe le téléphone (lien
+    `tel:`, chiffres groupés par `groupPhoneDigits`), la date, les bacs, la formule, les jours de
+    collecte et le montant ; il n'a pas de ligne de paiement. Le bouton est un `button` dans un
+    `h2` (`aria-expanded`, `aria-controls`).
+  - Animation de l'accordéon (`app/constants/motion.ts`) : `ACCORDION_ENTER_ACTIVE_CLASS` utilise
+    une courbe symétrique `cubic-bezier(0.37, 0, 0.63, 1)` sur `duration-lift`, et
+    `ACCORDION_LEAVE_ACTIVE_CLASS` garde `ease-brand` sur `duration-press`. Pourquoi : à
+    l'ouverture, `ease-brand` parcourait 61 % du trajet en 50 ms et l'ouverture paraissait
+    instantanée.
 - Itinéraire (`ProDirectionsMenu.vue`, `app/utils/navigationApps.ts`,
   `app/constants/navigationApps.ts`) : `detectNavigationPlatform` lit `navigator.userAgent` et
   `maxTouchPoints` au montage seulement (iPadOS se présente comme un Mac, l'écran tactile les
@@ -1107,7 +1239,17 @@ installe.
     `tests/integration/pro/pro-interventions.test.ts`, `pro-to-move.test.ts`) : le bouton
     « Itinéraire Google Maps » a quitté la carte, « Changer la date » est dans le menu « … »,
     les interventions portent `photos` et `completedWithoutPhotos`, la page de la liste est
-    `app/pages/pro/interventions/index.vue`. Ces tests n'ont pas été relus pour ce document.
+    `app/pages/pro/interventions/index.vue`. Ces tests n'ont pas été relus pour ce document ;
+  - adapter `tests/e2e/pro/pro-availability.spec.ts` (l. 124-129 et 164-171) : le planning
+    n'affiche plus les titres `dayStatus.title.closedWithBookings` et `overCapacity` dans le
+    `h3` du panneau mais le titre urgent (`dayAlertTitle`, `pro.dayStatus.urgent.title`) ;
+  - écrire les tests de `GET /api/pro/interventions/days`, `loadInterventionDayCounts`,
+    `dayMoveCount`, `dayAlertTitle`, `groupPhoneDigits`, `parseIsoDate` / `toIsoDate`,
+    `calendarDayAttributes` et `useProInterventionDays` ;
+  - 27 échecs unitaires existaient déjà avant ce travail, répartis dans 7 fichiers (chiffre
+    relevé le 19 octobre 2026, fichiers non listés) : à examiner avant la fusion ;
+  - relancer le serveur de test du port 3001 avant `bun run test` : il tourne avec des
+    auto-imports périmés (nouveaux composables et utilitaires non vus).
 - Tests dans `tests/{unit,integration,e2e}/pro/`, aide `tests/support/admin.ts` (création d'un
   admin directement dans Auth, lecture des compteurs, nettoyage).
 - Tests du lot 2 :
@@ -1580,6 +1722,12 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
   (`ProCompleteDialog`, `closeAutoFocus` puis annonce au tick suivant) et menu « … » de la carte
   (`openPendingReschedule`).
 - Nettoyage des photos : aucune purge (durée de conservation à décider, `TODO.md` étapes 10 et 13).
+- Les points de `DatePicker` des filtres de `/pro/interventions` ne suivent pas le filtre de
+  statut : ils comptent toujours les interventions `paid` et `completed`, jours passés compris.
+- `role="list"` sur les listes stylées (`ul` en grille de `ProInterventionList`) est bloqué par la
+  règle `vuejs-accessibility/no-redundant-roles`. Décision de l'utilisateur en attente.
+- Libellés « Continuer » (`pro.steps.next`) des étapes photo : décision de l'utilisateur en
+  attente.
 
 ## Coûts estimés
 

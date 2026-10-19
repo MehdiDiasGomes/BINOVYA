@@ -96,8 +96,8 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 ## 8. Espace BINOVYA Pro
 
 Les trois lots sont faits (accès, planning, liste, itinéraire ; disponibilités et déplacement
-d'une intervention ; photos, fin d'intervention et photos côté client). Reste la passe de tests
-de fin d'étape, puis la fusion dans `dev`.
+d'une intervention ; photos, fin d'intervention et photos côté client), suivis d'une passe de
+désencombrement du mobile. Reste la passe de tests de fin d'étape, puis la fusion dans `dev`.
 
 - [x] Accès admin (`app_metadata.role`)
 - [x] Planning du jour, mobile
@@ -143,11 +143,31 @@ public.is_admin())` (fonction plpgsql, évaluée par ligne) et ajoute `is_admin`
 - [ ] Lancer `bun run test` une fois, à la fin de l'étape (après le lot 3), avant la fusion dans
       `dev` : les tests des lots 1 et 2 sont écrits mais pas rejoués lot par lot, ceux du lot 3
       (photos, fin d'intervention, page `/pro/interventions/[id]`, photos client) restent à écrire
-      et ceux de la liste et de la carte à adapter
+      et ceux de la liste et de la carte à adapter, ainsi que ceux de la ligne mobile, du
+      panneau urgent, des jours marqués et de `GET /api/pro/interventions/days`
 - [x] Photos avant/après depuis le téléphone (page `/pro/interventions/[id]` en 4 étapes,
       redimensionnement dans le navigateur, `PUT /api/pro/bookings/[id]/photos/[kind]`)
 - [x] « Terminer l'intervention », disponible après l'ajout des photos ; l'admin peut forcer la
       fin sans photos, après confirmation (`POST /api/pro/bookings/[id]/complete`)
+- [x] Désencombrer la fiche d'intervention : en-tête réduit, compteur et segments d'étapes,
+      destination et appel à l'étape 1, confirmation en ligne de « Passer cette photo »,
+      accordéon « Plus d'infos » fermé par défaut, une seule région live
+- [x] Lignes compactes sur téléphone pour les interventions (`ProInterventionRow`,
+      `ProRescheduleMenu`), carte à partir de `sm`
+- [x] Pied de page du layout Pro (mentions légales, confidentialité, retour au site)
+- [x] Jours marqués dans les sélecteurs de date de `/pro` et `/pro/interventions`
+      (`GET /api/pro/interventions/days`, `useProInterventionDays`)
+- [x] Alerte urgente « N interventions à déplacer d'urgence » dans le planning
+      (`ProDayStatusPanel`, `dayMoveCount`, `dayAlertTitle`)
+- [ ] Point ouvert : les points des filtres de `/pro/interventions` ne suivent pas le filtre de
+      statut (ils comptent `paid` et `completed`, jours passés compris)
+- [ ] Point ouvert, décision de l'utilisateur : `role="list"` sur les listes stylées bloqué par la
+      règle `vuejs-accessibility/no-redundant-roles`
+- [ ] Point ouvert, décision de l'utilisateur : libellés « Continuer » des étapes photo
+- [ ] Tests à adapter pour la passe de fin d'étape : `tests/e2e/pro/pro-availability.spec.ts`
+      (l. 124-129 et 164-171, nouveau titre urgent) ; 27 échecs unitaires déjà présents avant ce
+      travail, dans 7 fichiers (relevé du 19 octobre 2026) ; relancer le serveur de test du
+      port 3001 (auto-imports périmés)
 - [x] Photos avant/après et reçu de paiement dans l'espace client (`/account/bookings/[id]`, URL
       signées de 10 minutes, reçu Stripe « Reçu de paiement »)
 - [ ] Facture française réelle avec les mentions légales : à décider avec le client (le reçu

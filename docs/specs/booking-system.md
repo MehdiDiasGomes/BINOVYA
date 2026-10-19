@@ -134,7 +134,8 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   refusée. Les deux rayons sont des valeurs de configuration, modifiables sans redéploiement.
 - **Jour de collecte** : règle souple. Le jour de collecte et le lendemain sont mis en avant
   comme recommandés, les autres jours restent réservables avec l'avertissement « vos bacs
-  doivent être vides ». Le SMS de la veille le rappelle.
+  doivent être vides ». Le SMS de la veille le rappelle. Dans le calendrier, le point d'un jour
+  recommandé est décoratif : le nom accessible de la case est « {date longue}, jour recommandé ».
 - **Place bloquée** : la place est prise dès la création de la réservation, dans une
   transaction, pour 35 minutes. Elle est libérée (`expired`) si la session Stripe expire sans
   paiement, si le client abandonne ou revient en arrière, ou par la tâche planifiée.
@@ -243,17 +244,22 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   « Fiche d'une intervention »).
 - **Carte d'intervention** (planning et liste) : une pastille d'avancement (À faire, Photo avant
   faite, Photo après faite, Photos faites, Terminée, Terminée sans photos, Annulée), les détails de la
-  réservation et un seul lien principal : « Commencer » (paid, jour venu, sans photo),
-  « Continuer » (paid, jour venu, au moins une photo) ou « Voir » (tout le reste : jour à venir,
-  terminée, annulée). Le menu « … » ne contient que « Changer la date », pour une intervention
-  `paid`.
+  réservation (date dans la liste, bacs, formule) et un seul lien principal : « Commencer » (paid,
+  jour venu, sans photo), « Continuer » (paid, jour venu, au moins une photo) ou « Voir » (tout le
+  reste : jour à venir, terminée, annulée). Le menu « … » (« Plus d'actions ») ne contient que
+  « Changer la date », pour une intervention `paid`. Sur téléphone, l'intervention est une ligne
+  compacte sombre : pastille, nom du client, adresse et détails sur deux lignes au plus, badge
+  « À déplacer » si besoin, toute la ligne ouvre la fiche et le menu « … » reste cliquable à
+  part. À partir de `sm`, c'est une carte avec le lien et le menu en bas.
 - **Liste des interventions** (`/pro/interventions`) : filtre de statut (Tous, À réaliser,
   Réalisées, Annulées). « Du » vaut aujourd'hui par défaut ; « Du » vide = aucune borne basse ;
   un « Au » antérieur à « Du » est ignoré (les deux sélecteurs se bornent l'un l'autre). Les
   filtres s'appliquent aussitôt et remplacent l'entrée d'historique (`replace`). Pagination par 50,
   pages 1 à 1000, chaque page ajoute une entrée d'historique (`push`) ; une page au-delà de la
-  dernière ramène à la dernière. Tri par date puis date de création. Le paiement s'affiche
-  « Remboursé » pour une réservation annulée.
+  dernière ramène à la dernière. Tri par date puis date de création. Les sélecteurs de date du
+  planning et des filtres marquent d'un point les jours qui ont au moins une intervention
+  (`paid` ou `completed`, jours passés compris), avec une légende ; le point ne suit pas le
+  filtre de statut.
 - **Disponibilités** (`/pro/availability`) : l'admin règle la capacité de chaque jour de semaine,
   de 0 à `PRO_DAY_CAPACITY_MAX` (50). 0 ferme le jour. Un jour sans règle est fermé. Il peut
   aussi créer l'exception d'une date : capacité (vide = suit la règle, 0 = fermé), secteur imposé
@@ -268,11 +274,17 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   signature distinct : un jeton d'adresse n'est pas accepté pour une commune, ni l'inverse. Une
   commune expirée ou modifiée est refusée (`invalidAddress`) et l'admin doit la rechercher de
   nouveau.
-- **Statut d'un jour** (`/pro`) : un jour fermé qui garde des interventions payées affiche un
-  panneau d'avertissement « N interventions à déplacer » ; un jour fermé sans réservation, un
-  panneau d'information ; un jour qui contient plus de réservations que sa capacité (après un
-  déplacement forcé), un avertissement de dépassement. Les liens « Rouvrir » et « Augmenter »
-  mènent à `/pro/availability?date=…` tant que la date est modifiable.
+- **Statut d'un jour** (`/pro`) : quand des interventions `paid` sont à déplacer, le planning
+  affiche une alerte urgente (rouge) « N intervention(s) à déplacer d'urgence ». Ce cas couvre
+  un jour fermé qui garde des interventions payées (toutes sont à déplacer) et un jour qui
+  contient plus de réservations que sa capacité après un déplacement forcé (au plus autant
+  d'interventions que de réservations en trop). La consigne dit de passer par le menu « ⋯ » de
+  chaque intervention puis « Changer la date » ; pour un jour fermé, elle renvoie au badge
+  « À déplacer », pour un dépassement il n'y a pas de badge. Un dépassement sans intervention
+  déplaçable affiche un avertissement ambre qui conseille d'augmenter la capacité ; un jour
+  fermé sans réservation, un panneau d'information. Les liens « Rouvrir » et « Augmenter »
+  mènent à `/pro/availability?date=…` tant que la date est modifiable. Le titre de l'alerte
+  est aussi annoncé aux lecteurs d'écran au chargement du planning, sans prendre le focus.
 - **« À déplacer »** : une intervention `paid` dont le jour est fermé (par la règle ou par une
   exception) porte le badge « À déplacer » dans le planning et la liste. Un jour en dépassement
   de capacité n'en marque aucune. Une intervention `completed` ou annulée n'est jamais marquée.
@@ -299,15 +311,24 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
     Itinéraire, 2 Photo avant, 3 Photo après (facultative, « Passer cette photo »), 4 Récapitulatif
     et « Terminer l'intervention ». L'étape de reprise vient de ce que le serveur a enregistré :
     itinéraire sans photo, photo manquante s'il n'en existe qu'une, récapitulatif si les deux
-    existent. Le bouton retour du téléphone revient à l'étape précédente.
+    existent. Le bouton retour du téléphone revient à l'étape précédente. L'en-tête se réduit au
+    nom du client : l'adresse est dans l'étape 1. Une barre de quatre segments avec un compteur
+    « Étape N sur 4 » montre l'avancement (étape faite, en cours, à faire, passée).
+  - Étape 1 : la destination (adresse), le menu d'itinéraire, un bouton d'appel (icône) si le
+    client a un téléphone, et « Je suis sur place ». Étapes photo : la ligne « À nettoyer »
+    rappelle les bacs. « Passer cette photo » demande une confirmation sur place (sans les deux
+    photos, aucun mail photos ne part) ; une photo prise remplace ce choix par « Continuer ».
+  - « Plus d'infos », sous l'étape et fermé au départ : téléphone (numéro en groupes de chiffres,
+    appelable), date, bacs, formule, jours de collecte et montant. Il n'y a pas de ligne de
+    paiement.
   - Réservation `paid` dont le jour n'est pas venu, ou annulée : lecture seule, aucune photo ni
     fin possible.
   - Réservation `completed` : récapitulatif avec les deux photos. « Remplacer » reste possible et
     n'envoie aucun nouveau mail.
   - Itinéraire : un menu propose les applications du téléphone. iPhone et iPad : Plans, Google
     Maps, Waze. Android : Google Maps, Waze, « Autre application… » (lien `geo:`). Mac : Google
-    Maps, Waze, Plans. Autre appareil : Google Maps, Waze. Un bouton d'appel s'ajoute si le
-    client a un téléphone.
+    Maps, Waze, Plans. Autre appareil : Google Maps, Waze. Le bouton d'appel, s'il y a un
+    téléphone, est à côté du menu.
 - **Photos prises par l'admin** : un seul champ fichier (`image/*`, sans `capture`), donc
   l'appareil photo ou la galerie au choix du téléphone. Le navigateur réduit la photo à 2 000 px
   au plus et l'envoie en JPEG ; le serveur la contrôle et efface ses métadonnées (EXIF dont le
