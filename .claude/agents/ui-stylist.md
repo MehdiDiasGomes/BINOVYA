@@ -77,7 +77,15 @@ kept equal by a unit test):
 | form steps, in-place form swaps                | `STEP_TRANSITION` / `STEP_OFFSET` in `<AnimatePresence>` | —                                    |
 | confirmation icon                              | `POP_SPRING`                                             | —                                    |
 
-- Animate only `opacity` and `translate` / `scale`; never width, height, margins or padding.
+- Animate only `opacity`, `translate`, `scale` and `rotate`; never width, height, margins or
+  padding.
+  Single exception, an accordion: Vue `<Transition>` with `grid-rows-[0fr]` ↔ `grid-rows-[1fr]`
+  plus opacity and `motion-reduce:transition-none` (motion-v `reduced-motion` does not cut a
+  height animation); keep enough padding inside the `overflow-hidden` wrapper for the focus ring.
+  Enter with `ACCORDION_ENTER_ACTIVE_CLASS` (`motion.ts`): `ease-brand` does most of a reveal in
+  ~50 ms, so an opening looks instant; leave with `ACCORDION_LEAVE_ACTIVE_CLASS`.
+- A hover lift on a touch-first element (`has-[a:hover]:`, `group-hover:`) goes under
+  `[@media(hover:hover)]:`, otherwise it sticks after a tap.
 - Never a raw duration, easing or inline `:transition`: if no preset fits, ADD one to `motion.ts`.
 - Tailwind v4 `translate-*` sets the CSS `translate` property: `transition-[translate,box-shadow]`.
 - Every Tailwind animation or movement carries a `motion-reduce:` variant; motion-v respects
@@ -102,6 +110,10 @@ kept equal by a unit test):
   SAME text size as the real text and `h-lh`, match paddings, borders and stacked mobile rows;
   write both computed heights in the report.
 - Lift on hover on a non-clickable element.
+- A static `key` on a `Motion` that is not a direct child of `AnimatePresence` (v-if branches
+  are already keyed by Vue).
+- A grid list without `grid-cols-1` below its first breakpoint: the implicit `auto` column grows
+  to the `truncate` text and the cards overflow the screen.
 - Placeholder or "coming soon" content that looks like a disabled control or a broken image:
   use a status (badge, icon + text).
 - Prettier on anything else than the files you changed.

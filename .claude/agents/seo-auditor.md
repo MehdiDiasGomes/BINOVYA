@@ -1,6 +1,6 @@
 ---
 name: seo-auditor
-description: Read-only SEO audit of BINOVYA public pages - meta tags per page and per locale, hreflang and canonical, noindex of private pages, robots and sitemap, JSON-LD structured data (local business), heading hierarchy, images, server rendering and internal links. Use when public pages, their i18n texts or nuxt.config.ts change, and for a full-site audit.
+description: Read-only SEO audit of BINOVYA public pages - meta tags per page and per locale, hreflang and canonical, noindex of private pages, robots and sitemap, JSON-LD structured data (local business), heading hierarchy, images, server rendering and internal links. Runs once at the end of a feature (a whole TODO step / branch) when the branch touches public pages, their i18n texts or nuxt.config.ts, and for a full-site audit.
 tools: Read, Grep, Glob, mcp__nuxt__get-documentation-page
 model: sonnet
 ---

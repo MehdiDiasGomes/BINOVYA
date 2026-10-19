@@ -41,8 +41,13 @@ brief. Anything needed outside your scope goes under "Hors périmètre".
 - Errors: `createError({ statusCode, statusMessage })`, short English message, nothing internal.
 - Secrets through `useRuntimeConfig()`, declared in `nuxt.config.ts`, listed empty in
   `.env.example`. Browser storage wrapped in try/catch.
+- Action labels say the real-world situation that makes the user press them, not a generic verb:
+  « Je suis sur place » rather than « Continuer » after the directions step, « Oui, passer »
+  rather than « OK ». A generic « Continuer » / « Valider » / « Suivant » is acceptable only when
+  nothing on screen tells the user what they are confirming. Same rule for the EN text.
 - Motion: presets in `app/constants/motion.ts`, Tailwind tokens `ease-brand`, `duration-press`,
-  `duration-lift`, `duration-enter` (a unit test keeps both in sync).
+  `duration-lift`, `duration-enter` (a unit test keeps both in sync). An accordion uses
+  `ACCORDION_ENTER_ACTIVE_CLASS` / `ACCORDION_LEAVE_ACTIVE_CLASS`.
 
 ## Mistakes already made, do not repeat
 
@@ -89,10 +94,20 @@ Each one was caught by a review. Check your change against this list before repo
   removes content above a button: the mousedown on that button blurs the field, the button moves
   and the click is lost. Apply input while typing, and never emit an unchanged value.
 - An `AnimatePresence` without `mode` around content holding a ref used for focus: the old child
-  survives its exit, the ref still points to it and the focus falls on `body`. Use a keyed
-  `Motion` with a conditional `initial` (no exit phase) for mode swaps.
+  survives its exit, the ref still points to it and the focus falls on `body`. Use a `Motion` per
+  `v-if` branch (Vue keys the branches itself; a dynamic `:key` only when the same element swaps
+  content) with a conditional `initial` (no exit phase) for mode swaps.
 - An `aria-label` on a reka menu / popover content: reka sets `aria-labelledby` to the trigger,
   which wins, so the label is never read. Put the context in the trigger's name (sr-only).
+  Exception: a `PopoverTrigger as-child` around a button with its own `id` keeps that id, so
+  reka's `aria-labelledby` points to nothing and the content's `aria-label` is the name (see
+  `DatePicker.vue`). Keep it there, and keep the button's `id`.
+- A sr-only text inside a reka `CalendarCellTrigger`: reka sets an `aria-label` on the cell,
+  which replaces its content. Bind a full `aria-label` (long date + suffix) instead.
+- A focus set on mount (`initial-focus`, `onMounted` + `focus()`) inside a reka popover or menu
+  opened in a modal Dialog: the dialog's focus trap is paused only after a `nextTick`, takes the
+  focus back and, on Safari, the popover closes at once (`focusOutside`). Set the focus in
+  `@open-auto-focus` (with `preventDefault`).
 - A Nuxt `refresh()` of the page data to update one sub-part: in Nuxt 4 a failed refresh resets
   `data`, wiping the whole page. Fetch the sub-part with a dedicated `$fetch` and keep the rest.
 - Routes built as raw paths (`/pro/...`) passed to `NuxtLink` or `navigateTo`: wrap them in
@@ -110,6 +125,10 @@ Change set: `git diff --name-only dev` plus `git ls-files --others --exclude-sta
 `bun run lint`, `bunx nuxi typecheck`, `bunx prettier --check <your files>`, and
 `bun run test:unit` when you touched tested code. Fix every error in the change set. Errors that
 also exist on `dev` are pre-existing: list them, do not fix them.
+
+Never run `nuxi prepare`, `nuxi build`, `nuxi generate` or `bun run build`: they rewrite `.nuxt/`,
+which the user's running dev server reads, and crash it with a 500. If generated types look stale,
+say so in the report and let the orchestrator decide.
 
 ## Report (in French, short, a status emoji on every row: ✅ 🔴 🟠 ⚪ ⚠️)
 

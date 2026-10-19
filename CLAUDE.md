@@ -277,28 +277,30 @@ The main session is the orchestrator only: it never writes code, migrations, doc
 briefs the subagents in `.claude/agents/`, passes reports between them and talks to the user.
 Full pipeline: `/feature <description>` (`.claude/commands/feature.md`).
 
-| Agent              | Model  | Writes                                                                                                                  | Runs when                                     |
-| ------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------- | --------------------------------------------- |
-| `db-migrator`      | sonnet | new `supabase/migrations/*.sql`, `database.types.ts`                                                                    | the schema changes, before implementation     |
-| `implementer`      | opus   | logic, components, server routes, Zod schemas, i18n, config; runs lint, typecheck, prettier                             | every code change, and every code fix         |
-| `ui-stylist`       | sonnet | Tailwind classes, markup and motion-v animations in `app/pages`, `app/components`; presets in `app/constants/motion.ts` | templates changed, after implementation       |
-| `security-auditor` | opus   | nothing (read-only)                                                                                                     | `server/`, `supabase/`, auth, payments, input |
-| `a11y-auditor`     | sonnet | nothing (read-only)                                                                                                     | `.vue` or `i18n/` changed                     |
-| `seo-auditor`      | sonnet | nothing (read-only)                                                                                                     | public pages, meta, robots, new page          |
-| `tester`           | sonnet | unit (`tests/unit/`), integration (`tests/integration/`), Playwright E2E (`tests/e2e/`); runs them, checks the DB       | once per feature, before the merge into `dev` |
-| `code-reviewer`    | opus   | nothing (read-only)                                                                                                     | after every code pass, and final review       |
-| `docs-writer`      | sonnet | `docs/` only                                                                                                            | end of feature                                |
+| Agent              | Model  | Writes                                                                                                                  | Runs when                                                                  |
+| ------------------ | ------ | ----------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| `db-migrator`      | sonnet | new `supabase/migrations/*.sql`, `database.types.ts`                                                                    | the schema changes, before implementation                                  |
+| `implementer`      | opus   | logic, components, server routes, Zod schemas, i18n, config; runs lint, typecheck, prettier                             | every code change, and every code fix                                      |
+| `ui-stylist`       | sonnet | Tailwind classes, markup and motion-v animations in `app/pages`, `app/components`; presets in `app/constants/motion.ts` | templates changed, after implementation                                    |
+| `security-auditor` | opus   | nothing (read-only)                                                                                                     | end of feature, if `server/`, `supabase/`, auth, payments or input changed |
+| `a11y-auditor`     | sonnet | nothing (read-only)                                                                                                     | disabled for now (user decision), not launched                             |
+| `seo-auditor`      | sonnet | nothing (read-only)                                                                                                     | end of feature, if public pages, meta, robots or a new page changed        |
+| `tester`           | sonnet | unit (`tests/unit/`), integration (`tests/integration/`), Playwright E2E (`tests/e2e/`); runs them, checks the DB       | once per feature, before the merge into `dev`                              |
+| `code-reviewer`    | opus   | nothing (read-only)                                                                                                     | end of feature, whole branch                                               |
+| `docs-writer`      | sonnet | `docs/` only                                                                                                            | end of feature                                                             |
 
 Rules:
 
-- Every pass that changes code (implementer or ui-stylist) is followed by a fresh `code-reviewer`
-  on that pass's delta before the next step; its findings go to a fresh implementer or ui-stylist.
-- Order: db-migrator → implementer → ui-stylist ∥ security-auditor → a11y-auditor ∥ seo-auditor → fixes →
-  code-reviewer → docs-writer. tester runs once per feature (a whole TODO step, i.e. its branch),
-  at its end, before the final review and the merge into `dev`, never after each lot or change
-  (tests on code that keeps changing are wasted time). Two writers never run together; a read-only agent may
-  run next to a writer when it reads files that writer does not touch (security-auditor reads
-  `server/` and `supabase/`, ui-stylist edits `.vue`).
+- During a feature, each change runs only implementer → ui-stylist (templates changed). The
+  a11y-auditor is disabled for now: implementer and ui-stylist apply the a11y rules themselves and
+  the end-of-feature code-reviewer checks them. No code-reviewer, security-auditor,
+  seo-auditor or tester per change: they cost too many tokens and too much time on code that
+  keeps changing. implementer's lint, typecheck and prettier run on every pass and are the safety
+  net in between.
+- End of feature (a whole TODO step, i.e. its branch, before the merge into `dev`):
+  code-reviewer ∥ security-auditor ∥ seo-auditor on the whole branch → fixes (re-review at most
+  twice) → tester → docs-writer. Two writers never run together; a read-only agent may run next
+  to a writer when it reads files that writer does not touch.
 - Every agent is launched fresh with a complete, self-contained brief (never resumed with
   `SendMessage`): resumed agents accumulate very long contexts. Findings are relayed verbatim.
 - Tools: `ui-stylist` uses the `ui-ux-pro-max` skill
@@ -313,11 +315,12 @@ Rules:
   (`e2e+…@binovya.test`). It never edits application code or `.env*`.
 - A project `PostToolUse` hook (`.claude/settings.json`) runs prettier on every written file.
 - implementer fixes critical, high and medium findings; visual findings go back to
-  ui-stylist. The review is re-run at most twice, then open findings go to the user.
+  ui-stylist. The end-of-feature review is re-run at most twice, then open findings go to the user.
 - Read-only agents cannot run commands: the orchestrator passes them the change set
   (`git diff --name-only dev` + untracked files) and the lint, typecheck and format output
   from implementer's report.
 - Migrations are applied by the user in the Supabase SQL Editor and verified before dependent
   code is written. Nothing is committed automatically.
 - Small changes still go through implementer: skip the rest of the pipeline for changes under
-  ~30 lines with no new component and no `server/` or `supabase/` change. Any `server/` or `supabase/` change still goes through security-auditor.
+  ~30 lines with no new component and no `server/` or `supabase/` change. Any `server/` or
+  `supabase/` change is listed for the end-of-feature security-auditor.
