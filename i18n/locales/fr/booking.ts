@@ -156,7 +156,7 @@ export default {
   },
   date: {
     calendarLabel: 'Choix du jour de passage',
-    recommendedSuffix: ', jour recommandé',
+    recommendedDay: '{date}, jour recommandé',
     nextRecommended: 'Prochaine date recommandée',
     nextAvailable: 'Prochaine date disponible',
     pickSuggested: 'Choisir cette date',

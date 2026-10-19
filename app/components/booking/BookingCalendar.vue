@@ -67,15 +67,14 @@
                   :day="day"
                   :month="month.value"
                   :class="cn(CALENDAR_CELL_CLASS, isRecommended(day) && CALENDAR_RECOMMENDED_CLASS)"
+                  v-bind="recommendedDayAttributes(day)"
                 >
                   {{ day.day }}
-                  <template v-if="isRecommended(day)">
-                    <span class="sr-only">{{ $t('booking.date.recommendedSuffix') }}</span>
-                    <span
-                      aria-hidden="true"
-                      class="absolute bottom-1 h-1.5 w-1.5 rounded-full bg-current"
-                    />
-                  </template>
+                  <span
+                    v-if="isRecommended(day)"
+                    aria-hidden="true"
+                    :class="CALENDAR_DAY_DOT_CLASS"
+                  />
                 </CalendarCellTrigger>
               </CalendarCell>
             </CalendarGridRow>
@@ -104,11 +103,12 @@ import {
 } from 'reka-ui'
 
 import type { DayAvailability } from '@/types/booking'
-import type { CalendarWeekStart } from '@/types/calendar'
+import type { CalendarDayAttributes, CalendarWeekStart } from '@/types/calendar'
 
 import {
   CALENDAR_CELL_CLASS,
   CALENDAR_CELL_WRAPPER_CLASS,
+  CALENDAR_DAY_DOT_CLASS,
   CALENDAR_HEAD_CELL_CLASS,
   CALENDAR_HEADING_CLASS,
   CALENDAR_NAV_BUTTON_CLASS,
@@ -116,7 +116,7 @@ import {
 } from '@/constants/booking'
 import { STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
-import { mondayWeekStart } from '@/utils/calendar'
+import { calendarDayAttributes, mondayWeekStart } from '@/utils/calendar'
 
 const props = withDefaults(
   defineProps<{
@@ -133,7 +133,7 @@ const emit = defineEmits<{
   'update:modelValue': [value: string]
 }>()
 
-const { locale } = useI18n()
+const { t, locale } = useI18n()
 
 const mondayIndex: ComputedRef<CalendarWeekStart> = computed(() => mondayWeekStart(locale.value))
 
@@ -168,6 +168,13 @@ const isRecommended = (date: DateValue): boolean => {
   const day: DayAvailability | undefined = props.days.get(date.toString())
   return day?.status === 'available' && day.isRecommended
 }
+
+const recommendedDayAttributes = (date: DateValue): CalendarDayAttributes =>
+  isRecommended(date)
+    ? calendarDayAttributes(date, locale.value, (fullDate: string): string =>
+        t('booking.date.recommendedDay', { date: fullDate }),
+      )
+    : {}
 
 const handleSelect = (value: DateValue | undefined): void => {
   if (value) {

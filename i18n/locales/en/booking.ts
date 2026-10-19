@@ -154,7 +154,7 @@ export default {
   },
   date: {
     calendarLabel: 'Visit day selection',
-    recommendedSuffix: ', recommended day',
+    recommendedDay: '{date}, recommended day',
     nextRecommended: 'Next recommended date',
     nextAvailable: 'Next available date',
     pickSuggested: 'Choose this date',

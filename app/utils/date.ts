@@ -8,12 +8,20 @@ import { BUSINESS_TIME_ZONE } from '@/constants/booking'
 export const toIsoDate = (date: Date): string => {
   const month: string = String(date.getMonth() + 1).padStart(2, '0')
   const day: string = String(date.getDate()).padStart(2, '0')
-  return `${date.getFullYear()}-${month}-${day}`
+  const year: string = String(date.getFullYear()).padStart(4, '0')
+  return `${year}-${month}-${day}`
 }
 
+/**
+ * Reads a `YYYY-MM-DD` string as local midnight of that calendar date, years 0 to 99 included.
+ * @param isoDate - ISO calendar date
+ * @returns Local date at midnight
+ */
 export const parseIsoDate = (isoDate: string): Date => {
   const [year = 1970, month = 1, day = 1] = isoDate.split('-').map(Number)
-  return new Date(year, month - 1, day)
+  const date: Date = new Date(1970, 0, 1)
+  date.setFullYear(year, month - 1, day)
+  return date
 }
 
 export const addDays = (date: Date, days: number): Date => {
