@@ -206,7 +206,7 @@
 | Annulation et remboursement      | Webhook, `refund_required` ou `not_payable`            |
 | Rappel                           | Tâche `booking:reminders` (voir « Tâches planifiées ») |
 | Changement de date               | `POST /api/pro/bookings/[id]/reschedule`, après succès |
-| Photos disponibles               | Gabarit prêt, pas encore appelé (étape 8, lot 3)       |
+| Photos disponibles               | `POST /api/pro/bookings/[id]/complete`, avec 2 photos  |
 
 - Pas de mail de remboursement si la charge était déjà remboursée (`charge_already_refunded`) :
   un événement Stripe rejoué ne prévient pas deux fois.
@@ -223,10 +223,14 @@
   jamais d'erreur : un mail doit partir sans le lien plutôt que pas du tout. Elle passe par
   `parseSecureUrl` (https, ou http sur `localhost`), alors que `resolveSiteUrl` n'accepte http qu'en
   développement. La différence est assumée, voir « Points ouverts ».
-- `sendPhotosAvailableEmail` et `isAllowedLoginUrl` (qui autorise l'hôte Supabase ou celui du site)
-  existent encore mais ne sont pas appelés. Le lien du bouton est à décider à l'étape 8 : un
-  simple lien vers `/login`, ou `createLoginLink` hors du plafond `claim_login_link`. Dans les deux
-  cas, `isAllowedLoginUrl` devient inutile.
+- `sendPhotosAvailableEmail` (`server/utils/bookingEmails.ts`) est lancée par la route de fin
+  d'intervention avec `event.waitUntil`, seulement quand la RPC `admin_complete_booking` renvoie
+  `send_photos_mail`. Cette valeur n'est vraie qu'avec les deux photos, et au plus une fois par
+  réservation : la RPC réserve `bookings.photos_notified_at` dans sa transaction, en plus de la clé
+  Resend `booking-photos-<id>`. Un échec est journalisé et jamais retenté. Le bouton « Voir mes
+  photos » mène à `/login` par `emailSitePageUrl` (option A, comme « Suivre ma réservation ») :
+  jamais un lien de connexion ni une URL signée, donc hors du plafond de `claim_login_link`.
+  `isAllowedLoginUrl` a été supprimée.
 
 ### Transport des mails
 
@@ -277,7 +281,7 @@
   de `NUXT_CONTACT_EMAIL_TO` et `NUXT_SITE_URL`. Un lien manquant ou invalide est simplement omis.
 - `parseSecureUrl` et `isPlausibleEmail` (`app/utils/link.ts`) n'autorisent que https, ou http sur
   `localhost` et `127.0.0.1`. Ils servent au pied de page, au bouton du mail de remboursement, au
-  lien du site dans le mail photos, à `emailSitePageUrl` et à `isAllowedLoginUrl`.
+  lien du site dans le mail photos et à `emailSitePageUrl`.
 - Protections : `juice.codeBlocks` est vidé et `escapeHtml` échappe aussi `{` et `}`. Un texte de
   visiteur contenant `{{…}}` ou `JUICE_CODE_BLOCK_n_` provoquait une expansion exponentielle et
   pouvait faire planter le processus. Ne pas réactiver `codeBlocks`.
@@ -289,8 +293,8 @@
   - Si Resend échoue au moment du paiement, la confirmation est perdue : il n'y a pas de nouvel
     essai.
   - Un rappel peut partir deux fois si l'écriture de `reminder_sent_at` échoue après l'envoi.
-  - `sendPhotosAvailableEmail` existe mais n'est pas appelé : le déclenchement et le choix du lien
-    arrivent à l'étape 8.
+  - Le mail « photos disponibles » n'est jamais retenté : s'il échoue, la réservation est quand
+    même terminée et `photos_notified_at` reste posé.
 
 ## Paiement
 
@@ -370,10 +374,21 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   `docs/design/account-booking-card.html`) : bâtie sur `MediaCard`, ligne de statut avec icône et
   texte, rappel ambre `AccountBookingReminder.vue` pour une réservation à venir, un seul lien
   « Voir la réservation ». Les calculs d'affichage sont dans `app/utils/accountBookingCard.ts`.
-- Page `/account/bookings/[id]` : résumé, `AccountBookingDocuments.vue` (emplacements photos,
-  masqués si annulée, et facture « Bientôt disponible »), « Réserver une autre date » si annulée,
-  « Réservation introuvable » sur un 404 ou un identifiant invalide. Photos et facture sont des
-  emplacements vides : l'étape 8 les remplit.
+- Page `/account/bookings/[id]` : résumé, `AccountBookingDocuments.vue` (photos avant/après,
+  masquées si annulée, puis « Reçu de paiement »), « Réserver une autre date » si annulée,
+  « Réservation introuvable » sur un 404 ou un identifiant invalide.
+- Photos (`AccountBookingDocuments.vue`) : les URL signées valent 10 minutes
+  (`ACCOUNT_PHOTO_URL_LIFETIME_SECONDS`). Le composant les renouvelle sans recharger la page, par
+  la fonction `refreshLinks` de la page : un `$fetch` dédié de `GET /api/account/bookings/[id]`,
+  qui ne remplace que `documents`. Pourquoi : `refresh()` de la page viderait toute la
+  réservation en cas d'échec. Le renouvellement part trois fois : un minuteur
+  `ACCOUNT_PHOTO_URL_REFRESH_MARGIN_SECONDS` (60 s) avant l'expiration, le retour de l'onglet au
+  premier plan (`visibilitychange`) si les liens ont vieilli, et un clic sur une photo dont le lien
+  est périmé (le clic est annulé, le renouvellement est annoncé et il faut cliquer de nouveau). Un échec n'est annoncé
+  que si l'utilisateur l'a provoqué ; les photos restent affichées et le prochain geste réessaie.
+  Un `401` termine la session (`expireSession`) sans annonce. Une image qui ne charge pas
+  (`error`) laisse sa place avec un message annoncé, et « Recharger les photos » passe par le
+  même chemin, avec un retour du focus sur le titre des photos.
 - Composants partagés : `MediaCard.vue` (tons `success`, `info`, `neutral`, image facultative via
   `NuxtImg`, prop `interactive` : seules les cartes cliquables se soulèvent au survol, coque
   commune `MEDIA_CARD_SHELL_CLASS`), `MediaCardSkeleton.vue` et `SkeletonBlock.vue`.
@@ -399,7 +414,10 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   `CUSTOMER_SESSION_MAX_AGE_SECONDS` (7 jours), `ACCOUNT_BOOKING_STATUSES` (`paid`, `completed`,
   `cancelled`), `ACCOUNT_STATUS_ICONS` et `ACCOUNT_STATUS_TONES` (icône et ton de `MediaCard` par
   statut), `ACCOUNT_PHOTO_KINDS` (`before`, `after`), `ACCOUNT_SKELETON_CARD_COUNT` (4) et
-  `ACCOUNT_SKELETON_MOBILE_CARD_COUNT` (2). `ACCOUNT_PHOTO_URL_LIFETIME_SECONDS` n'existe plus.
+  `ACCOUNT_SKELETON_MOBILE_CARD_COUNT` (2), `ACCOUNT_PHOTO_URL_LIFETIME_SECONDS` (600),
+  `ACCOUNT_PHOTO_URL_REFRESH_MARGIN_SECONDS` (60) et, pour le reçu, `PAYMENT_RECEIPT_TIMEOUT_MS`
+  (4 000), `PAYMENT_RECEIPT_CACHE_TTL_MS` (5 min), `PAYMENT_RECEIPT_MISS_CACHE_TTL_MS` (30 s),
+  `PAYMENT_RECEIPT_CACHE_MAX_ENTRIES` (500) et `STRIPE_RECEIPT_HOST_SUFFIX` (`.stripe.com`).
 - `/account/confirm` lit le fragment `#token_hash=…`, l'efface aussitôt de l'historique, puis
   appelle `verifyOtp({ token_hash, type: 'email' })` dans le navigateur. Le jeton ne passe donc
   jamais par un serveur. Sans jeton, un client déjà connecté va à `/account`, sinon la page
@@ -417,11 +435,12 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   rempli. La RPC `claim_login_link` réserve l'envoi, puis `sendLoginLinkEmail` part en tâche de
   fond (`event.waitUntil`), pour que le temps de réponse ne distingue pas non plus les cas.
 - `GET /api/account/bookings` : lit le profil et les réservations avec le client Supabase de la
-  session, donc sous RLS. Elle ne renvoie plus de photos (retour à l'étape 8). Réponse en
-  `Cache-Control: private, no-store`. 500 « Bookings unavailable » si la lecture du profil échoue,
+  session, donc sous RLS. Elle ne renvoie pas de photos : elles ne viennent que de la page d'une
+  réservation. Réponse en `Cache-Control: private, no-store`. 500 « Bookings unavailable » si la lecture du profil échoue,
   404 « Account not found » si la fiche manque.
 - `GET /api/account/bookings/[id]` (`server/api/account/bookings/[id].get.ts`) : réponse
-  `{ booking }`, en `Cache-Control: private, no-store` posé en premier. 401 sans session, contrôlé
+  `{ booking, documents }` (`documents` : `photos` avec `before` et `after`, URL signées ou
+  `null`, et `receiptUrl`), en `Cache-Control: private, no-store` posé en premier. 401 sans session, contrôlé
   avant le 400 (identifiant qui n'est pas un UUID, `accountBookingParamsSchema` dans
   `server/utils/accountSchemas.ts`). 404 « Booking not found » identique pour une réservation
   inexistante, d'un autre client ou d'un autre statut : rien ne permet de deviner l'existence d'un
@@ -462,8 +481,20 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
   `NUXT_SITE_URL`, ou sans https hors développement : 503 « Site URL unavailable ».
 - `loadAccountBookings` et `loadAccountBooking` (`server/utils/accountBookings.ts`) : la liste
   (plus récentes d'abord) et une réservation (`null` si absente, d'un autre client ou d'un statut
-  hors espace). Elles partagent les mêmes colonnes et le même convertisseur de ligne. Plus aucune
-  photo signée : les photos reviennent à l'étape 8.
+  hors espace). Elles partagent les mêmes colonnes et le même convertisseur de ligne. La seconde
+  renvoie aussi `stripe_payment_intent_id` (`AccountBookingRecord`), qui ne sort jamais du serveur.
+- `loadAccountBookingDocuments` (`server/utils/accountDocuments.ts`) : ne lève jamais d'erreur,
+  une photo ou un reçu manquant laisse seulement l'entrée vide.
+  - Photos : lues et signées (`createSignedUrls`) avec le client Supabase de la session du client,
+    donc sous RLS, et seulement pour une réservation `completed`. Le service role n'est pas
+    utilisé : si la règle des 7 jours ou le statut changent, la base refuse.
+  - Reçu : `paymentIntents.retrieve` avec `expand: ['latest_charge']`, délai de 4 s, aucun nouvel
+    essai (`maxNetworkRetries: 0`), et `receipt_url` gardée seulement si c'est une URL `https` d'un
+    hôte `*.stripe.com`. Le résultat est mis en cache en mémoire par réservation : 5 minutes, 30
+    secondes quand Stripe n'a rien donné, 500 entrées au plus (la plus ancienne sort en premier).
+    Pourquoi : recharger la page ne doit pas consommer la limite de débit Stripe partagée avec
+    Checkout, ni marteler Stripe pendant une panne. Le cache est propre à chaque instance du
+    serveur. Le reçu reflète un remboursement.
 
 ### Motion
 
@@ -475,7 +506,10 @@ Règles métier et décisions : [booking-system.md](./booking-system.md). Ici, l
 - Préréglages TypeScript : `MOTION_EASE`, `REVEAL_DURATION` (0,6 s), `REVEAL_MAX_STAGGER_STEPS`,
   `CONTENT_ENTER_TRANSITION` et `CONTENT_ENTER_OFFSET` pour tout contenu qui apparaît,
   `HERO_ENTER_CLASS` (600 ms, 24 px, `ease-brand`). `STEP_OFFSET` et `STEP_TRANSITION` ne servent
-  qu'aux formulaires à étapes et aux échanges de formulaire en place.
+  qu'aux formulaires à étapes et aux échanges de formulaire en place. `FEEDBACK_OFFSET`
+  (`STEP_OFFSET / 2`, 8 px) est le décalage des messages qui apparaissent sous un champ ou un bouton ;
+  l'espace Pro et la page d'une réservation l'emploient en `-FEEDBACK_OFFSET` (le message descend).
+  Les anciens `STEP_OFFSET / 2` du site restent à migrer (`TODO.md`).
 - Défilement doux : `html { scroll-behavior: smooth }` (`app/assets/css/tailwind.css`) n'est actif
   que sous `prefers-reduced-motion: no-preference`.
 - `tests/unit/shared/motion-tokens.test.ts` vérifie que les deux sources donnent les mêmes valeurs.
@@ -605,17 +639,18 @@ select evtname, evtevent, evtfoid::regproc from pg_event_trigger where evtname =
 
 ## Espace Pro
 
-Règles métier : [booking-system.md](./booking-system.md). Lots 1 et 2 sur 3 de l'étape 8 (accès,
-planning, liste, itinéraire ; disponibilités et déplacement d'une intervention). Photos et
-« Terminer l'intervention » viennent au lot 3.
+Règles métier : [booking-system.md](./booking-system.md). Les trois lots de l'étape 8 sont faits :
+accès, planning, liste, itinéraire ; disponibilités et déplacement d'une intervention ; photos,
+« Terminer l'intervention » et photos côté client.
 
 ### Pages et mise en page
 
 - Pages : `/pro/login` (demande du lien), `/pro/confirm` (vérification du lien, comme
-  `/account/confirm`), `/pro` (planning du jour), `/pro/interventions` (liste filtrée) et
-  `/pro/availability` (capacité par jour de semaine, exception d'une date, jours à signaler,
-  paramètre `?date=` pour ouvrir une date). Toutes en `noindex, nofollow` ; `/pro/confirm` envoie
-  aussi `referrer: no-referrer`.
+  `/account/confirm`), `/pro` (planning du jour), `/pro/interventions` (liste filtrée,
+  `app/pages/pro/interventions/index.vue`), `/pro/interventions/[id]` (fiche d'une intervention en
+  quatre étapes, `[id].vue`) et `/pro/availability` (capacité par jour de semaine, exception d'une
+  date, jours à signaler, paramètre `?date=` pour ouvrir une date). Toutes en `noindex, nofollow` ;
+  `/pro/confirm` envoie aussi `referrer: no-referrer`.
 - Layout `pro` (`app/layouts/pro.vue`) : barre latérale fixe (`ProNavPanel`) à partir de
   `PRO_SIDEBAR_MIN_WIDTH` (1024 px, requête `PRO_SIDEBAR_QUERY`), en-tête sombre avec menu burger
   en dessous. Le burger ouvre la même navigation dans un panneau `Dialog` reka-ui
@@ -638,7 +673,15 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
   l'écarte avant l'appel). Les dates des interventions `paid` de la page passent par
   `admin_day_overview` (un appel par plage de 400 jours au plus, `loadDayOverviewsOfDates`) pour
   poser `isToMove` ; si l'appel échoue, la liste s'affiche sans badge (erreur journalisée).
-- Ordre des deux `GET`, identique : `Cache-Control: private, no-store` posé en premier, puis
+- `GET /api/pro/interventions/[id]` : une intervention `paid`, `completed` ou `cancelled`
+  (`ProIntervention` : client, adresse, bacs, formule, `photos` `{ before, after }`,
+  `completedWithoutPhotos`, `isToMove`). Un identifiant qui n'est pas un uuid, inconnu ou d'un
+  autre statut donne le même 404 `data.code = 'notFound'` (`bookingNotFound`,
+  `server/utils/proErrors.ts`, aussi employé par les routes d'écriture). Mêmes `Cache-Control`,
+  `requireAdmin` et lecture sous RLS que les autres `GET`. Les interventions du planning et de la
+  liste portent elles aussi `photos` et `completedWithoutPhotos`
+  (`loadInterventionPhotoFlags`).
+- Ordre des `GET`, identique : `Cache-Control: private, no-store` posé en premier, puis
   `requireAdmin`, puis la validation Zod (`server/utils/proSchemas.ts`, 400), puis la lecture avec
   le client Supabase de la session, donc sous la RLS `is_admin()`. Une erreur de lecture donne 500.
 - `requireAdmin` : 401 sans session, 403 sans le rôle admin, 401 et révocation globale en tâche de
@@ -673,6 +716,27 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
     `pastDate` 422, `tooFrequent` 429, `outOfArea`, `dayClosed`, `dayFull` et `outOfSector` 409
     (forçables avec `force: true`). Le mail au client part après la réponse
     (`event.waitUntil(sendBookingRescheduleEmail)`, qui ne lève jamais).
+- Routes du lot 3, mêmes en-têtes et même ordre que le lot 2 (`assertSameOrigin`,
+  `requireAdminForWrite`, uuid, taille du corps, validation), écriture avec `service_role` :
+  - `PUT /api/pro/bookings/[id]/photos/[kind]` (`kind` : `before` ou `after`, sinon 400
+    `invalidKind`) : le corps est le JPEG brut, 5 Mo au plus (`PRO_PHOTO_MAX_BYTES`). Sans
+    `Content-Length` (ou en `Transfer-Encoding`) : 411 ; au-delà : 413 `tooLarge` ; un corps vide,
+    non JPEG, mal formé ou suivi d'octets après son `EOI` : 400 `invalidImage`. La signature et
+    la structure sont lues (jamais le `Content-Type` annoncé), puis `stripJpegMetadata` réécrit le
+    fichier sans EXIF (GPS compris), XMP, ICC, IPTC ni commentaires : seuls APP0 (JFIF) et APP14
+    (transformation de couleur Adobe) sont gardés avec les tables et l'image. Il faut un
+    en-tête de trame (SOF) et un balayage (SOS), au plus 1 024 segments. Pourquoi côté serveur : le
+    navigateur nettoie déjà (le canvas ne garde pas l'EXIF), mais le serveur ne doit pas lui faire
+    confiance. Réponse `{ bookingId, kind, replaced }`.
+  - Refus de la route : 404 `notFound`, 422 `notPaid` (statut autre que `paid` ou `completed`),
+    422 `futureDate` (réservation `paid` dont le jour n'est pas venu), 500 « Photo not saved ». Le
+    statut est lu avant l'envoi (`assertBookingAcceptsPhotos`) pour ne laisser aucun fichier à une
+    réservation refusée, puis la RPC le revérifie sous le verrou de la ligne.
+  - `POST /api/pro/bookings/[id]/complete` (1 Ko) : `{ force }` (faux par défaut). Réponse
+    `{ bookingId, withoutPhotos, customerNotified }`. Refus (`data.code`) : `notFound` 404,
+    `alreadyCompleted` 409, `notPaid` 422, `futureDate` 422, `missingPhotos` 409 (une photo
+    manque et `force` est faux). Le mail « photos disponibles » part après la réponse
+    (`event.waitUntil(sendPhotosAvailableEmail)`) quand `customerNotified` est vrai.
 
 ### Fonctions serveur
 
@@ -699,7 +763,7 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
   par `auth.getUser()` (appel à Supabase Auth, pas seulement le jeton). 401 si l'identifiant
   diffère ou si Auth ne répond pas, 403 si le rôle a été retiré ou si le compte est banni. Pourquoi :
   un rôle retiré reste lisible dans le jeton jusqu'à 1 h. Employé par les quatre routes
-  d'écriture du lot 2 ; le lot 3 devra l'employer aussi.
+  d'écriture du lot 2 et par les deux routes du lot 3 (photos et fin d'intervention).
 - `server/utils/proAvailability.ts` : `loadDayOverviews`, `loadDayOverview`,
   `loadDayOverviewsOfDates` (appels de `admin_day_overview`, service role), `loadWeekdayRules`
   (7 règles, un jour sans règle vaut 0), `saveWeekdayRules`, `saveDayOverride` (upsert puis
@@ -715,6 +779,19 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
   (`server/utils/bookingReminders.ts`) a maintenant la clé `booking-reminder-<date>-<id>` : sans
   la date, un rappel déjà envoyé aurait bloqué celui de la nouvelle date. Le `update` de
   `reminder_sent_at` est conditionné à la date annoncée.
+- `server/utils/proPhotos.ts` : `readPhotoBody` (lecture du corps brut, contrôle et nettoyage),
+  `assertBookingAcceptsPhotos` et `saveInterventionPhoto`. Celle-ci envoie le fichier dans le
+  bucket privé (`upsert`, chemin `{booking_id}/{kind}.jpg`, `cacheControl` de 60 s) puis appelle
+  `admin_set_intervention_photo`. Si la RPC refuse et qu'aucune ligne de ce type n'existe, avant
+  l'envoi comme après le refus (relecture), le fichier envoyé est supprimé : pas de fichier sans
+  sa ligne. Un échec passager de la RPC garde le fichier, car un envoi concurrent du même type a
+  pu l'enregistrer entre-temps. Aucun mail ne part d'un envoi de photo. `loadInterventionPhotoFlags`
+  lit quelles photos existent, par lot de réservations, sous RLS.
+- `server/utils/proCompletion.ts` : `completeBooking` appelle `admin_complete_booking` et traduit
+  la ligne de refus (`reason`) en erreur HTTP avec `data.code`.
+- `app/utils/image.ts` : `hasJpegSignature`, `stripJpegMetadata` (partagée avec le navigateur) et
+  `fitWithin` (calcul de la taille réduite). `app/utils/proPhotos.ts` : règles partagées
+  (`photoStatusRefusal`, `canCompleteIntervention`, photos manquantes).
 
 ### Base de données
 
@@ -764,6 +841,32 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
   zéro et compte le déplacement. Un nouvel essai après un délai dépassé côté navigateur est donc
   protégé côté base : même date (`same_date`) ou plafond (`too_frequent`).
 - `day_check`, `admin_day_overview` et `admin_reschedule_booking` sont réservées à `service_role`.
+- Migrations du lot 3, appliquées et vérifiées en base :
+  - `20261019000000_pro_intervention_photos` : colonnes `bookings.completed_without_photos` et
+    `photos_notified_at`, `intervention_photos.updated_at`, contrainte
+    `intervention_photos_storage_path_format` (chemin `{booking_id}/{kind}.jpg`, ajoutée sans
+    validation) ; bucket `intervention-photos` privé, 5 Mo, `image/jpeg` seulement ; RPC
+    `admin_set_intervention_photo` et `admin_complete_booking`, réservées à `service_role` ;
+    retrait des policies d'écriture du bucket et de la table (`anon` et `authenticated` perdent
+    tous leurs droits sur `intervention_photos`, `authenticated` garde `SELECT`). Seul le serveur
+    écrit désormais les photos, avec le service role.
+  - `20261019010000_pro_photos_rules` : les policies de lecture client (table et bucket) exigent
+    en plus `bookings.status = 'completed'`, la règle ne repose donc pas sur la seule route ;
+    `admin_set_intervention_photo` refuse une réservation `paid` dont le jour n'est pas venu
+    (`future_date`) ; `admin_complete_booking` ne renvoie plus de données client mais `ok`,
+    `reason`, `send_photos_mail`, `without_photos` et `booking_date` ; la contrainte de chemin est
+    validée (la migration échoue en bloc si une ligne existante ne la respecte pas).
+- `admin_set_intervention_photo(p_booking_id, p_kind, p_storage_path)` : verrouille la
+  réservation (`for update`). Refus dans l'ordre : `not_found`, `not_paid` (statut hors `paid` et
+  `completed`), `future_date` (`paid` après aujourd'hui, Europe/Paris ; `completed` toujours
+  accepté), `invalid_kind`, `invalid_path`. Insère ou remplace la ligne (`updated_at = now()`) et
+  renvoie `replaced`.
+- `admin_complete_booking(p_booking_id, p_force)` : verrouille la réservation. Refus jamais
+  forçables : `not_found`, `already_completed`, `not_paid`, `future_date`. `missing_photos` si un
+  des deux types manque et que `p_force` est faux. Sinon passe en `completed`, pose
+  `completed_at` et `completed_without_photos`, et réserve `photos_notified_at` dans la même
+  transaction : `send_photos_mail` est vrai seulement avec les deux photos, donc au plus une fois.
+  Une fin forcée ne notifie jamais, même si des photos sont ajoutées ensuite.
 - Créer un admin SANS mot de passe : invitation du tableau de bord Supabase, ou
   `auth.admin.createUser` sans `password`, avec `email_confirm: true` et
   `app_metadata: { role: 'admin' }`. Pas de fiche `profiles`. Un mot de passe ne donnerait de toute
@@ -773,7 +876,7 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
 
 ### Client
 
-- Middlewares : `admin` (protège `/pro`, `/pro/interventions` et `/pro/availability` ; sans session
+- Middlewares : `admin` (protège `/pro`, `/pro/interventions`, `/pro/interventions/[id]` et `/pro/availability` ; sans session
   valide renvoie vers
   `/pro/login`, avec `?access=denied` si la session n'est pas admin, avec `?session=expired` si la
   session admin a plus de 7 jours) et `admin-guest` (renvoie un admin connecté de `/pro/login` vers
@@ -858,19 +961,95 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
   - Après un déplacement réussi, la fenêtre se ferme, l'annonce de succès n'est émise qu'une fois
     le contenu du dialogue démonté (`aria-hidden` retiré de la page), puis la liste se recharge et
     son titre prend le focus (`useProPageState.handleRescheduled`). Sans déplacement ni délai
-    dépassé, le focus revient sur le bouton « Changer la date » qui a ouvert la fenêtre.
+    dépassé, le focus revient sur le bouton « … » de la carte qui a ouvert le menu.
   - La région `role="status"` de `/pro` et `/pro/interventions` porte `aria-live="polite"`
     explicite : `hideOthers` de reka épargne seulement les éléments `[aria-live]`, et sans cet
     attribut l'annonce serait perdue pendant que le dialogue est ouvert.
   - Dépendance technique : l'ordre d'annonce s'appuie sur reka-ui 2.7 (`FocusScope` émet
     `closeAutoFocus` pendant `scope.stop()`, et `useHideOthers` retire `aria-hidden` dans un
     `onUnmounted` après le rendu) et sur Vue 3.5. À revérifier à chaque mise à jour de reka-ui.
-- `ProInterventionCard.vue` : badge « À déplacer » (`isToMove`, texte masqué « jour fermé » pour
-  les lecteurs d'écran) et bouton « Changer la date » pour une intervention `paid`.
-- `ProInterventionCard.vue` : sous 640 px le repli se fait en CSS (`max-sm:`), mais `inert` et
-  `aria-hidden` dépendent de `useMediaQuery` seul, pour que le contenu masqué ne soit ni focalisable
-  ni lu. `MediaCardSkeleton.vue` a les props `tallRows` et `collapsedRows` pour garder la même
-  hauteur que la carte réelle.
+- `ProInterventionCard.vue` : pastille d'avancement (`interventionProgressStatus`,
+  `PRO_PROGRESS_VIEWS` : icône et libellé), badge « À déplacer » (`ProToMoveBadge.vue`, `isToMove`,
+  texte masqué « jour fermé » pour les lecteurs d'écran), détails de la réservation et une action :
+  un lien principal « Commencer », « Continuer » ou « Voir » (`interventionCardAction`) vers la
+  fiche, et le menu « … » (`DropdownMenu`) avec « Changer la date » pour une intervention `paid`.
+  La carte n'a plus de repli mobile ni d'itinéraire (ils sont dans la fiche). Le dialogue de
+  déplacement ne s'ouvre qu'à `closeAutoFocus` du menu (`openPendingReschedule`), pour ne pas se
+  disputer le focus avec lui. `MediaCardSkeleton.vue` garde les props `tallRows` et
+  `collapsedRows` pour la hauteur des squelettes.
+- Fiche d'une intervention, `app/pages/pro/interventions/[id].vue` : charge
+  `GET /api/pro/interventions/[id]` (`useFetch`, `server: false`) avec `useAccountPageState`
+  (401 et 403 traités par `useProAuthError`). Le mode vient de `interventionMode` :
+  `steps` (réservation `paid` dont le jour est venu, `canCompleteIntervention`), `upcoming`
+  (jour pas encore venu), `completed` ou `cancelled` ; `upcoming` et `cancelled` sont en lecture
+  seule, `completed` montre le récapitulatif avec « Remplacer ». Après une fin réussie, la page
+  passe en `completed` sans attendre le rechargement (`completion`). Un 400 ou 404 affiche « fiche
+  introuvable ». `?origin=list` mémorise l'origine : le lien « Retour » rend la liste avec ses
+  filtres et sa page, lus par une liste blanche (`proListQuery`, `interventionBackRoute`) ; sans
+  `origin`, il rend le planning du jour de l'intervention. `interventionPageRoute` construit le
+  lien de la carte avec cette liste blanche. L'`h1` est le nom du client.
+- Étapes (`ProInterventionFlow.vue`, `useProInterventionSteps`, `app/utils/proSteps.ts`,
+  `app/constants/proSteps.ts`) : 1 Itinéraire, 2 Photo avant, 3 Photo après, 4 Récapitulatif.
+  - L'étape est dans `?step=n`. Sans valeur valide, `initialInterventionStep` la déduit des
+    photos enregistrées (aucune : 1 ; seulement la avant : 3 ; seulement l'après : 2 ; les deux : 4) et l'écrit avec `router.replace` (aucune entrée d'historique en plus). « Continuer » fait
+    un `push` : le bouton retour du téléphone revient à l'étape précédente.
+  - `useProStepHistory` : quand la page n'affiche plus les étapes (terminée, à venir, annulée),
+    les entrées d'historique qui portent `step` sont sautées dans le sens où l'admin allait
+    (`router.back()` ou `router.forward()` selon la direction du `popstate`), pour qu'un appui
+    quitte la page. Sans entrée dans ce sens, ou pour toute autre navigation, `step` est retiré
+    avec `replace`. Rien n'est compté, donc un rechargement ou les liens de la barre d'étapes ne le
+    désynchronisent pas.
+  - Focus et annonces : à chaque changement d'étape, le focus va au `h2` de l'étape (préfixe
+    `sr-only` « Étape N sur 4 : »), qui nomme l'étape, rien d'autre n'est annoncé. La première
+    étape est annoncée au montage. Après une fin réussie, le focus va au `h2` « Intervention
+    terminée ».
+  - `ProInterventionSteps.vue` : barre des quatre étapes (état `current`, `done`, `skipped`, `todo`
+    selon les photos). `ProStepDirections.vue` : adresse, menu `ProDirectionsMenu.vue` et bouton
+    d'appel. `ProStepPhoto.vue` et `ProPhotoSlot.vue` : prise ou remplacement d'une photo, aperçu
+    local. `ProStepRecap.vue` : les deux emplacements, avertissement des photos manquantes et
+    « Terminer l'intervention ». `ProInterventionDetails.vue` : téléphone et détails en bas de
+    page. `ProInterventionPageSkeleton.vue` : squelette de chargement.
+- Itinéraire (`ProDirectionsMenu.vue`, `app/utils/navigationApps.ts`,
+  `app/constants/navigationApps.ts`) : `detectNavigationPlatform` lit `navigator.userAgent` et
+  `maxTouchPoints` au montage seulement (iPadOS se présente comme un Mac, l'écran tactile les
+  distingue). Liste par plateforme (`NAVIGATION_APPS`) : iOS Plans, Google Maps, Waze ; Android
+  Google Maps, Waze, « Autre application… » (URI `geo:0,0?q=lat,lon(adresse)`) ; Mac Google Maps,
+  Waze, Plans ; autre Google Maps, Waze. Tous s'ouvrent dans un nouvel onglet sauf `geo:`, que
+  Android confie à une application. Plans utilise le format `daddr` (`dirflg=d`) : celui que
+  comprennent aussi les versions d'iOS antérieures à 18.4. Waze : lien profond `ll=…&navigate=yes`
+  (ou `q=` sans coordonnées valides). `WazeIcon.vue` reprend le logo de simple-icons (licence CC0) ;
+  Plans a une icône neutre (`Map`), car aucun logo Apple n'est librement utilisable. Le menu est un
+  `DropdownMenu` shadcn.
+- Envoi des photos (`useProPhotoUpload`, `app/utils/photoResize.ts`, `ProPhotoSlot.vue`) :
+  - Un seul champ fichier (`accept="image/*"`, sans `capture`) : le téléphone propose l'appareil
+    photo ou la galerie. Pas de `getUserMedia`, donc pas besoin de `camera=` dans
+    `Permissions-Policy`.
+  - `preparePhotoForUpload` décode l'image avec un élément `<img>` (qui applique l'orientation
+    EXIF) puis la redessine dans un canvas : 2 000 px au plus (`PRO_PHOTO_MAX_DIMENSION`), JPEG à
+    la qualité 0,85, puis 0,7 et 0,55 (`PRO_PHOTO_JPEG_QUALITIES`) tant que le fichier dépasse 5
+    Mo. Le canvas ne garde aucune métadonnée. Pourquoi : une photo de téléphone pèse
+    plusieurs mégaoctets et le serveur n'accepte que du JPEG de 5 Mo au plus.
+  - `PUT` du JPEG brut (`Content-Type: image/jpeg`), délai `PRO_PHOTO_UPLOAD_TIMEOUT_MS` (60 s).
+    Le composable est tenu par la page, pas par l'étape : l'envoi continue quand l'admin change
+    d'étape, un seul à la fois. Les indicateurs locaux (`photos`) sont gardés jusqu'au rechargement
+    de la fiche, et le JPEG envoyé sert d'aperçu (`URL.createObjectURL`, révoqué au démontage, d'où
+    `blob:` dans `img-src` de la CSP, voir `TODO.md`).
+  - Un échec est annoncé dans la région `role="status"` de la page quelle que soit l'étape. Si
+    l'étape affichée n'est pas celle de la photo en échec (hors récapitulatif), une boîte visible
+    avec un lien vers l'étape concernée s'affiche aussi (`ProInterventionFlow.vue`).
+  - Un délai dépassé laisse le résultat inconnu (le serveur a pu l'enregistrer) : la fiche est
+    rechargée avec un message, sans inviter à réessayer. 401 et 403 passent par `useProAuthError`.
+- Terminer (`ProCompleteDialog.vue`, `AlertDialog` reka-ui) : « Terminer l'intervention » est
+  inactif (`aria-disabled`) pendant un envoi. Avec les deux photos, la confirmation est simple ;
+  sinon le dialogue passe en mode « sans photos » (titre et bouton `destructive`, texte qui nomme
+  les photos manquantes) et envoie `force: true`. Si le serveur répond `missingPhotos` alors que
+  la fiche croyait les photos présentes, le dialogue bascule en mode forcé. Délai
+  `PRO_COMPLETE_TIMEOUT_MS` (15 s) : le résultat est inconnu, le bouton se bloque et la fiche est
+  rechargée à la fermeture, comme pour le déplacement. Un refus qui rend la fiche périmée
+  (`alreadyCompleted`, `notPaid`…) la recharge aussi. Le focus ne revient sur le déclencheur que
+  s'il existe encore.
+- `PRO_DIALOG_CONTENT_CLASS` et `PRO_DIALOG_OVERLAY_CLASS` (`app/constants/pro.ts`) : classes
+  communes aux deux dialogues Pro (`ProRescheduleDialog` et `ProCompleteDialog`).
 - `GoogleMapsIcon.vue` : icône officielle de 2020, téléchargée une fois depuis Wikimedia Commons
   (`https://upload.wikimedia.org/wikipedia/commons/a/aa/Google_Maps_icon_%282020%29.svg`), aucune
   requête à l'exécution. Libre de droits d'auteur mais marque Google : l'utiliser seulement pour
@@ -878,7 +1057,10 @@ planning, liste, itinéraire ; disponibilités et déplacement d'une interventio
 
 ### Itinéraires Google Maps
 
-- `app/utils/googleMaps.ts` : `directionsUrl` (une carte) et `roundDirectionsUrls` (la tournée).
+- Le planning (`/pro`) garde le bloc de la tournée en Google Maps. L'itinéraire d'une seule
+  intervention passe par le menu de la fiche (voir « Itinéraire » plus haut), dont Google Maps est
+  l'une des entrées via `directionsUrl`.
+- `app/utils/googleMaps.ts` : `directionsUrl` (une adresse) et `roundDirectionsUrls` (la tournée).
   Format officiel `https://www.google.com/maps/dir/?api=1&destination=…&travelmode=driving`, avec
   `origin` et `waypoints` pour la tournée.
 - Les coordonnées sont utilisées si elles sont valides, sinon le texte de l'adresse. La tournée part
@@ -896,8 +1078,10 @@ installe.
 ### Risques acceptés
 
 - Un rôle admin retiré ne coupe la lecture qu'après 1 h au plus, durée de vie du jeton lu par
-  `getClaims`. Les écritures du lot 2 relisent le compte par `auth.getUser()`
-  (`requireAdminForWrite`) ; celles du lot 3 devront le faire aussi.
+  `getClaims`. Les écritures des lots 2 et 3 (déplacement, photos, fin d'intervention) relisent le
+  compte par `auth.getUser()` (`requireAdminForWrite`).
+- Les liens signés des photos valent 10 minutes et se copient : quiconque en a un l'ouvre
+  jusqu'à son expiration. La RLS empêche seulement d'en obtenir un sans session valide.
 - Adresse admin dédiée et non publiée : n'importe qui peut en demander un lien, et 5 liens sur 24 h
   verrouillent l'admin pour le reste de la journée.
 - Un appel à `/api/pro/*` avec une session par mot de passe révoque globalement les sessions de
@@ -910,6 +1094,20 @@ installe.
   la fusion dans `dev`, pas après chaque lot. Les revues de code suivent en revanche chaque
   passage. Les fichiers du lot 2 ci-dessous sont écrits mais n'ont pas été rejoués : aucun
   décompte de tests pour le lot 2.
+- À faire pour la passe de fin d'étape 8 (le lot 3 n'a ni test écrit ni test adapté) :
+  - écrire les tests du lot 3 : `PUT` des photos (taille, 411, 413, `invalidImage`, `notPaid`,
+    `futureDate`, remplacement, nettoyage du fichier orphelin), `stripJpegMetadata`, `POST`
+    `complete` (codes, mail une seule fois, fin forcée sans mail), `GET /api/pro/interventions/[id]`,
+    `navigationApps`, `proSteps`, `loadAccountBookingDocuments` (photos seulement si `completed`,
+    reçu, cache) et le mail « photos disponibles » en intégration ;
+  - adapter `tests/unit/email/booking-emails.test.ts`, qui importe `isAllowedLoginUrl` (supprimée) ;
+  - adapter `tests/e2e/pro/pro-mobile.spec.ts` (« Afficher plus » n'existe plus, la carte ne
+    se replie plus) ;
+  - revoir les tests qui visent la carte ou la liste (`tests/e2e/pro/pro-interventions.spec.ts`,
+    `tests/integration/pro/pro-interventions.test.ts`, `pro-to-move.test.ts`) : le bouton
+    « Itinéraire Google Maps » a quitté la carte, « Changer la date » est dans le menu « … »,
+    les interventions portent `photos` et `completedWithoutPhotos`, la page de la liste est
+    `app/pages/pro/interventions/index.vue`. Ces tests n'ont pas été relus pour ce document.
 - Tests dans `tests/{unit,integration,e2e}/pro/`, aide `tests/support/admin.ts` (création d'un
   admin directement dans Auth, lecture des compteurs, nettoyage).
 - Tests du lot 2 :
@@ -1037,11 +1235,12 @@ binovya.com {
 
 - HSTS force HTTPS côté navigateur. Les autres en-têtes bloquent le sniffing de type, l'affichage
   en iframe et les fuites de `Referer`.
-- `camera=(self)` : l'étape 8 prend les photos avant/après depuis le téléphone. Un
-  `<input type="file" accept="image/*" capture="environment">` n'en a même pas besoin, une caméra
-  en direct via `getUserMedia` oui.
+- `camera=(self)` : l'étape 8 prend les photos avant/après depuis le téléphone avec un seul
+  `<input type="file" accept="image/*">`, sans `capture` ni `getUserMedia`. Ce champ n'a pas besoin
+  de cette permission ; elle ne servirait qu'à une caméra en direct, qui n'existe pas. À retirer
+  ou à garder, à décider avec la CSP.
 - La CSP démarre en `Report-Only`, puis passe en application une fois vérifiée contre Nuxt et
-  Supabase. Le cookie de session est lisible par le JavaScript : la CSP est la principale parade
+  Supabase. `img-src` devra aussi autoriser `blob:` (aperçu des photos choisies dans l'espace Pro). Le cookie de session est lisible par le JavaScript : la CSP est la principale parade
   au vol de session par XSS.
 - Logs en JSON, pour Loki.
 - Le volume `/data` de Caddy doit être persisté : il contient les certificats, et Let's Encrypt
@@ -1286,7 +1485,8 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 - Un test d'intégration par gabarit de mail, dans `tests/integration/email/` : confirmation,
   alerte admin de paiement, remboursement après paiement tardif, rappel, changement de date,
   lien de connexion, alerte de suppression, contact et devis. Ils lisent l'outbox (`tests/support/outbox.ts`). Le
-  mail « photos disponibles » n'a qu'un test unitaire jusqu'à l'étape 8.
+  mail « photos disponibles » n'a qu'un test unitaire de gabarit : son test d'intégration (envoi
+  par la route de fin d'intervention) est à écrire dans la passe de fin d'étape 8.
 - Les autres tests ne vérifient pas les mails, sauf les parcours qui en ont besoin (lien de
   connexion) et l'idempotence.
 - Clients créés par les tests : `e2e+…@binovya.test`. Le nettoyage supprime ce motif.
@@ -1371,7 +1571,15 @@ Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`ru
 - `hasLoaded` de `useAccountPageState` reprend les conditions du gabarit (faible).
 - `NuxtImg` : ajouter `sizes` dès qu'une `MediaCard` affiche réellement une image.
 - Des textes promettent encore des « photos avant/après » (description SEO de `/login`, sous-titre
-  du tableau de bord) : conservés volontairement jusqu'à l'étape 8.
+  du tableau de bord) : conservés volontairement, les photos existent depuis l'étape 8 mais le
+  texte est à relire avec le client.
+- Aucun `<html lang>` sur le site (WCAG 3.1.1) : à poser avec `useLocaleHead` dans `app.vue`,
+  dans la branche SEO (`TODO.md`).
+- Étape 8 : trois passes à revoir à chaque mise à jour de reka-ui 2.7 et de Vue 3.5, car l'ordre
+  du focus et des annonces en dépend : dialogue de déplacement, dialogue de fin
+  (`ProCompleteDialog`, `closeAutoFocus` puis annonce au tick suivant) et menu « … » de la carte
+  (`openPendingReschedule`).
+- Nettoyage des photos : aucune purge (durée de conservation à décider, `TODO.md` étapes 10 et 13).
 
 ## Coûts estimés
 

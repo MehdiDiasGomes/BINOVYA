@@ -70,13 +70,11 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 - [x] Alerte admin à chaque réservation payée
 - [x] Mail de rappel avant le passage (tâche `booking:reminders`, J-1 à J-2)
 - [x] Habillage BINOVYA de tous les mails (mise en page commune, CSS inliné à l'envoi)
-- [ ] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée, tutoriel
-      pas à pas en secours. Envoyé seulement si l'intervention a des photos : une fin forcée sans
-      photos n'envoie pas ce mail. Gabarit prêt (`sendPhotosAvailableEmail`), envoi pas encore branché,
-      déclenchement à l'étape 8. Le lien du bouton « Voir mes photos » est à décider au lot 3 de l'étape 8 :
-      lien simple vers `/login` (option A, cohérent avec « Suivre ma réservation » du mail de
-      confirmation et avec l'option C), ou `createLoginLink` hors du plafond de `claim_login_link`
-      (option B). Dans les deux cas `isAllowedLoginUrl` (hôte Supabase autorisé) devient obsolète
+- [x] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée, tutoriel
+      pas à pas en secours. Envoyé une seule fois, seulement si les deux photos existent : une fin
+      forcée sans photos n'envoie jamais ce mail, même si des photos sont ajoutées ensuite. Branché
+      sur `POST /api/pro/bookings/[id]/complete` (`sendPhotosAvailableEmail`). Le bouton « Voir mes
+      photos » mène à `/login` (option A) ; `isAllowedLoginUrl` est supprimée
 
 ## 7. Espace client
 
@@ -97,15 +95,17 @@ Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/techni
 
 ## 8. Espace BINOVYA Pro
 
-Lots 1 et 2 faits (accès, planning, liste, itinéraire ; disponibilités et déplacement d'une
-intervention). Le lot 3 couvre les photos et la fin d'intervention.
+Les trois lots sont faits (accès, planning, liste, itinéraire ; disponibilités et déplacement
+d'une intervention ; photos, fin d'intervention et photos côté client). Reste la passe de tests
+de fin d'étape, puis la fusion dans `dev`.
 
 - [x] Accès admin (`app_metadata.role`)
 - [x] Planning du jour, mobile
 - [x] Liste des interventions : client, date, adresse, bacs, formule, paiement, statut
 - [x] Bouton « Itinéraire Google Maps »
-- [ ] Appliquer dans l'ordre les migrations `20261017000000_admin_login_link` et
-      `20261017010000_admin_session_rule` (SQL Editor)
+- [x] Appliquer dans l'ordre les migrations `20261017000000_admin_login_link` et
+      `20261017010000_admin_session_rule` (SQL Editor, vérifiées en base : `claim_admin_login_link`,
+      `admin_login_links` et `oldest_link_sign_in_at` existent)
 - [x] Appliquer les migrations du lot 2 `20261017020000_pro_availability_admin` et
       `20261017030000_pro_availability_hardening` (SQL Editor, vérifiées en base : `day_check`,
       `admin_reschedule_booking`, `admin_day_overview` et `is_admin` existent)
@@ -114,8 +114,10 @@ public.is_admin())` (fonction plpgsql, évaluée par ligne) et ajoute `is_admin`
       de `app/types/database.types.ts`
 - [x] Lot 2 : revérifier l'admin par `auth.getUser()` avant toute écriture (`requireAdminForWrite`,
       un rôle retiré ne coupe l'accès qu'après 1 h au plus avec `getClaims`)
-- [ ] Lot 3 : même revérification (`requireAdminForWrite`) sur les routes d'écriture des photos et
+- [x] Lot 3 : même revérification (`requireAdminForWrite`) sur les routes d'écriture des photos et
       de la fin d'intervention
+- [x] Appliquer les migrations du lot 3 `20261019000000_pro_intervention_photos` et
+      `20261019010000_pro_photos_rules` (SQL Editor, vérifiées en base)
 - [ ] Chore : déplacer les constantes de classes de formulaire et de calendrier de
       `app/constants/booking.ts` vers `app/constants/form.ts`
 - [x] Bloquer une journée, changer une date, imposer le secteur d'un jour (`/pro/availability`,
@@ -128,19 +130,28 @@ public.is_admin())` (fonction plpgsql, évaluée par ligne) et ajoute `is_admin`
 - [ ] Chore : migrer la croix de fermeture de `ProRescheduleDialog` (bouton natif) vers
       `AppButton` en icône seule, avec la migration des boutons de la réservation, du devis et
       du contact vers `AppButton`
+- [ ] Chore : migrer les `STEP_OFFSET / 2` restants (réservation, devis, `ProCapacityField`,
+      `ProDayOverrideForm`, `ProFormFeedback`, `ProRescheduleDialog`) vers `FEEDBACK_OFFSET`, avec
+      une seule direction (aujourd'hui `y` négatif ou positif selon le fichier)
+- [ ] Chore : harmoniser le rouge des erreurs de chargement (`text-destructive` ou `text-red-700`
+      selon le fichier) avec une constante commune
 - [ ] Chore (facultatif) : déplacer « Suivre la règle » de `ProCapacityField` sur la ligne du
       libellé
 - [ ] Chore e2e : une session admin partagée (`storageState` Playwright) à la place de la
       connexion par lien magique de chaque test (43 connexions, `signInNewAdmin` instable, parfois
       bloqué sur `/pro/confirm`)
 - [ ] Lancer `bun run test` une fois, à la fin de l'étape (après le lot 3), avant la fusion dans
-      `dev` : les tests des lots 1 et 2 sont écrits mais pas rejoués lot par lot
-- [ ] Photos avant/après depuis le téléphone
-- [ ] « Terminer l'intervention », disponible après l'ajout des photos ; l'admin peut forcer la
-      fin sans photos, après confirmation
-- [ ] Photos avant/après et facture dans l'espace client (retirées de `/account` à l'étape 7,
-      emplacements « Bientôt disponible » sur `/account/bookings/[id]`, mentions légales françaises
-      de la facture à fixer avec le client)
+      `dev` : les tests des lots 1 et 2 sont écrits mais pas rejoués lot par lot, ceux du lot 3
+      (photos, fin d'intervention, page `/pro/interventions/[id]`, photos client) restent à écrire
+      et ceux de la liste et de la carte à adapter
+- [x] Photos avant/après depuis le téléphone (page `/pro/interventions/[id]` en 4 étapes,
+      redimensionnement dans le navigateur, `PUT /api/pro/bookings/[id]/photos/[kind]`)
+- [x] « Terminer l'intervention », disponible après l'ajout des photos ; l'admin peut forcer la
+      fin sans photos, après confirmation (`POST /api/pro/bookings/[id]/complete`)
+- [x] Photos avant/après et reçu de paiement dans l'espace client (`/account/bookings/[id]`, URL
+      signées de 10 minutes, reçu Stripe « Reçu de paiement »)
+- [ ] Facture française réelle avec les mentions légales : à décider avec le client (le reçu
+      Stripe n'en tient pas lieu)
 
 ## 9. Tournées
 
@@ -223,6 +234,9 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
       `/api/booking/release`, `/api/contact` et `/api/quote` (vérifier le nombre de règles du plan
       gratuit)
 - [ ] Cloudflare : limite de débit sur `/api/address/search` et `/api/booking/availability`
+- [ ] Cloudflare : limite de débit sur `/api/account/*` et sur `/api/pro/bookings/*/photos/*`
+- [ ] CSP : ajouter `blob:` à `img-src` (aperçu des photos choisies, `URL.createObjectURL`, dans
+      l'espace Pro)
 - [ ] Définir `NUXT_ADDRESS_TOKEN_SECRET` (production et secrets CI, étape 11)
 - [ ] Cloudflare : évaluer Turnstile sur `/login`, `/booking`, `/contact` et `/quote`
 - [ ] Cloudflare : mode SSL « Full (strict) », certificat d'origine sur Caddy (Let's Encrypt ou
@@ -265,6 +279,11 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
 - [ ] Durée de conservation des logs dans Loki (étape 12) : ils contiennent les IP des visiteurs,
       donnée personnelle au sens du RGPD. À fixer et à citer dans la politique de confidentialité
 - [ ] Décider du sort des réservations abandonnées et de leurs comptes (purge ou anonymisation)
+- [ ] Décider de la durée de conservation des photos avant/après (RGPD), à citer dans la politique
+      de confidentialité et à appliquer au bucket `intervention-photos` (étape 10 pour la purge)
+- [ ] Migration qui retire les droits par défaut de `anon` sur les autres tables du schéma `public`
+      (`revoke all … from anon`, `alter default privileges …`) : la RLS protège déjà, c'est un
+      durcissement
 - [ ] Avant le lancement, décider du sort des formules trimestrielle et annuelle : aujourd'hui
       elles sont payées en une fois pour un seul passage, sans engagement enregistré. Les masquer
       (devis uniquement) ou livrer l'étape 14 (abonnements) avant
@@ -274,6 +293,8 @@ Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé
 Audit du 2026-10-17, 29 constats : voir `specs/seo.md`. Sans numéro, pour ne pas renuméroter.
 
 - [ ] Répondre aux questions client de `specs/seo.md` (adresse, téléphone, domaine, engagements)
+- [ ] `<html lang>` absent sur tout le site (WCAG 3.1.1) : le poser avec `useLocaleHead` dans
+      `app.vue`
 - [ ] Pages privées hors index (`/login` en `noindex`, en-têtes `X-Robots-Tag`)
 - [ ] Sitemap, robots, URL publique, canonical et hreflang
 - [ ] Données structurées (`LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList`)

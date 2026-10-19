@@ -18,11 +18,12 @@ ses réservations et les photos avant/après depuis son espace client.
 6. Il reçoit un mail de confirmation dès le paiement, avec un lien « Suivre ma réservation » vers
    `/login`. Un rappel par mail suit entre J-1 et J-2 (heure de Paris), puis les SMS (la veille et
    le jour J).
-7. Après l'intervention, l'admin dépose une photo avant et une photo après. Le client reçoit un
-   mail l'informant que ses photos sont disponibles dans son espace client, avec un tutoriel pas
-   à pas pour s'y connecter. Le lien du bouton est à décider à l'étape 8 (voir `TODO.md`).
-   « Terminer l'intervention » est disponible une fois les photos ajoutées ; l'admin peut forcer
-   la fin sans photos, après confirmation. Dans ce cas, aucun mail photos n'est envoyé.
+7. Le jour de l'intervention, l'admin ouvre sa fiche dans BINOVYA Pro et suit quatre étapes :
+   itinéraire, photo avant, photo après (facultative), récapitulatif. Il termine l'intervention
+   depuis le récapitulatif. Le client reçoit alors un mail l'informant que ses photos sont
+   disponibles dans son espace client, avec un tutoriel pas à pas pour s'y connecter ; le bouton
+   mène à `/login`. L'admin peut forcer la fin sans photos, après confirmation. Dans ce cas,
+   aucun mail photos n'est envoyé.
 8. Le client demande un lien de connexion sur `/login`, puis consulte ses réservations et ses
    photos aussi souvent qu'il le souhaite, pendant 7 jours après chaque clic sur un lien.
 
@@ -67,8 +68,8 @@ bookings                              intervention_photos
 id                                    id
 customer_id  -> profiles.id           booking_id -> bookings.id
 scheduled_date                        kind (before | after)
-address, city, postcode, country_code storage_path
-latitude, longitude
+address, city, postcode, country_code storage_path ({booking_id}/{kind}.jpg)
+latitude, longitude                   updated_at
 plan                                  quote_requests
 small_bin_count, large_bin_count      --------------
 household_collection_weekdays         id
@@ -88,6 +89,8 @@ day_of_sms_sent_at
 rescheduled_at, reschedule_count,
 reschedule_window_start
 completed_at
+completed_without_photos
+photos_notified_at
 
 availability_rules            availability_overrides        booking_settings (1 ligne)
 ------------------            ----------------------        --------------------------
@@ -107,7 +110,9 @@ Fonctions réservées au serveur : `get_availability` (statut de chaque jour pou
 des liens de connexion client), `claim_admin_login_link` (idem pour les admins), `day_check`
 (statut d'un jour pour une adresse, partagé par `day_status` et le déplacement admin),
 `admin_day_overview` (capacité effective et réservations de chaque jour d'une plage) et
-`admin_reschedule_booking` (déplace une réservation payée). `has_recent_sign_in()` et
+`admin_reschedule_booking` (déplace une réservation payée), `admin_set_intervention_photo`
+(enregistre ou remplace une photo) et `admin_complete_booking` (termine une intervention).
+`has_recent_sign_in()` et
 `is_admin()` servent aux policies RLS.
 
 ## Règles
@@ -157,7 +162,9 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   19,90 € puis 9,90 €, grands bacs 39,90 € puis 29,90 €), appliqué par prestation. Le total
   est calculé côté serveur.
 - **Montant** : figé dans `amount_total_cents` au moment du paiement.
-- **Photos** : bucket privé, URL signées temporaires, à brancher dans l'espace à l'étape 8.
+- **Photos** : bucket privé `intervention-photos` (5 Mo, JPEG seulement), une photo `before` et une
+  `after` par réservation, au chemin `{booking_id}/{kind}.jpg` : remplacer une photo écrase le
+  fichier. Le client les voit par des URL signées temporaires (voir « Photos et reçu »).
 - **Espace client (décision RGPD « option C »)** : la réservation crée la fiche client
   (`profiles`), nécessaire au contrat. L'espace ne s'ouvre que lorsque le client clique sur un lien
   de connexion qu'il a lui-même demandé. Pas de mot de passe, pas de mail de bienvenue, aucune
@@ -169,13 +176,16 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   carte donne le détail, le montant (« Montant payé », ou « Remboursé » si annulée) et un seul lien,
   « Voir la réservation » (la date fait partie de son nom accessible). Une réservation à venir
   porte le rappel « Videz vos bacs la veille ».
-- **Page d'une réservation** (`/account/bookings/[id]`) : résumé, emplacements photos (masqués si
-  annulée), emplacement facture « Bientôt disponible » et, pour une annulée, « Réserver une autre
-  date ». Un identifiant inconnu, invalide ou appartenant à un autre client donne le même écran
+- **Page d'une réservation** (`/account/bookings/[id]`) : résumé, section photos (masquée si
+  annulée), « Reçu de paiement » et, pour une annulée, « Réserver une autre date ». Un
+  identifiant inconnu, invalide ou appartenant à un autre client donne le même écran
   « Réservation introuvable ».
-- **Photos et facture** : pas encore visibles dans l'espace (aucune URL signée pour l'instant),
-  elles arrivent à l'étape 8. Les factures seront réelles plus tard : les mentions légales
-  françaises sont à fixer avec le client.
+- **Photos et reçu** : le client ne voit les photos que d'une réservation terminée (règle posée
+  aussi en RLS, table et bucket). Avant la fin, la section annonce que les photos arriveront ;
+  terminée sans photos, elle affiche « Aucune photo pour cette intervention ». Les liens des
+  photos valent 10 minutes et se renouvellent sans recharger la page. Le reçu est celui de Stripe
+  (« Reçu de paiement ») ; il reflète un remboursement. Ce n'est pas une facture : une facture
+  française avec ses mentions légales reste à fixer avec le client (`TODO.md`).
 - Le client ne modifie rien : aucun UPDATE client sur `profiles` (une modification des coordonnées
   passera plus tard par une route serveur).
 - **Accès** : RLS, un client ne lit que ses données, seul l'admin écrit photos et statuts. La RLS
@@ -229,8 +239,14 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   cas d'erreur). Le trajet part du dépôt et y revient en passant par les seules interventions
   `paid`, dans l'ordre affiché. Au-delà de `GOOGLE_MAPS_MAX_WAYPOINTS` (9) étapes, il est coupé en
   « Tournée, partie X sur N ». Les coordonnées sont utilisées si elles sont valides, sinon
-  l'adresse. Chaque carte porte aussi un bouton « Itinéraire Google Maps ». Sur mobile (< 640 px),
-  la carte se replie (« Afficher plus » : bacs, formule, paiement, jours de collecte, montant).
+  l'adresse. L'itinéraire d'une seule intervention se choisit dans sa fiche (étape 1, voir
+  « Fiche d'une intervention »).
+- **Carte d'intervention** (planning et liste) : une pastille d'avancement (À faire, Photo avant
+  faite, Photo après faite, Photos faites, Terminée, Terminée sans photos, Annulée), les détails de la
+  réservation et un seul lien principal : « Commencer » (paid, jour venu, sans photo),
+  « Continuer » (paid, jour venu, au moins une photo) ou « Voir » (tout le reste : jour à venir,
+  terminée, annulée). Le menu « … » ne contient que « Changer la date », pour une intervention
+  `paid`.
 - **Liste des interventions** (`/pro/interventions`) : filtre de statut (Tous, À réaliser,
   Réalisées, Annulées). « Du » vaut aujourd'hui par défaut ; « Du » vide = aucune borne basse ;
   un « Au » antérieur à « Du » est ignoré (les deux sélecteurs se bornent l'un l'autre). Les
@@ -277,8 +293,36 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
     réservation revient à sa date d'origine. La clé du rappel devient
     `booking-reminder-<date>-<id>` : une réservation déplacée dans la fenêtre de rappel reçoit un
     nouveau rappel pour sa nouvelle date.
-- **Lien du mail « photos disponibles »** : à trancher au lot 3 de l'étape 8. Défaut proposé à
-  l'utilisateur : option A, lien vers `/login`.
+- **Fiche d'une intervention** (`/pro/interventions/[id]`) : ouverte depuis la carte, elle suit
+  l'état de la réservation.
+  - Réservation `paid` dont le jour est venu (aujourd'hui ou passé) : quatre étapes, 1
+    Itinéraire, 2 Photo avant, 3 Photo après (facultative, « Passer cette photo »), 4 Récapitulatif
+    et « Terminer l'intervention ». L'étape de reprise vient de ce que le serveur a enregistré :
+    itinéraire sans photo, photo manquante s'il n'en existe qu'une, récapitulatif si les deux
+    existent. Le bouton retour du téléphone revient à l'étape précédente.
+  - Réservation `paid` dont le jour n'est pas venu, ou annulée : lecture seule, aucune photo ni
+    fin possible.
+  - Réservation `completed` : récapitulatif avec les deux photos. « Remplacer » reste possible et
+    n'envoie aucun nouveau mail.
+  - Itinéraire : un menu propose les applications du téléphone. iPhone et iPad : Plans, Google
+    Maps, Waze. Android : Google Maps, Waze, « Autre application… » (lien `geo:`). Mac : Google
+    Maps, Waze, Plans. Autre appareil : Google Maps, Waze. Un bouton d'appel s'ajoute si le
+    client a un téléphone.
+- **Photos prises par l'admin** : un seul champ fichier (`image/*`, sans `capture`), donc
+  l'appareil photo ou la galerie au choix du téléphone. Le navigateur réduit la photo à 2 000 px
+  au plus et l'envoie en JPEG ; le serveur la contrôle et efface ses métadonnées (EXIF dont le
+  GPS). Refus : réservation non payée, jour pas encore venu (une réservation terminée accepte
+  toujours un remplacement), image invalide, plus de 5 Mo. L'envoi continue quand l'admin change
+  d'étape. Un envoi dont le résultat est inconnu (délai dépassé) recharge la fiche au lieu de
+  proposer de réessayer.
+- **Terminer l'intervention** : réservation `paid`, jour venu. Avec les deux photos, elle se
+  termine et le client est prévenu une seule fois. Sans les deux photos, l'admin doit confirmer
+  une fin « sans photos » : la réservation est marquée `completed_without_photos`, et aucun mail
+  photos ne part, même si des photos sont ajoutées après. Une réservation déjà terminée, annulée
+  ou non payée ne peut pas être terminée. Le bouton est inactif tant qu'un envoi de photo est en
+  cours.
+- **Lien du mail « photos disponibles »** : lien vers `/login` (option A, comme « Suivre ma
+  réservation »), jamais un lien de connexion ni une URL signée.
 - **SMS** : tâche quotidienne (`pg_cron`), les colonnes `*_sent_at` empêchent les doublons.
 - **Confidentialité** : téléphone, photos des locaux et durée de conservation des données
   client à mentionner dans la page dédiée. Suppression des données sur simple demande.
@@ -295,6 +339,15 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   interventions payées restent sur ce jour, marquées « À déplacer », jusqu'à ce que l'admin les
   déplace une à une. Seul un jour fermé marque ; un jour en dépassement de capacité n'affiche
   qu'un statut.
+- **Menu « … » de la carte** : il ne contient que « Changer la date ». L'itinéraire, les photos
+  et la fin passent par la fiche de l'intervention.
+- **Fin sans photos irréversible côté mail** : une réservation terminée sans photos ne notifie
+  jamais le client, même si l'admin ajoute les photos plus tard (elles sont visibles dans
+  l'espace client, sans mail).
+- **Reçu Stripe** : si Stripe ne répond pas en 4 s (ou ne donne pas de reçu), la page affiche
+  que le reçu est indisponible, sans nouvel essai ; le résultat est gardé en mémoire 5 minutes
+  (30 secondes en cas d'échec), par instance du serveur.
+- **Durée de conservation des photos** : non décidée (étapes 10 et 13).
 - **Clé de rappel par date non vérifiée en intégration** : `booking-reminder-<date>-<id>` est
   attendue par `tests/integration/email/booking-reminder.test.ts`, mais ce test refuse de
   tourner tant que de vraies réservations payées sont dans la fenêtre J+1..J+2. Il n'a pas
