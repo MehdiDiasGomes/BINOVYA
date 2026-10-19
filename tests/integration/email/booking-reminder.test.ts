@@ -47,7 +47,7 @@ describe('booking reminder mail', () => {
     expect(reminder.to).toBe(booking.email)
     expect(reminder.subject).toBe(`Rappel : passage BINOVYA le ${formatFullDate(date, 'fr-FR')}`)
     expect(reminder.replyTo).toBe(adminMailbox())
-    expect(reminder.idempotencyKey).toBe(`booking-reminder-${booking.id}`)
+    expect(reminder.idempotencyKey).toBe(`booking-reminder-${date}-${booking.id}`)
   })
 
   it('tells the customer to empty the bins and gives the address and bins', () => {

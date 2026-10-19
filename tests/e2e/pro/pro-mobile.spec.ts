@@ -1,5 +1,6 @@
 import { expect, test, type Locator, type Page } from '@playwright/test'
 
+import { PRO_SIDEBAR_MIN_WIDTH } from '../../../app/constants/pro'
 import SITE_FR from '../../../i18n/locales/fr'
 import frPro from '../../../i18n/locales/fr/pro'
 import { createCustomer, seedAccountBooking, type AccountCustomer } from '../../support/account'
@@ -12,11 +13,14 @@ const DAY = '2041-10-07'
 
 const MOBILE = { width: 375, height: 800 }
 
-const DESKTOP = { width: 1280, height: 800 }
+const DESKTOP = { width: PRO_SIDEBAR_MIN_WIDTH, height: 800 }
 
 let bookingId: string
 
 const menuButton = (page: Page): Locator => page.getByRole('button', { name: SITE_FR.nav.menu })
+
+const proMenuButton = (page: Page): Locator =>
+  page.getByRole('button', { name: SITE_FR.nav.menu, exact: true, includeHidden: true })
 
 const details = (page: Page): Locator => page.locator(`#pro-intervention-details-${bookingId}`)
 
@@ -97,7 +101,7 @@ test.describe('burger menus', () => {
   }) => {
     await page.setViewportSize(MOBILE)
     await signInNewAdmin(page, 'pro-burger')
-    const button = menuButton(page)
+    const button = proMenuButton(page)
     await expect(button).toHaveAttribute('aria-expanded', 'false')
     await button.click()
     await expect(button).toHaveAttribute('aria-expanded', 'true')
@@ -111,16 +115,18 @@ test.describe('burger menus', () => {
   test('the Pro menu closes on a route change', async ({ page }) => {
     await page.setViewportSize(MOBILE)
     await signInNewAdmin(page, 'pro-burger-nav')
-    await menuButton(page).click()
+    await proMenuButton(page).click()
     await page.getByRole('link', { name: frPro.nav.interventions }).click()
     await page.waitForURL(url => url.pathname === '/pro/interventions')
-    await expect(menuButton(page)).toHaveAttribute('aria-expanded', 'false')
+    await expect(proMenuButton(page)).toHaveAttribute('aria-expanded', 'false')
   })
 
-  test('the Pro menu is hidden from 640 px, where the navigation is inline', async ({ page }) => {
+  test('the Pro menu is hidden from PRO_SIDEBAR_MIN_WIDTH, where the sidebar shows the links', async ({
+    page,
+  }) => {
     await page.setViewportSize(DESKTOP)
     await signInNewAdmin(page, 'pro-burger-desktop')
-    await expect(menuButton(page)).toBeHidden()
+    await expect(proMenuButton(page)).toBeHidden()
     await expect(page.getByRole('link', { name: frPro.nav.interventions })).toBeVisible()
   })
 

@@ -73,6 +73,27 @@ export const waitForMails = async (
 }
 
 /**
+ * Polls the outbox until at least `count` mails match.
+ * @param query - Exact recipient, part of the subject and optional earliest sending time
+ * @param count - Number of mails to wait for
+ * @param timeoutMs - Maximum wait
+ * @returns Matching mails, possibly fewer than `count` when time ran out
+ */
+export const waitForMailCount = async (
+  query: MailQuery,
+  count: number,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS,
+): Promise<MailOutboxRecord[]> => {
+  const deadline: number = Date.now() + timeoutMs
+  let found: MailOutboxRecord[] = (await listMails()).filter(record => matches(record, query))
+  while (found.length < count && Date.now() < deadline) {
+    await sleep(POLL_MS)
+    found = (await listMails()).filter(record => matches(record, query))
+  }
+  return found
+}
+
+/**
  * Waits for exactly one matching mail and returns it.
  * @param query - Exact recipient, part of the subject and optional earliest sending time
  * @returns The single matching mail

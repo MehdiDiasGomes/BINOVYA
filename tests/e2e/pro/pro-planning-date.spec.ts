@@ -43,7 +43,7 @@ test.describe('planning date row', () => {
     await expect(page).toHaveURL(new RegExp(`date=${tomorrow}`))
     await expect(round).toBeVisible()
     expect((await round.boundingBox())?.y).toBe(top)
-    await expect(todayButton).toHaveAttribute('aria-disabled', 'false')
+    await expect(todayButton).not.toHaveAttribute('aria-disabled')
     expect(await historyLength(page)).toBe(before)
 
     await todayButton.focus()

@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 
 import { signedAddress, THIONVILLE_ADDRESS } from './address'
 import { findBookings, type BookingRow } from './db'
-import { BASE_URL, readEnv, uniqueTestEmail } from './env'
+import { BASE_URL, ORIGIN, readEnv, uniqueTestEmail } from './env'
 
 import type { AddressDetails } from '../../app/types/booking'
 
@@ -48,6 +48,46 @@ export const bookingBody = (overrides: BookingOverrides = {}): Record<string, un
   website: overrides.website ?? '',
 })
 
+const parseBody = (raw: string): ApiResult['body'] => {
+  try {
+    return JSON.parse(raw) as ApiResult['body']
+  } catch {
+    return {}
+  }
+}
+
+export type SendOptions = {
+  cookie?: string
+  body?: unknown
+  origin?: string | null
+}
+
+/**
+ * Sends a state-changing request to the test server, with the site `Origin` by default.
+ * @param method - HTTP method
+ * @param path - Path with its query string
+ * @param options - Session cookie, JSON body, and `Origin` (null to send none)
+ * @returns Status, parsed JSON body and raw body
+ */
+export const sendApi = async (
+  method: 'POST' | 'PUT' | 'DELETE',
+  path: string,
+  options: SendOptions = {},
+): Promise<ApiResult> => {
+  const origin: string | null = options.origin === undefined ? ORIGIN : options.origin
+  const response: Response = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.cookie ? { Cookie: options.cookie } : {}),
+      ...(origin ? { Origin: origin } : {}),
+    },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  })
+  const raw: string = await response.text()
+  return { status: response.status, body: parseBody(raw), raw }
+}
+
 export const postJson = async (
   path: string,
   body: unknown,
@@ -59,13 +99,7 @@ export const postJson = async (
     body: typeof body === 'string' ? body : JSON.stringify(body),
   })
   const raw: string = await response.text()
-  let parsed: ApiResult['body'] = {}
-  try {
-    parsed = JSON.parse(raw) as ApiResult['body']
-  } catch {
-    parsed = {}
-  }
-  return { status: response.status, body: parsed, raw }
+  return { status: response.status, body: parseBody(raw), raw }
 }
 
 export type GetResult = ApiResult & { headers: Headers }
@@ -81,13 +115,7 @@ export const getApi = async (path: string, cookie?: string): Promise<GetResult> 
     headers: cookie ? { Cookie: cookie } : {},
   })
   const raw: string = await response.text()
-  let parsed: ApiResult['body'] = {}
-  try {
-    parsed = JSON.parse(raw) as ApiResult['body']
-  } catch {
-    parsed = {}
-  }
-  return { status: response.status, body: parsed, raw, headers: response.headers }
+  return { status: response.status, body: parseBody(raw), raw, headers: response.headers }
 }
 
 export const createBooking = (overrides: BookingOverrides = {}): Promise<ApiResult> =>
