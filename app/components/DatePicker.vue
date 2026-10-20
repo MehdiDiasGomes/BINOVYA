@@ -56,7 +56,7 @@
             weekday-format="short"
             fixed-weeks
             prevent-deselect
-            class="w-[min(20rem,calc(100vw-2rem-2px))]"
+            :class="CALENDAR_WIDTH_CLASS"
             @update:model-value="handleSelect"
           >
             <CalendarHeader class="mb-3 flex items-center justify-between p-0">
@@ -109,9 +109,14 @@
               </CalendarGridBody>
             </CalendarGrid>
           </CalendarRoot>
-          <p v-if="hasMarkedDays" class="mt-3 flex items-center gap-2 px-1 text-sm text-ink/70">
-            <span aria-hidden="true" :class="CALENDAR_MARKED_DOT_CLASS" />
-            {{ $t('common.datePicker.markedLegend') }}
+          <p
+            v-if="hasMarkedDays"
+            :class="
+              cn(CALENDAR_WIDTH_CLASS, 'mt-3 flex items-start gap-2 px-1 text-sm text-ink/70')
+            "
+          >
+            <span aria-hidden="true" :class="cn(CALENDAR_MARKED_DOT_CLASS, 'mt-[7px]')" />
+            <span class="min-w-0 text-pretty">{{ $t('common.datePicker.markedLegend') }}</span>
           </p>
         </PopoverContent>
       </Popover>
@@ -165,6 +170,7 @@ import {
   CALENDAR_MARKED_DOT_CLASS,
   CALENDAR_GRID_DAY_COUNT,
   CALENDAR_NAV_BUTTON_CLASS,
+  CALENDAR_WIDTH_CLASS,
 } from '@/constants/calendar'
 import { FIELD_ERROR_CLASS, FIELD_INPUT_CLASS, FLOATING_PANEL_CLASS } from '@/constants/form'
 import { cn } from '@/lib/utils'

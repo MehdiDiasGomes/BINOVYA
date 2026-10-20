@@ -1,5 +1,7 @@
 export const CALENDAR_GRID_DAY_COUNT: number = 42
 
+export const CALENDAR_WIDTH_CLASS: string = 'w-[min(20rem,calc(100vw-2rem-2px))]'
+
 export const CALENDAR_NAV_BUTTON_CLASS: string =
   'pointer-events-auto flex size-11 items-center justify-center rounded-lg border border-ink/50 bg-white text-ink opacity-100 shadow-none transition-[color,background-color,border-color,scale] duration-press ease-brand hover:border-primary hover:bg-paper-2 hover:text-ink hover:opacity-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 has-[>svg]:px-0 data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40 motion-safe:not-data-[disabled]:active:scale-95 motion-reduce:transition-none'
 
