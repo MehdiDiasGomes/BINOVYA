@@ -117,6 +117,9 @@ Each one was caught by a review. Check your change against this list before repo
 - Explicit types everywhere, including `safeParse` results and Node results in `scripts/`
   (`Socket`, `SpawnSyncReturns<string>`…). `scripts/` is not covered by `nuxi typecheck`: check it
   with `tsc --noEmit` on a scratch tsconfig extending `.nuxt/tsconfig.node.json`.
+- A `ul` / `ol` without bullets (Tailwind preflight, grid, flex) loses its list semantics in
+  Safari / VoiceOver. Add `role="list"` (allowed by the ESLint config), not on `aria-hidden`
+  skeletons.
 - Prettier only on the files you changed, never on a folder.
 
 ## Checks (mandatory before reporting)
