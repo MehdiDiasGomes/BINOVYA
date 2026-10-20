@@ -24,7 +24,7 @@
       :transition="STEP_TRANSITION"
     >
       <AppButton ref="continueRef" trailing-icon="ArrowRight" class="w-full" @click="emit('next')">
-        {{ $t('pro.steps.next') }}
+        {{ $t(`pro.steps.next.${props.kind}`) }}
       </AppButton>
     </Motion>
     <Motion

@@ -49,7 +49,10 @@ export default {
       todo: 'à faire',
     },
     stepNumber: 'Étape {number} :',
-    next: 'Continuer',
+    next: {
+      before: 'Passer à la photo après',
+      after: 'Voir le récap',
+    },
     skip: 'Passer cette photo',
     directions: {
       addressLabel: 'Adresse :',
