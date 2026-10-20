@@ -7,7 +7,7 @@
     :step="1"
     :format-options="WHOLE_NUMBER_FORMAT"
     :locale="locale"
-    class="w-36 shrink-0"
+    class="w-full"
     disable-wheel-change
     @update:model-value="update"
   >

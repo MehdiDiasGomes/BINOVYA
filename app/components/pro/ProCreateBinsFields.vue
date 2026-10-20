@@ -28,9 +28,9 @@
         <li
           v-for="service in BOOKING_SERVICES"
           :key="service.slug"
-          class="flex items-center justify-between gap-3 rounded-xl border border-border bg-paper-2/50 p-3 sm:p-4"
+          class="flex flex-col gap-3 rounded-xl border border-border bg-paper-2/50 p-3 sm:p-4"
         >
-          <div class="flex min-w-0 flex-1 items-center gap-3">
+          <div class="flex min-w-0 items-center gap-3">
             <NuxtImg
               :src="service.image"
               alt=""
@@ -40,10 +40,10 @@
               class="size-12 shrink-0 object-contain sm:size-14"
             />
             <div class="min-w-0">
-              <p :id="binLabelId(service.slug)" class="break-words text-sm font-black text-ink">
+              <p :id="binLabelId(service.slug)" class="text-sm font-black text-ink">
                 {{ $t(service.titleKey) }}
               </p>
-              <p class="break-words text-[13px] text-ink/70">{{ $t(service.capacityKey) }}</p>
+              <p class="text-[13px] text-ink/70">{{ $t(service.capacityKey) }}</p>
             </div>
           </div>
           <ProBinCountField
