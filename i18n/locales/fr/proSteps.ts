@@ -74,13 +74,15 @@ export default {
     },
     recap: {
       text: 'Vérifiez les photos, puis terminez l’intervention.',
-      missing: 'Il manque {missing} : le client ne recevra pas de mail photos.',
+      missing:
+        'Il manque {missing} : le client recevra un mail de fin d’intervention, sans photos.',
       uploading: 'Attendez la fin de l’envoi de la photo pour terminer.',
     },
     completed: {
       title: 'Intervention terminée',
       withPhotos: 'Le client est prévenu par mail que ses photos sont disponibles.',
-      withoutPhotos: 'Terminée sans photos : aucun mail n’est envoyé au client.',
+      withoutPhotos:
+        'Terminée sans photos : le client est prévenu par mail que l’intervention est terminée.',
       recapTitle: 'Récapitulatif',
       recapText: 'Vous pouvez remplacer une photo à tout moment, sans nouveau mail au client.',
     },

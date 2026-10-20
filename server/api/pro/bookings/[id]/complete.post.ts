@@ -30,6 +30,8 @@ export default defineEventHandler(async (event): Promise<ProCompleteResponse> =>
   })
   if (result.customerNotified) {
     event.waitUntil(sendPhotosAvailableEmail(client, result.bookingId))
+  } else if (result.withoutPhotos) {
+    event.waitUntil(sendInterventionCompletedEmail(client, result.bookingId))
   }
   return result
 })

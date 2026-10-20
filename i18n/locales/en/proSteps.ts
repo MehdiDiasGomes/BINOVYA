@@ -75,13 +75,14 @@ export default {
     },
     recap: {
       text: 'Check the photos, then finish the intervention.',
-      missing: '{missing} is missing: the customer will not receive a photos email.',
+      missing: '{missing} is missing: the customer will get a completion email, without photos.',
       uploading: 'Wait until the photo is sent to finish.',
     },
     completed: {
       title: 'Intervention finished',
       withPhotos: 'The customer is told by email that their photos are available.',
-      withoutPhotos: 'Finished without photos: no email is sent to the customer.',
+      withoutPhotos:
+        'Finished without photos: the customer is told by email that the intervention is finished.',
       recapTitle: 'Summary',
       recapText: 'You can replace a photo at any time, without a new email to the customer.',
     },

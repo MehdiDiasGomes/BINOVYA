@@ -46,7 +46,7 @@ export default {
     withPhotos:
       'Le client recevra un mail l’informant que ses photos avant/après sont disponibles dans son espace client.',
     withoutPhotos:
-      'Il manque {missing}. Le client ne recevra pas de mail photos, même si vous les ajoutez plus tard.',
+      'Il manque {missing}. Le client recevra un mail l’informant que l’intervention est terminée, sans photos, même si vous les ajoutez plus tard.',
     missing: {
       before: 'la photo avant',
       after: 'la photo après',
@@ -60,7 +60,8 @@ export default {
     submittingStatus: 'Fin de l’intervention en cours…',
     success:
       'Intervention de {name} terminée. Le client est prévenu par mail que ses photos sont disponibles.',
-    successWithoutPhotos: 'Intervention de {name} terminée sans photos. Aucun mail n’est envoyé.',
+    successWithoutPhotos:
+      'Intervention de {name} terminée sans photos. Le client est prévenu par mail.',
     completedWithoutPhotos:
       'Terminée sans photos : les photos ajoutées maintenant restent visibles dans l’espace client, sans mail.',
     errors: {

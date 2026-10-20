@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
+import type { Escape } from '@/templates/email/layout'
 import type { Database } from '@/types/database.types'
 import type { BookingEmailContent, BookingEmailData, CustomerEmailRow } from '@/types/email'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -10,7 +11,11 @@ import {
   generateBookingRefundEmail,
   generateBookingRescheduleEmail,
 } from '@/templates/email/bookingCustomerEmails'
-import { generatePhotosAvailableEmail } from '@/templates/email/photosAvailableEmail'
+import { generateInterventionCompletedEmail } from '@/templates/email/interventionCompletedEmail'
+import {
+  type CustomerAreaEmailData,
+  generatePhotosAvailableEmail,
+} from '@/templates/email/photosAvailableEmail'
 import { parseSecureUrl } from '@/utils/link'
 
 type BookingRow = Database['public']['Tables']['bookings']['Row']
@@ -228,6 +233,55 @@ export const sendBookingRescheduleEmail = async (
   }
 }
 
+type CompletionEmail = {
+  kind: string
+  label: string
+  generate: (data: CustomerAreaEmailData, escape: Escape) => BookingEmailContent
+}
+
+const PHOTOS_EMAIL: CompletionEmail = {
+  kind: 'photos',
+  label: 'photos',
+  generate: generatePhotosAvailableEmail,
+}
+
+const COMPLETED_EMAIL: CompletionEmail = {
+  kind: 'completed',
+  label: 'completion',
+  generate: generateInterventionCompletedEmail,
+}
+
+const sendCompletionEmail = async (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+  email: CompletionEmail,
+): Promise<void> => {
+  try {
+    const booking: BookingEmailData | null = await loadBookingEmailData(client, bookingId)
+    const isSent: boolean = booking
+      ? await sendToCustomer(
+          booking,
+          email.generate(
+            {
+              ...booking,
+              accountUrl: emailSitePageUrl('/login'),
+              siteUrl: useRuntimeConfig().siteUrl,
+            },
+            escapeHtml,
+          ),
+          email.kind,
+        )
+      : false
+    if (!isSent) {
+      console.error(
+        `Booking ${email.label} email not sent for ${bookingId}, it will not be retried`,
+      )
+    }
+  } catch {
+    console.error(`Booking ${email.label} email failed for ${bookingId}, it will not be retried`)
+  }
+}
+
 /**
  * Tells the customer that the before and after photos of a finished intervention are available,
  * with a link to the customer area login page (`/login`, never a signed URL nor a login link).
@@ -236,30 +290,20 @@ export const sendBookingRescheduleEmail = async (
  * @param client - Supabase client using the secret key
  * @param bookingId - Identifier of the booking just finished with both photos
  */
-export const sendPhotosAvailableEmail = async (
+export const sendPhotosAvailableEmail = (
   client: SupabaseClient<Database>,
   bookingId: string,
-): Promise<void> => {
-  try {
-    const booking: BookingEmailData | null = await loadBookingEmailData(client, bookingId)
-    const isSent: boolean = booking
-      ? await sendToCustomer(
-          booking,
-          generatePhotosAvailableEmail(
-            {
-              ...booking,
-              accountUrl: emailSitePageUrl('/login'),
-              siteUrl: useRuntimeConfig().siteUrl,
-            },
-            escapeHtml,
-          ),
-          'photos',
-        )
-      : false
-    if (!isSent) {
-      console.error(`Booking photos email not sent for ${bookingId}, it will not be retried`)
-    }
-  } catch {
-    console.error(`Booking photos email failed for ${bookingId}, it will not be retried`)
-  }
-}
+): Promise<void> => sendCompletionEmail(client, bookingId, PHOTOS_EMAIL)
+
+/**
+ * Tells the customer that their bins were cleaned when the intervention was finished without the
+ * photos, with a link to the customer area login page (`/login`). Sent at most once per booking:
+ * `admin_complete_booking` refuses a second finish, and the idempotency key is
+ * `booking-completed-<id>`. A failure is logged and not retried. Never throws.
+ * @param client - Supabase client using the secret key
+ * @param bookingId - Identifier of the booking just finished without photos
+ */
+export const sendInterventionCompletedEmail = (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+): Promise<void> => sendCompletionEmail(client, bookingId, COMPLETED_EMAIL)

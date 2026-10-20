@@ -32,7 +32,10 @@ type RescheduleEmailData = ConfirmationEmailData & {
 const greeting = (booking: BookingEmailData, escape: Escape): string =>
   emailParagraph(`Bonjour ${escape(booking.firstName)},`)
 
-const QUESTIONS_PARAGRAPH: string = emailParagraph(
+/**
+ * Paragraph inviting the customer to reply to the email with any question.
+ */
+export const QUESTIONS_PARAGRAPH: string = emailParagraph(
   'Une question ? Répondez simplement à ce mail, nous vous répondrons rapidement.',
 )
 

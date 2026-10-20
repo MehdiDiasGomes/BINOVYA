@@ -46,7 +46,7 @@ export default {
     withPhotos:
       'The customer will get an email saying that their before/after photos are available in their customer area.',
     withoutPhotos:
-      '{missing} is missing. The customer will not get the photos email, even if you add them later.',
+      '{missing} is missing. The customer will get an email saying the intervention is finished, without photos, even if you add them later.',
     missing: {
       before: 'The before photo',
       after: 'The after photo',
@@ -60,7 +60,8 @@ export default {
     submittingStatus: 'Finishing the intervention…',
     success:
       'Intervention for {name} finished. The customer is told by email that their photos are available.',
-    successWithoutPhotos: 'Intervention for {name} finished without photos. No email is sent.',
+    successWithoutPhotos:
+      'Intervention for {name} finished without photos. The customer is told by email.',
     completedWithoutPhotos:
       'Finished without photos: photos added now stay visible in the customer area, with no email.',
     errors: {
