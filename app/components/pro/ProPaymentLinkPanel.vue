@@ -1,7 +1,10 @@
 <template>
   <div class="mt-4 space-y-3">
     <p class="sr-only" role="status" aria-live="polite">{{ notice }}</p>
-    <p class="text-[15px] text-ink/80">{{ deadlineText }}</p>
+    <p class="flex items-start gap-2 text-[15px] text-ink/80">
+      <Icon name="Hourglass" :size="16" aria-hidden="true" class="mt-1 shrink-0 text-primary" />
+      {{ deadlineText }}
+    </p>
     <AppButton
       variant="secondary"
       icon="Send"

@@ -2,12 +2,12 @@
   <div class="space-y-5">
     <fieldset>
       <legend class="text-base font-black text-ink">{{ $t('pro.create.mode.legend') }}</legend>
-      <div class="mt-4 grid gap-3 sm:grid-cols-2">
+      <div class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label
           v-for="mode in PRO_BOOKING_MODES"
           :key="mode"
           :for="modeId(mode)"
-          class="group cursor-pointer"
+          class="group block cursor-pointer"
         >
           <input
             :id="modeId(mode)"
@@ -20,15 +20,21 @@
             @change="draft.mode = mode"
           />
           <span
-            class="flex h-full min-h-11 flex-col rounded-xl border-2 border-border bg-white p-4 peer-checked:border-primary peer-checked:bg-paper-2 peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2"
+            class="flex h-full min-h-14 flex-col rounded-xl border-2 border-ink/50 bg-white p-4 transition-[border-color,background-color,box-shadow,scale] duration-press ease-brand group-active:scale-[0.98] motion-reduce:transition-none motion-reduce:group-active:scale-100 peer-checked:border-primary peer-checked:bg-paper-2 peer-checked:shadow-sm peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2 [@media(hover:hover)]:group-hover:border-primary"
           >
-            <span class="flex items-center justify-between gap-2">
-              <span class="text-sm font-black text-ink">
+            <span class="flex items-center justify-between gap-3">
+              <span class="min-w-0 break-words text-sm font-black text-ink">
                 {{ $t(`pro.create.mode.${mode}.label`) }}
               </span>
               <Icon
+                name="Circle"
+                :size="20"
+                aria-hidden="true"
+                class="shrink-0 text-ink/50 group-has-[:checked]:hidden"
+              />
+              <Icon
                 name="CircleCheck"
-                :size="18"
+                :size="20"
                 aria-hidden="true"
                 class="hidden shrink-0 text-primary group-has-[:checked]:block"
               />
@@ -41,9 +47,11 @@
       </div>
     </fieldset>
 
-    <dl class="flex items-baseline justify-between gap-3 rounded-xl bg-paper-2 px-4 py-3">
+    <dl
+      class="flex items-baseline justify-between gap-3 rounded-xl border border-border bg-paper-2 px-4 py-3"
+    >
       <dt class="text-sm font-bold text-ink">{{ $t('pro.create.price.label') }}</dt>
-      <dd class="text-right text-lg font-black text-ink">{{ priceText }}</dd>
+      <dd class="text-right text-lg font-black tabular-nums text-ink">{{ priceText }}</dd>
     </dl>
   </div>
 </template>

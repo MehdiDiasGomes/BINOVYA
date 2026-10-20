@@ -15,7 +15,7 @@
             {{ $t('pro.planning.title', { date: dayLabel }) }}
           </h1>
         </div>
-        <AppButton :to="localePath(PRO_CREATE_PATH)" icon="CirclePlus">
+        <AppButton :to="localePath(PRO_CREATE_PATH)" icon="CirclePlus" class="w-full sm:w-auto">
           {{ $t('pro.planning.create') }}
         </AppButton>
       </div>

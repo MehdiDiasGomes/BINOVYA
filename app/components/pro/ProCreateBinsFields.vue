@@ -5,15 +5,15 @@
       <p :id="`${PRO_CREATE_FIELD_IDS.bins}-hint`" :class="FIELD_HINT_CLASS">
         {{ $t('pro.create.bins.hint', { max: PRO_MAX_BINS_PER_SERVICE }) }}
       </p>
-      <ul role="list" class="mt-4 grid gap-3 sm:grid-cols-2">
+      <ul role="list" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <li
           v-for="service in BOOKING_SERVICES"
           :key="service.slug"
-          class="flex items-center justify-between gap-3 rounded-xl border border-border bg-white p-4"
+          class="flex items-center justify-between gap-3 rounded-xl border border-border bg-paper-2/50 p-4"
         >
           <div class="min-w-0">
-            <p class="text-sm font-black text-ink">{{ $t(service.titleKey) }}</p>
-            <p class="text-[13px] text-ink/70">{{ $t(service.capacityKey) }}</p>
+            <p class="break-words text-sm font-black text-ink">{{ $t(service.titleKey) }}</p>
+            <p class="break-words text-[13px] text-ink/70">{{ $t(service.capacityKey) }}</p>
           </div>
           <BookingQuantityStepper
             :model-value="countOf(service.slug)"
