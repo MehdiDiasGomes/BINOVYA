@@ -8,6 +8,7 @@ export default {
     completedWithoutPhotos: 'Finished without photos',
     cancelled: 'Cancelled',
     awaitingPayment: 'Payment pending',
+    linkExpired: 'Link expired',
   },
   card: {
     actions: {
@@ -15,6 +16,7 @@ export default {
       continue: 'Continue',
       view: 'View',
     },
+    recreate: 'Create again',
     subject: 'the intervention for {name}',
     subjectDated: 'the intervention for {name} on {date}',
     moreName: 'More actions for {subject}',
@@ -94,6 +96,10 @@ export default {
     awaitingPayment: {
       title: 'Payment pending',
       text: 'The intervention of {date} will be confirmed as soon as the customer pays online.',
+    },
+    expired: {
+      title: 'Payment link expired',
+      text: 'The customer did not pay the intervention of {date} before the deadline: the date was released. Create it again to send them a new link.',
     },
     cancelled: {
       title: 'Intervention cancelled',

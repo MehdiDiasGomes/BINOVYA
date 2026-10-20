@@ -108,9 +108,16 @@ const rows: ComputedRef<AccountDetailRow[]> = computed(() => [
     value: formatPrice(props.intervention.amountTotalCents, locale.value),
   },
   {
+    labelKey: 'pro.intervention.priceSource',
+    value: t(`pro.intervention.priceSources.${props.intervention.priceSource}`),
+  },
+  {
     labelKey: 'pro.intervention.payment',
     value: t(proInterventionView(props.intervention).paymentKey),
   },
+  ...(props.intervention.adminNote
+    ? [{ labelKey: 'pro.intervention.adminNote', value: props.intervention.adminNote }]
+    : []),
 ])
 
 watch(

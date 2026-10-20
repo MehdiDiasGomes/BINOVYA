@@ -9,7 +9,8 @@ import type {
 } from '@/types/proSteps'
 import type { LocationQuery, RouteLocationRaw } from 'vue-router'
 
-import { PRO_HOME_PATH, PRO_INTERVENTIONS_PATH } from '@/constants/pro'
+import { PRO_CREATE_PATH, PRO_HOME_PATH, PRO_INTERVENTIONS_PATH } from '@/constants/pro'
+import { PRO_RECREATE_QUERY } from '@/constants/proCreate'
 import {
   PRO_LIST_ORIGIN,
   PRO_ORIGIN_QUERY,
@@ -28,8 +29,8 @@ const BEFORE_STEP: number = PRO_STEPS.indexOf('before') + 1
 const RECAP_STEP: number = PRO_STEPS.length
 
 /**
- * Tells how far an intervention went, the status chip of its card: awaiting its payment, photos
- * taken while it is to do, how it was finished, or cancelled.
+ * Tells how far an intervention went, the status chip of its card: awaiting its payment, its
+ * payment link expired, photos taken while it is to do, how it was finished, or cancelled.
  * @param intervention - Intervention shown in BINOVYA Pro
  * @returns Progress of the intervention
  */
@@ -41,6 +42,9 @@ export const interventionProgressStatus = (
   }
   if (intervention.status === 'pending_payment') {
     return 'awaitingPayment'
+  }
+  if (intervention.status === 'expired') {
+    return 'linkExpired'
   }
   if (intervention.status === 'completed') {
     return intervention.completedWithoutPhotos ? 'completedWithoutPhotos' : 'completed'
@@ -57,8 +61,8 @@ export const interventionProgressStatus = (
 
 /**
  * Tells how the intervention page opens: the step flow for a paid intervention whose day has
- * come, the recap once it is finished, a read-only notice before its day, once cancelled or while
- * its payment link is unpaid.
+ * come, the recap once it is finished, a read-only notice before its day, once cancelled, while
+ * its payment link is unpaid or once that link expired.
  * @param intervention - Intervention shown in BINOVYA Pro
  * @param today - Today's ISO date in Paris
  * @returns Mode of the intervention page
@@ -72,6 +76,9 @@ export const interventionMode = (
   }
   if (intervention.status === 'pending_payment') {
     return 'awaitingPayment'
+  }
+  if (intervention.status === 'expired') {
+    return 'expired'
   }
   return canCompleteIntervention(intervention, today) ? 'steps' : 'upcoming'
 }
@@ -176,6 +183,19 @@ export const interventionPageRoute = (
   query:
     origin === 'list' ? { ...proListQuery(listQuery), [PRO_ORIGIN_QUERY]: PRO_LIST_ORIGIN } : {},
 })
+
+/**
+ * Builds the link creating again an intervention whose payment link expired: the intervention
+ * form, filled from it.
+ * @param intervention - Intervention shown in BINOVYA Pro
+ * @returns Route of the prefilled form, or null when the intervention is not an expired link
+ */
+export const recreateInterventionRoute = (
+  intervention: ProIntervention,
+): RouteLocationRaw | null =>
+  intervention.status === 'expired'
+    ? { path: PRO_CREATE_PATH, query: { [PRO_RECREATE_QUERY]: intervention.id } }
+    : null
 
 /**
  * Reads where the admin came from, from the `origin` query of the intervention page.

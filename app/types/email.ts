@@ -52,3 +52,10 @@ export type MailTransportEnvironment = {
 export type MailRedirectEnvironment = MailTransportEnvironment & {
   transport: MailTransport | null
 }
+
+export type RefundCreditNote = {
+  bookingId: string
+  invoiceId: string
+  refundId: string
+  amountCents: number
+}

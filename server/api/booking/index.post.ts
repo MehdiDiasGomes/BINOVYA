@@ -84,14 +84,10 @@ export default defineEventHandler(async (event): Promise<BookingResponse> => {
   const checkoutUrl: string = await attachBookingCheckout(client, {
     bookingId: created.new_booking_id,
     amountCents: created.total_cents,
+    profileId: customerId,
     plan: body.plan,
     scheduledDate: body.date,
-    billing: {
-      firstName: body.contact.firstName,
-      lastName: body.contact.lastName,
-      email: body.contact.email.trim().toLowerCase(),
-      address: body.address,
-    },
+    address: body.address,
     locale: body.locale,
   })
 

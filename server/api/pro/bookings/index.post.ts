@@ -1,10 +1,18 @@
 import type { Database } from '@/types/database.types'
 import type { ProCreateErrorCode, ProCreateResponse } from '@/types/proCreate'
 import type { SupabaseClient } from '@supabase/supabase-js'
+import type { ZodError } from 'zod'
 
 import { serverSupabaseServiceRole } from '#supabase/server'
 
 const MAX_BODY_BYTES = 8 * 1024
+
+const proCreateValidationCode = (error: ZodError): ProCreateErrorCode => {
+  if (isBeyondProHorizon(error)) {
+    return 'tooFar'
+  }
+  return isInvalidQuoteAmount(error) ? 'invalidQuoteAmount' : 'invalidInput'
+}
 
 export default defineEventHandler(async (event): Promise<ProCreateResponse> => {
   setResponseHeader(event, 'Cache-Control', 'private, no-store')
@@ -14,7 +22,7 @@ export default defineEventHandler(async (event): Promise<ProCreateResponse> => {
   const body: ReturnType<typeof proCreateBookingSchema.safeParse> =
     proCreateBookingSchema.safeParse(await readBody(event))
   if (!body.success) {
-    const code: ProCreateErrorCode = isBeyondProHorizon(body.error) ? 'tooFar' : 'invalidInput'
+    const code: ProCreateErrorCode = proCreateValidationCode(body.error)
     throw createError({ statusCode: 400, statusMessage: 'Invalid booking request', data: { code } })
   }
   requireSignedAddress(body.data.address)

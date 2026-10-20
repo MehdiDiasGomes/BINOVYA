@@ -40,6 +40,16 @@
               {{ $t(`pro.card.actions.${action}`) }}
               <span class="sr-only">{{ subject }}</span>
             </AppButton>
+            <AppButton
+              v-if="recreateRoute"
+              :to="localePath(recreateRoute)"
+              variant="onDark"
+              icon="RotateCcw"
+              class="min-w-0 flex-1 gap-2.5"
+            >
+              {{ $t('pro.card.recreate') }}
+              <span class="sr-only">{{ subject }}</span>
+            </AppButton>
             <ProRescheduleMenu
               v-if="isReschedulable"
               :subject="subject"
@@ -80,5 +90,6 @@ const {
   subject,
   rows,
   isReschedulable,
+  recreateRoute,
 }: ProInterventionCardState = useProInterventionCard(props)
 </script>

@@ -1,23 +1,19 @@
+import { codedError } from './proErrors'
+
 import type { Database } from '@/types/database.types'
+import type { ProRejection } from '@/types/pro'
 import type {
   ProRescheduleErrorCode,
   ProRescheduleForceableCode,
   ProRescheduleResponse,
 } from '@/types/proAvailability'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { H3Error } from 'h3'
 
 type RescheduleRow = Database['public']['Functions']['admin_reschedule_booking']['Returns'][number]
 
 type RescheduleRefusal = NonNullable<RescheduleRow['reason']>
 
 type RescheduleOverridable = NonNullable<RescheduleRow['overridden_reason']>
-
-type RescheduleRejection = {
-  statusCode: number
-  statusMessage: string
-  code: ProRescheduleErrorCode
-}
 
 export type RescheduleCommand = {
   bookingId: string
@@ -33,7 +29,7 @@ export const FORCEABLE_REFUSAL_CODES: Record<RescheduleOverridable, ProReschedul
   out_of_sector: 'outOfSector',
 }
 
-const REJECTIONS: Record<RescheduleRefusal, RescheduleRejection> = {
+const REJECTIONS: Record<RescheduleRefusal, ProRejection<ProRescheduleErrorCode>> = {
   not_found: { statusCode: 404, statusMessage: 'Booking not found', code: 'notFound' },
   not_paid: { statusCode: 422, statusMessage: 'Booking cannot be moved', code: 'notPaid' },
   invalid_date: { statusCode: 400, statusMessage: 'Invalid date', code: 'invalidDate' },
@@ -45,15 +41,6 @@ const REJECTIONS: Record<RescheduleRefusal, RescheduleRejection> = {
   day_closed: { statusCode: 409, statusMessage: 'Day closed', code: 'dayClosed' },
   day_full: { statusCode: 409, statusMessage: 'Day full', code: 'dayFull' },
   out_of_sector: { statusCode: 409, statusMessage: 'Day out of sector', code: 'outOfSector' },
-}
-
-const rescheduleRejection = (reason: RescheduleRefusal): H3Error => {
-  const rejection: RescheduleRejection = REJECTIONS[reason]
-  return createError({
-    statusCode: rejection.statusCode,
-    statusMessage: rejection.statusMessage,
-    data: { code: rejection.code },
-  })
 }
 
 /**
@@ -78,7 +65,7 @@ export const rescheduleBooking = async (
   })
   const row: RescheduleRow | undefined = data?.[0]
   if (row && !row.ok && row.reason) {
-    throw rescheduleRejection(row.reason)
+    throw codedError(REJECTIONS[row.reason])
   }
   if (error || !row?.ok || !row.old_date || !row.new_date) {
     throw createError({ statusCode: 500, statusMessage: 'Reschedule failed' })

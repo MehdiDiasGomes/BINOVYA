@@ -17,21 +17,24 @@ const withoutRange = (
  * Loads the number of interventions per day for the date pickers of BINOVYA Pro, one visible
  * calendar grid at a time. A grid is fetched once, then again after the page data changed. A
  * failure leaves the days unmarked, except an authentication error, handled like the Pro pages.
- * @param source - Page data whose change makes the loaded counts stale
+ * @param source - Page data whose change makes the loaded counts stale, none when the page never
+ * changes the interventions while it is open
  * @returns Counts by ISO date and the loader to call with the visible range of a picker
  */
 export const useProInterventionDays = (
-  source: Readonly<Ref<unknown>>,
+  source?: Readonly<Ref<unknown>>,
 ): ProInterventionDaysState => {
   const { handleAuthError } = useProAuthError()
   const markedDays: Ref<Record<string, number>> = ref({})
   const freshRanges: Set<string> = new Set()
   const pendingRequests: Map<string, symbol> = new Map()
 
-  watch(source, (): void => {
-    freshRanges.clear()
-    pendingRequests.clear()
-  })
+  if (source) {
+    watch(source, (): void => {
+      freshRanges.clear()
+      pendingRequests.clear()
+    })
+  }
 
   const loadDays = async (range: CalendarVisibleRange): Promise<void> => {
     const key: string = rangeKey(range)

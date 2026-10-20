@@ -47,6 +47,11 @@ export type AddressSearchResponse = {
   suggestions: BookingAddress[]
 }
 
+export type NationalPhone = {
+  phone: string
+  countryCode: CountryCode
+}
+
 export type BookingContact = {
   firstName: string
   lastName: string
@@ -84,6 +89,24 @@ export type PriceGridState = {
   grid: Ref<PriceGridEntry[]>
   isGridReady: ComputedRef<boolean>
   hasGridError: ComputedRef<boolean>
+}
+
+export type BinCounts = {
+  small: number
+  large: number
+}
+
+export type GridPriceSource = {
+  counts: () => BinCounts
+  plan: () => BookingPlan
+}
+
+export type GridPrice = {
+  isGridReady: ComputedRef<boolean>
+  hasGridError: ComputedRef<boolean>
+  priceFor: (plan: BookingPlan) => number | null
+  priceCents: ComputedRef<number | null>
+  isQuoteRequired: ComputedRef<boolean>
 }
 
 export type DayStatusEntry = {

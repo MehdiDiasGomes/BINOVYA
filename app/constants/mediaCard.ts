@@ -14,6 +14,11 @@ export const MEDIA_CARD_TONES: Record<MediaCardTone, MediaCardToneClasses> = {
     glow: 'from-turquoise/30',
     eyebrow: 'text-cyan-300',
   },
+  warning: {
+    surface: 'bg-linear-[165deg] from-navy-800 via-navy-900 to-navy-950',
+    glow: 'from-turquoise/30',
+    eyebrow: 'text-cyan-300',
+  },
   neutral: {
     surface: 'bg-linear-[165deg] from-slate-700 to-slate-800',
     glow: 'from-slate-300/15',

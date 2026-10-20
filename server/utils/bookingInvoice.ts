@@ -1,76 +1,24 @@
-import type { AddressDetails, BookingContact, BookingLocale } from '@/types/booking'
+import { escapeHtml, sendTransactionalEmail } from './mail'
+import { useStripe } from './stripe'
+
 import type { Database } from '@/types/database.types'
+import type { RefundCreditNote } from '@/types/email'
 import type { InvoiceLegalField } from '@/types/invoice'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type Stripe from 'stripe'
 
 import { INVOICE_LEGAL_FIELDS, INVOICE_LEGAL_MENTIONS } from '@/constants/invoice'
+import { generateCreditNoteAlert } from '@/templates/email/bookingAdminEmail'
 
 type InvoiceCustomField =
   Stripe.Checkout.SessionCreateParams.InvoiceCreation.InvoiceData.CustomField
 
-export type BillingAddress = Pick<AddressDetails, 'label' | 'city' | 'postcode' | 'countryCode'>
-
-export type BookingBilling = Pick<BookingContact, 'firstName' | 'lastName' | 'email'> & {
-  address: BillingAddress
-}
-
-export type RefundCreditNote = {
-  bookingId: string
-  invoiceId: string
-  refundId: string
-  amountCents: number
-}
-
 const CREDIT_NOTE_REASON: Stripe.CreditNoteCreateParams.Reason = 'order_change'
-
-const localitySuffix = (address: BillingAddress): string =>
-  address.countryCode === 'LU'
-    ? `, L-${address.postcode} ${address.city}`
-    : ` ${address.postcode} ${address.city}`
-
-const streetLine = (address: BillingAddress): string => {
-  const suffix: string = localitySuffix(address)
-  const street: string = address.label.endsWith(suffix)
-    ? address.label.slice(0, -suffix.length).trim()
-    : ''
-  return street || address.label
-}
 
 const toCustomField = (field: InvoiceLegalField): InvoiceCustomField => ({
   name: field.label,
   value: field.value,
 })
-
-/**
- * Creates the Stripe customer billed for one booking, carrying the name and address typed in the
- * booking form so the invoice shows them. One customer per booking: an unauthenticated booking
- * request never rewrites the billing details of an earlier one.
- * @param bookingId - Booking paid through this customer, also the idempotency key
- * @param billing - Name, email and service address of the customer
- * @param locale - Language of the invoice
- * @returns Created Stripe customer
- */
-export const createBookingCustomer = (
-  bookingId: string,
-  billing: BookingBilling,
-  locale: BookingLocale,
-): Promise<Stripe.Response<Stripe.Customer>> =>
-  useStripe().customers.create(
-    {
-      name: `${billing.firstName.trim()} ${billing.lastName.trim()}`,
-      email: billing.email,
-      address: {
-        line1: streetLine(billing.address),
-        postal_code: billing.address.postcode,
-        city: billing.address.city,
-        country: billing.address.countryCode,
-      },
-      preferred_locales: [locale],
-      metadata: { booking_id: bookingId },
-    },
-    { idempotencyKey: `booking-customer-${bookingId}` },
-  )
 
 /**
  * Builds the Checkout invoice settings: the invoice is created once the payment succeeds, with
@@ -127,9 +75,26 @@ export const storeBookingInvoice = async (
   }
 }
 
+const sendCreditNoteAlert = async (creditNote: RefundCreditNote): Promise<void> => {
+  const { contactEmailTo } = useRuntimeConfig()
+  if (!contactEmailTo) {
+    console.warn('Credit note alert skipped: NUXT_CONTACT_EMAIL_TO is not set')
+    return
+  }
+  await sendTransactionalEmail(
+    {
+      to: contactEmailTo,
+      ...generateCreditNoteAlert(creditNote, escapeHtml),
+      idempotencyKey: `booking-credit-note-alert-${creditNote.bookingId}`,
+    },
+    `Credit note alert for ${creditNote.bookingId}`,
+  )
+}
+
 /**
  * Issues the credit note cancelling the invoice of a refunded booking, linked to the refund. Never
- * throws: a failure is logged and the refund stays valid.
+ * throws: a failure is logged and BINOVYA is alerted by mail to issue it by hand, the refund stays
+ * valid.
  * @param creditNote - Booking, invoice, refund and refunded amount
  */
 export const issueRefundCreditNote = async (creditNote: RefundCreditNote): Promise<void> => {
@@ -146,5 +111,6 @@ export const issueRefundCreditNote = async (creditNote: RefundCreditNote): Promi
     )
   } catch {
     console.error(`Credit note failed for booking ${creditNote.bookingId}`)
+    await sendCreditNoteAlert(creditNote)
   }
 }

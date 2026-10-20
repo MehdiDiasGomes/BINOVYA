@@ -1,4 +1,4 @@
-import type { CountryCode } from '@/types/booking'
+import type { CountryCode, NationalPhone } from '@/types/booking'
 
 import { COUNTRY_DIAL_CODES } from '@/constants/booking'
 
@@ -73,4 +73,21 @@ export const groupPhoneDigits = (phone: string): string => {
     return `+352 ${groupLuxembourgDigits(compact.slice(4))}`
   }
   return phone
+}
+
+/**
+ * Splits a stored international number into the country and the national number shown in the
+ * phone field: `+33612345678` into France and `0612345678`, `+352621123456` into Luxembourg and
+ * `621123456`. Any other number is kept as is with France.
+ * @param phone - Number in international form
+ * @returns National number and its country
+ */
+export const toNationalPhone = (phone: string): NationalPhone => {
+  if (phone.startsWith(COUNTRY_DIAL_CODES.LU)) {
+    return { phone: phone.slice(COUNTRY_DIAL_CODES.LU.length), countryCode: 'LU' }
+  }
+  if (phone.startsWith(COUNTRY_DIAL_CODES.FR)) {
+    return { phone: `0${phone.slice(COUNTRY_DIAL_CODES.FR.length)}`, countryCode: 'FR' }
+  }
+  return { phone, countryCode: 'FR' }
 }

@@ -1,6 +1,7 @@
 import type { FocusTarget } from '@/types/button'
 import type { ProCreateField, ProCreateRequest, ProCreateResponse } from '@/types/proCreate'
 import type { ProCreateFormState, ProCreateSubmitState } from '@/types/proCreateForm'
+import type { ProInterventionOrigin } from '@/types/proSteps'
 
 import { PRO_AVAILABILITY_HORIZON_DAYS } from '@/constants/pro'
 import {
@@ -8,19 +9,28 @@ import {
   PRO_CREATE_FIELDS,
   PRO_CREATE_TIMEOUT_MS,
   PRO_MAX_BINS_PER_SERVICE,
+  PRO_QUOTE_MAX_BINS_PER_SERVICE,
+  PRO_QUOTE_MAX_CENTS,
 } from '@/constants/proCreate'
 import { addDaysToIsoDate, formatFullDate } from '@/utils/date'
 import { isFetchTimeoutError, readFetchErrorCode } from '@/utils/fetchError'
 import { focusFirstElement } from '@/utils/focus'
+import { formatPrice } from '@/utils/pricing'
 import { isForceableRescheduleCode, overriddenReasonsText } from '@/utils/proAvailability'
 import { isProCreateErrorCode, toProCreateRequest } from '@/utils/proCreate'
 import { interventionPageRoute } from '@/utils/proSteps'
 
+const RELEASED_BOOKING_CODE: string = 'paymentLinkFailed'
+
 /**
- * Submits the BINOVYA Pro intervention form. An invalid form focuses its first invalid field. A
- * forceable refusal (out of area, closed, full or out of sector day) offers « Force anyway »; any
- * other refusal, or a timeout whose result is unknown, is shown and focus returns to the submit
- * button. On success the result is kept for the intervention page, which announces it once loaded.
+ * Submits the BINOVYA Pro intervention form with the request id of the draft, so a second click or
+ * a retry after a timeout never creates a second intervention. An invalid form focuses its first
+ * invalid field. A forceable refusal (out of area, closed, full or out of sector day) offers
+ * « Force anyway »; any other refusal, or a timeout whose result is unknown, is shown and focus
+ * returns to the submit button. When the server released the booking it created (payment link
+ * failed), the next submission gets a new request id. On success the result is kept for the
+ * intervention page, which announces it once loaded: from the list for a payment link, which the
+ * planning does not show, from the planning otherwise.
  * @param form - State of the form
  * @returns Refusal text, whether it can be forced, the submitting flag, the submit button ref and
  * the submit action
@@ -56,13 +66,20 @@ export const useProCreateSubmit = (form: ProCreateFormState): ProCreateSubmitSta
     return isProCreateErrorCode(code)
       ? t(`pro.create.errors.${code}`, {
           date: formatFullDate(maxDate, locale.value),
-          max: PRO_MAX_BINS_PER_SERVICE,
+          max:
+            form.draft.value.priceSource === 'quote'
+              ? PRO_QUOTE_MAX_BINS_PER_SERVICE
+              : PRO_MAX_BINS_PER_SERVICE,
+          maxAmount: formatPrice(PRO_QUOTE_MAX_CENTS, locale.value),
         })
       : t('pro.create.errors.generic')
   }
 
   const showRefusal = async (error: unknown, wasForced: boolean): Promise<void> => {
     const code: unknown = readFetchErrorCode(error)
+    if (code === RELEASED_BOOKING_CODE) {
+      form.renewRequestId()
+    }
     refusal.value = refusalText(error, code)
     isForceable.value = !wasForced && isForceableRescheduleCode(code)
     if (!isForceable.value) {
@@ -73,9 +90,12 @@ export const useProCreateSubmit = (form: ProCreateFormState): ProCreateSubmitSta
 
   const successNotice = (response: ProCreateResponse): string => {
     const name: string = `${form.draft.value.contact.firstName} ${form.draft.value.contact.lastName}`
-    const success: string = t(`pro.create.success.${response.mode}`, {
+    const successKey: string = response.isReplay
+      ? 'pro.create.replayed'
+      : `pro.create.success.${response.mode}`
+    const success: string = t(successKey, {
       name: name.trim(),
-      date: formatFullDate(form.draft.value.date, locale.value),
+      date: formatFullDate(response.scheduledDate, locale.value),
     })
     const forced: string = overriddenReasonsText(response.overriddenCodes, locale.value, t)
     const emailFailed: string = response.isEmailSent
@@ -101,7 +121,9 @@ export const useProCreateSubmit = (form: ProCreateFormState): ProCreateSubmitSta
       timeout: PRO_CREATE_TIMEOUT_MS,
     })
     remember(successNotice(response))
-    await navigateTo(localePath(interventionPageRoute(response.bookingId, 'planning')))
+    form.renewRequestId()
+    const origin: ProInterventionOrigin = response.mode === 'payment_link' ? 'list' : 'planning'
+    await navigateTo(localePath(interventionPageRoute(response.bookingId, origin)))
   }
 
   const submit = async (force: boolean): Promise<void> => {

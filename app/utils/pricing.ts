@@ -1,4 +1,4 @@
-import type { BookingPlan, PriceGridEntry } from '@/types/booking'
+import type { BinCounts, BookingPlan, PriceGridEntry } from '@/types/booking'
 
 /**
  * Looks up the price of one visit for a plan and a bin combination.
@@ -10,7 +10,7 @@ import type { BookingPlan, PriceGridEntry } from '@/types/booking'
 export const findPriceCents = (
   grid: PriceGridEntry[],
   plan: BookingPlan,
-  counts: { small: number; large: number },
+  counts: BinCounts,
 ): number | null =>
   grid.find(
     entry =>

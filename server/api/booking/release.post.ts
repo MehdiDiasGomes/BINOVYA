@@ -5,6 +5,9 @@ import { serverSupabaseServiceRole } from '#supabase/server'
 
 const MAX_BODY_BYTES = 1024
 
+const isWithinHold = (expiresAt: string | null): boolean =>
+  expiresAt !== null && Date.parse(expiresAt) > Date.now()
+
 export default defineEventHandler(async (event): Promise<BookingReleaseResponse> => {
   assertBodySize(event, MAX_BODY_BYTES)
   const { bookingId } = await readValidatedBody(event, bookingReleaseSchema.parse)
@@ -12,13 +15,18 @@ export default defineEventHandler(async (event): Promise<BookingReleaseResponse>
 
   const { data, error } = await client
     .from('bookings')
-    .select('status, stripe_checkout_session_id')
+    .select('status, stripe_checkout_session_id, created_by_admin, expires_at')
     .eq('id', bookingId)
     .maybeSingle()
   if (error) {
     throw createError({ statusCode: 500, statusMessage: 'Booking lookup failed' })
   }
-  if (data?.status !== 'pending_payment' || !data.stripe_checkout_session_id) {
+  if (
+    data?.status !== 'pending_payment' ||
+    !data.stripe_checkout_session_id ||
+    data.created_by_admin ||
+    !isWithinHold(data.expires_at)
+  ) {
     return { isReleased: false }
   }
 

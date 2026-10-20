@@ -1,21 +1,27 @@
-import type { BookingAddress, BookingPlan, PriceGridState } from '@/types/booking'
+import type { BookingAddress, BookingPlan, GridPrice } from '@/types/booking'
 import type { ProCreateDraft, ProCreateErrors, ProCreateField } from '@/types/proCreate'
 import type { ProCreateFormState } from '@/types/proCreateForm'
 
 import { CONTACT_NAME_LIMITS } from '@/constants/booking'
-import { PRO_CREATE_FIELD_IDS } from '@/constants/proCreate'
-import { findPriceCents } from '@/utils/pricing'
+import {
+  PRO_ADMIN_NOTE_MAX_LENGTH,
+  PRO_CREATE_FIELD_IDS,
+  PRO_QUOTE_MAX_CENTS,
+} from '@/constants/proCreate'
+import { formatPrice } from '@/utils/pricing'
 import { emptyProCreateDraft, validateProCreateDraft } from '@/utils/proCreate'
+import { parseQuoteAmountCents } from '@/utils/proCreateValidation'
 
 /**
- * Holds the BINOVYA Pro intervention form: the draft, its price from the grid shared with the
- * online booking, and its errors once a submission was attempted. An address the server refused
- * (expired token) is cleared and its error shown until another one is chosen.
- * @returns Draft, errors, prices and the address handlers
+ * Holds the BINOVYA Pro intervention form: the draft, its price (from the grid shared with the
+ * online booking, or the quote price typed by the admin), and its errors once a submission was
+ * attempted. An address the server refused (expired token) is cleared and its error shown until
+ * another one is chosen. The request id of the draft is renewed only after a creation, or when
+ * the server released the booking it created.
+ * @returns Draft, errors, prices, the address handlers and the request id renewal
  */
 export const useProCreateForm = (): ProCreateFormState => {
-  const { t } = useI18n()
-  const { grid, isGridReady, hasGridError }: PriceGridState = usePriceGrid()
+  const { t, locale } = useI18n()
   const {
     errorKey: addressErrorKey,
     catchInvalidAddress,
@@ -26,19 +32,26 @@ export const useProCreateForm = (): ProCreateFormState => {
   const draft: Ref<ProCreateDraft> = ref(emptyProCreateDraft())
   const hasAttempted: Ref<boolean> = ref(false)
 
-  const priceFor = (plan: BookingPlan): number | null =>
-    findPriceCents(grid.value, plan, {
-      small: draft.value.smallBinCount,
-      large: draft.value.largeBinCount,
-    })
+  const gridPrice: GridPrice = useGridPrice({
+    counts: () => ({ small: draft.value.smallBinCount, large: draft.value.largeBinCount }),
+    plan: () => draft.value.plan,
+  })
 
-  const priceCents: ComputedRef<number | null> = computed(() => priceFor(draft.value.plan))
+  const isQuote: ComputedRef<boolean> = computed(() => draft.value.priceSource === 'quote')
+
+  const quoteCents: ComputedRef<number | null> = computed(() =>
+    parseQuoteAmountCents(draft.value.quoteAmount),
+  )
+
+  const priceFor = (plan: BookingPlan): number | null =>
+    isQuote.value ? quoteCents.value : gridPrice.priceFor(plan)
+
+  const priceCents: ComputedRef<number | null> = computed(() =>
+    isQuote.value ? quoteCents.value : gridPrice.priceCents.value,
+  )
 
   const isQuoteRequired: ComputedRef<boolean> = computed(
-    () =>
-      isGridReady.value &&
-      draft.value.smallBinCount + draft.value.largeBinCount > 0 &&
-      priceCents.value === null,
+    () => !isQuote.value && gridPrice.isQuoteRequired.value,
   )
 
   const errors: ComputedRef<ProCreateErrors> = computed(() => {
@@ -52,7 +65,13 @@ export const useProCreateForm = (): ProCreateFormState => {
   const errorText = (field: ProCreateField): string => {
     const key: string | undefined = errors.value[field]
     const isShown: boolean = hasAttempted.value || (field === 'bins' && isQuoteRequired.value)
-    return isShown && key ? t(key, CONTACT_NAME_LIMITS) : ''
+    return isShown && key
+      ? t(key, {
+          ...CONTACT_NAME_LIMITS,
+          maxAmount: formatPrice(PRO_QUOTE_MAX_CENTS, locale.value),
+          maxLength: PRO_ADMIN_NOTE_MAX_LENGTH,
+        })
+      : ''
   }
 
   const changeAddress = (address: BookingAddress | null): void => {
@@ -71,6 +90,10 @@ export const useProCreateForm = (): ProCreateFormState => {
     return true
   }
 
+  const renewRequestId = (): void => {
+    draft.value.requestId = crypto.randomUUID()
+  }
+
   onBeforeUnmount(clearAddressError)
 
   return {
@@ -80,8 +103,9 @@ export const useProCreateForm = (): ProCreateFormState => {
     errorText,
     priceFor,
     priceCents,
-    hasGridError,
+    hasGridError: gridPrice.hasGridError,
     changeAddress,
     catchAddressError,
+    renewRequestId,
   }
 }

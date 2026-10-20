@@ -1,8 +1,6 @@
 <template>
   <div class="min-h-[70vh]">
-    <p class="sr-only" role="status" aria-live="polite">
-      {{ isSubmitting ? $t('pro.create.submittingStatus') : '' }}
-    </p>
+    <p class="sr-only" role="status" aria-live="polite">{{ liveStatus }}</p>
     <div class="mx-auto max-w-[720px] space-y-8 px-4 pb-16 pt-8 sm:px-8 sm:pt-12">
       <div :class="HERO_ENTER_CLASS">
         <span class="mb-2 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary">
@@ -14,7 +12,20 @@
         <p class="mt-2 text-[15px] text-ink/80">{{ $t('pro.create.intro') }}</p>
       </div>
 
-      <form class="space-y-6" novalidate @submit.prevent="submit(false)">
+      <p v-if="prefillStatus === 'loading'" class="text-[15px] text-ink/80">
+        {{ prefillText }}
+      </p>
+      <p v-else-if="prefillStatus === 'error'" :class="ERROR_MESSAGE_CLASS">
+        <Icon name="CircleAlert" :size="16" aria-hidden="true" />
+        {{ prefillText }}
+      </p>
+
+      <form
+        v-if="prefillStatus !== 'loading'"
+        class="space-y-6"
+        novalidate
+        @submit.prevent="submit(false)"
+      >
         <section
           v-for="section in PRO_CREATE_SECTIONS"
           :key="section"
@@ -46,6 +57,7 @@
             v-else-if="section === 'bins'"
             v-model="draft"
             :bins-error="errorText('bins')"
+            :quote-amount-error="errorText('quoteAmount')"
             :price-for="priceFor"
             :has-grid-error="hasGridError"
           />
@@ -62,7 +74,12 @@
             @update:model-value="draft.date = $event"
             @visible-range="loadDays"
           />
-          <ProCreatePaymentFields v-else v-model="draft" :price-cents="priceCents" />
+          <ProCreatePaymentFields
+            v-else
+            v-model="draft"
+            :price-cents="priceCents"
+            :note-error="errorText('note')"
+          />
         </section>
 
         <div
@@ -110,9 +127,13 @@
 </template>
 
 <script setup lang="ts">
-import type { ProCreateFormState, ProCreateSubmitState } from '@/types/proCreateForm'
+import type {
+  ProCreateFormState,
+  ProCreatePrefillState,
+  ProCreateSubmitState,
+} from '@/types/proCreateForm'
 
-import { INLINE_ERROR_CLASS } from '@/constants/feedback'
+import { ERROR_MESSAGE_CLASS, INLINE_ERROR_CLASS } from '@/constants/feedback'
 import { FEEDBACK_OFFSET, HERO_ENTER_CLASS, STEP_TRANSITION } from '@/constants/motion'
 import { PRO_AVAILABILITY_HORIZON_DAYS, PRO_HOME_PATH } from '@/constants/pro'
 import {
@@ -138,8 +159,13 @@ const { draft, hasAttempted, errorText, priceFor, priceCents, hasGridError, chan
 const { refusal, isForceable, isSubmitting, submitButtonRef, submit }: ProCreateSubmitState =
   useProCreateSubmit(form)
 
-const daysSource: Ref<null> = ref(null)
-const { markedDays, loadDays } = useProInterventionDays(daysSource)
+const { status: prefillStatus, statusText: prefillText }: ProCreatePrefillState =
+  useProCreatePrefill(form)
+const { markedDays, loadDays } = useProInterventionDays()
+
+const liveStatus: ComputedRef<string> = computed(() =>
+  isSubmitting.value ? t('pro.create.submittingStatus') : prefillText.value,
+)
 
 const maxDate: ComputedRef<string> = computed(() =>
   addDaysToIsoDate(today.value, PRO_AVAILABILITY_HORIZON_DAYS),

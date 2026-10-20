@@ -63,7 +63,7 @@ export default {
     terms: 'Vous devez accepter les conditions pour continuer.',
     dayTaken: "Ce jour vient d'être réservé par quelqu'un d'autre. Choisissez-en un autre.",
     pendingPayment:
-      'Un paiement est déjà en cours pour cette adresse email. Terminez-le ou réessayez dans quelques minutes.',
+      'Un paiement est déjà en attente pour cette adresse email : terminez-le depuis le lien reçu par mail, ou réessayez plus tard.',
     invalidAddress:
       "Votre adresse n'a pas pu être vérifiée ou sa sélection a expiré. Choisissez-la à nouveau dans la liste.",
     submit: "La réservation n'a pas pu être enregistrée. Réessayez dans un instant.",
@@ -209,7 +209,8 @@ export default {
   },
   checkout: {
     productName: 'Nettoyage de bacs BINOVYA ({plan})',
-    invoiceDescription: '{product}, intervention du {date}',
+    lineDescription: '{date}, {address}',
+    invoiceDescription: '{product}, intervention du {date}, {address}',
   },
   summary: {
     title: 'Votre réservation',
@@ -235,5 +236,17 @@ export default {
     },
     home: "Retour à l'accueil",
     newBooking: 'Nouvelle réservation',
+  },
+  paymentLink: {
+    seo: {
+      title: 'Paiement non finalisé - BINOVYA',
+    },
+    eyebrow: 'Lien de paiement',
+    title: 'Paiement non finalisé',
+    text: 'Aucune somme n’a été débitée. Votre intervention reste réservée jusqu’à l’échéance indiquée dans le mail de BINOVYA contenant votre lien de paiement.',
+    reopen:
+      'Pour la régler, rouvrez ce lien depuis le mail. Vous ne le retrouvez plus ? Écrivez-nous, nous vous le renvoyons.',
+    contact: 'Je ne retrouve plus le mail',
+    home: "Retour à l'accueil",
   },
 }

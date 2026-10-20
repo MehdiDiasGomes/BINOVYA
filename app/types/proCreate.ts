@@ -5,6 +5,8 @@ export type ProBookingMode = 'payment_link' | 'offline'
 
 export type ProPaymentMethod = 'stripe' | 'offline'
 
+export type ProPriceSource = 'grid' | 'quote'
+
 export type ProCreateForceableCode = ProRescheduleForceableCode
 
 export type ProCreateErrorCode =
@@ -12,6 +14,7 @@ export type ProCreateErrorCode =
   | 'invalidInput'
   | 'invalidAddress'
   | 'invalidQuantities'
+  | 'invalidQuoteAmount'
   | 'quoteRequired'
   | 'customerNotFound'
   | 'customerPending'
@@ -22,6 +25,7 @@ export type ProCreateErrorCode =
 export type ProCreateContact = Omit<BookingContact, 'phoneCountryCode'>
 
 export type ProCreateRequest = {
+  requestId: string
   contact: ProCreateContact
   address: BookingAddress
   plan: BookingPlan
@@ -31,16 +35,32 @@ export type ProCreateRequest = {
   recyclingCollectionWeekdays: number[]
   date: string
   mode: ProBookingMode
+  quoteAmountCents: number | null
+  note: string | null
   force: boolean
 }
 
 export type ProCreateResponse = {
   bookingId: string
   mode: ProBookingMode
+  scheduledDate: string
   amountTotalCents: number
   paymentDueAt: string | null
   overriddenCodes: ProCreateForceableCode[]
   isEmailSent: boolean
+  isReplay: boolean
+}
+
+export type ProCreatePrefill = {
+  contact: ProCreateContact
+  address: BookingAddress
+  plan: BookingPlan
+  smallBinCount: number
+  largeBinCount: number
+  householdCollectionWeekdays: number[]
+  recyclingCollectionWeekdays: number[]
+  quoteAmountCents: number | null
+  note: string | null
 }
 
 export type ProPaymentLinkErrorCode =
@@ -57,6 +77,7 @@ export type ProPaymentLinkResponse = {
 }
 
 export type ProCreateDraft = {
+  requestId: string
   contact: BookingContact
   address: BookingAddress | null
   plan: BookingPlan
@@ -66,6 +87,9 @@ export type ProCreateDraft = {
   recycling: CollectionAnswer
   date: string
   mode: ProBookingMode
+  priceSource: ProPriceSource
+  quoteAmount: string
+  note: string
 }
 
 export type ProCreateField =
@@ -74,9 +98,17 @@ export type ProCreateField =
   | 'email'
   | 'phone'
   | 'address'
+  | 'quoteAmount'
   | 'bins'
   | 'date'
+  | 'note'
 
 export type ProCreateErrors = Partial<Record<ProCreateField, string>>
 
 export type ProCreateSection = 'customer' | 'address' | 'bins' | 'date' | 'payment'
+
+export type ProRadioOption = {
+  value: string
+  label: string
+  hint: string
+}

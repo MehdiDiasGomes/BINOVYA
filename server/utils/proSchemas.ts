@@ -1,12 +1,13 @@
 import { z } from 'zod'
 
 import {
-  binCountSchema,
   bookingPlanSchema,
   signedAddressSchema,
   signedMunicipalitySchema,
   weekdaysSchema,
 } from './bookingSchemas'
+
+import type { ProCreateRequest } from '@/types/proCreate'
 
 import { CALENDAR_GRID_DAY_COUNT } from '@/constants/calendar'
 import { PHOTO_KINDS } from '@/constants/photos'
@@ -20,6 +21,11 @@ import { contactSchema } from '@/utils/bookingValidation'
 import { addDaysToIsoDate, businessToday } from '@/utils/date'
 import { isIsoDate, isoDateSchema } from '@/utils/dateValidation'
 import { dayCapacitySchema, dayNoteSchema, weekdaySchema } from '@/utils/proAvailabilityValidation'
+import {
+  adminNoteSchema,
+  proBinCountSchema,
+  quoteAmountCentsSchema,
+} from '@/utils/proCreateValidation'
 
 const TOO_FAR_ISSUE_CODE: string = 'tooFar'
 
@@ -90,15 +96,32 @@ export const proPhotoKindParamsSchema = z.object({ kind: z.enum(PHOTO_KINDS) })
 
 export const proCompleteSchema = z.object({ force: z.boolean().default(false) })
 
+const QUOTE_AMOUNT_FIELD: keyof ProCreateRequest = 'quoteAmountCents'
+
+/**
+ * Tells whether a validation of the intervention creation failed on the quote price, so BINOVYA
+ * Pro shows the same message as `admin_create_booking` (`invalidQuoteAmount`).
+ * @param error - Error of a failed `safeParse`
+ * @returns True when one issue is on the quote price
+ */
+export const isInvalidQuoteAmount = (error: z.ZodError): boolean =>
+  error.issues.some(issue => issue.path[0] === QUOTE_AMOUNT_FIELD)
+
 export const proCreateBookingSchema = z.object({
+  requestId: z.string().uuid(),
   contact: contactSchema,
   address: signedAddressSchema,
   plan: bookingPlanSchema,
-  smallBinCount: binCountSchema,
-  largeBinCount: binCountSchema,
+  smallBinCount: proBinCountSchema,
+  largeBinCount: proBinCountSchema,
   householdCollectionWeekdays: weekdaysSchema,
   recyclingCollectionWeekdays: weekdaysSchema,
   date: proHorizonDateSchema,
   mode: z.enum(PRO_BOOKING_MODES),
+  quoteAmountCents: quoteAmountCentsSchema.nullable().default(null),
+  note: adminNoteSchema
+    .nullable()
+    .default(null)
+    .transform(note => (note ? note : null)),
   force: z.boolean().default(false),
 })

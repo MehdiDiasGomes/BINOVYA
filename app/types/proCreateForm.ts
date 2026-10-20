@@ -13,6 +13,7 @@ export type ProCreateFormState = {
   hasGridError: ComputedRef<boolean>
   changeAddress: (address: BookingAddress | null) => void
   catchAddressError: (error: unknown) => Promise<boolean>
+  renewRequestId: () => void
 }
 
 export type ProCreateSubmitState = {
@@ -34,4 +35,11 @@ export type ProCreatedNoticeState = {
     isLoading: Readonly<Ref<boolean>>,
     announce: (text: string) => Promise<void>,
   ) => void
+}
+
+export type ProCreatePrefillStatus = 'none' | 'loading' | 'loaded' | 'error'
+
+export type ProCreatePrefillState = {
+  status: Readonly<Ref<ProCreatePrefillStatus>>
+  statusText: ComputedRef<string>
 }

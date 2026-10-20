@@ -28,4 +28,5 @@ export type ProInterventionCardState = {
   subject: ComputedRef<string>
   rows: ComputedRef<AccountDetailRow[]>
   isReschedulable: ComputedRef<boolean>
+  recreateRoute: ComputedRef<RouteLocationRaw | null>
 }

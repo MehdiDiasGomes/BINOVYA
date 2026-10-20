@@ -39,6 +39,15 @@
       </dl>
       <ProToMoveBadge v-if="props.intervention.isToMove" class="mt-1 px-2 py-0.5 text-xs" />
     </div>
+    <NuxtLink
+      v-if="recreateRoute"
+      :to="localePath(recreateRoute)"
+      class="relative z-10 flex min-h-11 shrink-0 items-center gap-1.5 rounded-full px-3 text-sm font-bold text-white underline underline-offset-4 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white"
+    >
+      <Icon name="RotateCcw" :size="16" aria-hidden="true" />
+      {{ $t('pro.card.recreate') }}
+      <span class="sr-only">{{ subject }}</span>
+    </NuxtLink>
     <ProRescheduleMenu
       v-if="isReschedulable"
       :subject="subject"
@@ -81,6 +90,7 @@ const {
   subject,
   rows,
   isReschedulable,
+  recreateRoute,
 }: ProInterventionCardState = useProInterventionCard(props)
 
 const linkName: ComputedRef<string> = computed(() =>

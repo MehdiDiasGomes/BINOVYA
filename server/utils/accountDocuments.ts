@@ -215,9 +215,9 @@ const loadPaymentDocument = async (record: AccountBookingRecord): Promise<Paymen
  * and the payment document. An invoiced booking gets its Stripe invoice (PDF, else the hosted
  * page); an older one keeps the Stripe payment receipt (`latest_charge.receipt_url` of the
  * payment intent), which reflects a refund. A booking paid outside the site (`payment_method`
- * offline) has no Stripe document and is never looked up at Stripe. Relies on RLS: the client must carry the customer
- * session, and the booking must have been loaded for this customer first. Never throws: a missing
- * photo, invoice, receipt or a Stripe error only leaves the entry empty.
+ * offline) has no Stripe document and is never looked up at Stripe. Relies on RLS: the client
+ * must carry the customer session, and the booking must have been loaded for this customer first.
+ * Never throws: a missing photo, invoice, receipt or a Stripe error only leaves the entry empty.
  * @param client - Supabase client of the logged-in customer
  * @param record - Booking of this customer, its payment intent and invoice, see
  * `loadAccountBooking`

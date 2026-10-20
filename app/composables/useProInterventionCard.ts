@@ -14,13 +14,15 @@ import {
   interventionCardAction,
   interventionPageRoute,
   interventionProgressStatus,
+  recreateInterventionRoute,
 } from '@/utils/proSteps'
 
 /**
  * Derives what an intervention card shows, shared by the mobile row and the card from `sm` up.
  * @param props - Reactive props of the card: intervention, date display, today and origin
  * @returns Tone, progress, action, page route, customer name, accessible subject, detail rows
- * (with the payment when it is offline or awaited) and whether the date can be changed
+ * (with the payment when it is offline, awaited or expired), whether the date can be changed and
+ * the link creating again an intervention whose payment link expired
  */
 export const useProInterventionCard = (
   props: Readonly<ProInterventionCardOptions>,
@@ -72,5 +74,19 @@ export const useProInterventionCard = (
 
   const isReschedulable: ComputedRef<boolean> = computed(() => props.intervention.status === 'paid')
 
-  return { view, progress, action, pageRoute, customerName, subject, rows, isReschedulable }
+  const recreateRoute: ComputedRef<RouteLocationRaw | null> = computed(() =>
+    recreateInterventionRoute(props.intervention),
+  )
+
+  return {
+    view,
+    progress,
+    action,
+    pageRoute,
+    customerName,
+    subject,
+    rows,
+    isReschedulable,
+    recreateRoute,
+  }
 }

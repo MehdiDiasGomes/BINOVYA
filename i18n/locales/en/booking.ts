@@ -62,7 +62,7 @@ export default {
     terms: 'You must accept the terms to continue.',
     dayTaken: 'This day has just been booked by someone else. Please choose another one.',
     pendingPayment:
-      'A payment is already in progress for this email address. Complete it or try again in a few minutes.',
+      'A payment is already pending for this email address: complete it from the link you received by email, or try again later.',
     invalidAddress:
       'Your address could not be verified or its selection has expired. Choose it again from the list.',
     submit: 'The booking could not be saved. Try again in a moment.',
@@ -205,7 +205,8 @@ export default {
   },
   checkout: {
     productName: 'BINOVYA bin cleaning ({plan})',
-    invoiceDescription: '{product}, service on {date}',
+    lineDescription: '{date}, {address}',
+    invoiceDescription: '{product}, service on {date}, {address}',
   },
   summary: {
     title: 'Your booking',
@@ -231,5 +232,17 @@ export default {
     },
     home: 'Back to home',
     newBooking: 'New booking',
+  },
+  paymentLink: {
+    seo: {
+      title: 'Payment not completed - BINOVYA',
+    },
+    eyebrow: 'Payment link',
+    title: 'Payment not completed',
+    text: 'You have not been charged. Your intervention stays booked until the deadline given in the BINOVYA email holding your payment link.',
+    reopen:
+      'To pay it, open this link again from the email. Cannot find it anymore? Write to us and we will send it again.',
+    contact: 'I cannot find the email',
+    home: 'Back to home',
   },
 }

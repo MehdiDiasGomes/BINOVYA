@@ -19,7 +19,10 @@ export default defineEventHandler(async (event): Promise<ProIntervention> => {
   if (!intervention) {
     throw bookingNotFound()
   }
-  const days: ProDayOverview[] = await loadPaidDayOverviews(event, [intervention])
+  const [days, adminNote]: [ProDayOverview[], string | null] = await Promise.all([
+    loadPaidDayOverviews(event, [intervention]),
+    loadAdminNote(event, intervention.id),
+  ])
   const [flagged]: ProIntervention[] = flagInterventionsToMove([intervention], days)
-  return flagged ?? intervention
+  return { ...(flagged ?? intervention), adminNote }
 })

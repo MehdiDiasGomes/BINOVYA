@@ -14,10 +14,12 @@ import type { H3Event } from 'h3'
 
 import { serverSupabaseServiceRole } from '#supabase/server'
 import {
+  PRO_ADMIN_ONLY_STATUSES,
   PRO_INTERVENTIONS_PAGE_SIZE,
   PRO_LIST_STATUSES,
   PRO_PLANNING_STATUSES,
 } from '@/constants/pro'
+import { paymentLinkDueAt } from '@/utils/proCreate'
 
 type Tables = Database['public']['Tables']
 
@@ -40,12 +42,13 @@ type InterventionRow = Pick<
   | 'payment_method'
   | 'created_by_admin'
   | 'expires_at'
+  | 'price_source'
 >
 
 type CustomerRow = Pick<Tables['profiles']['Row'], 'id' | 'first_name' | 'last_name' | 'phone'>
 
 const INTERVENTION_COLUMNS =
-  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos, payment_method, created_by_admin, expires_at'
+  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos, payment_method, created_by_admin, expires_at, price_source'
 
 const CUSTOMER_COLUMNS = 'id, first_name, last_name, phone'
 
@@ -55,10 +58,10 @@ const unavailable = (): Error =>
 const isProStatus = (status: string): status is ProBookingStatus =>
   (PRO_LIST_STATUSES as string[]).includes(status)
 
-const PENDING_FILTER: string = 'status.neq.pending_payment,created_by_admin.is.true'
+const ADMIN_ONLY_FILTER: string = `status.not.in.(${PRO_ADMIN_ONLY_STATUSES.join(',')}),created_by_admin.is.true`
 
 const isShownInPro = (row: InterventionRow): boolean =>
-  row.status !== 'pending_payment' || row.created_by_admin
+  !(PRO_ADMIN_ONLY_STATUSES as string[]).includes(row.status) || row.created_by_admin
 
 const toCustomer = (row: CustomerRow): ProCustomer => ({
   firstName: row.first_name,
@@ -112,7 +115,12 @@ const toIntervention = (
         completedWithoutPhotos: row.completed_without_photos,
         paymentMethod: row.payment_method,
         createdByAdmin: row.created_by_admin,
-        paymentDueAt: row.status === 'pending_payment' ? row.expires_at : null,
+        paymentDueAt:
+          row.status === 'pending_payment' && row.expires_at
+            ? paymentLinkDueAt(row.expires_at)
+            : null,
+        priceSource: row.price_source,
+        adminNote: null,
       }
     : null
 
@@ -159,9 +167,10 @@ export const loadDayInterventions = async (
 }
 
 /**
- * Loads one intervention with its customer and photo flags: paid, completed, cancelled, or
- * awaiting the payment of a link sent by BINOVYA. A pending online booking, still in the
- * customer's Checkout, is not shown. Relies on RLS: the client must carry an admin session.
+ * Loads one intervention with its customer and photo flags: paid, completed, cancelled, awaiting
+ * the payment of a link sent by BINOVYA, or whose link expired. A pending or expired online
+ * booking, still in or abandoned in the customer's Checkout, is not shown. Relies on RLS: the
+ * client must carry an admin session. The internal note is not read here, see `loadAdminNote`.
  * @param client - Supabase client of the logged-in admin
  * @param bookingId - Identifier of the booking
  * @returns The intervention, or null when no such booking is shown in BINOVYA Pro
@@ -187,6 +196,26 @@ export const loadIntervention = async (
   return intervention ?? null
 }
 
+/**
+ * Reads the internal note of an intervention, a column the authenticated role cannot select, with
+ * the secret key. Never throws: a failure is logged and the note left out.
+ * @param event - Incoming request, after `requireAdmin`
+ * @param bookingId - Identifier of a booking BINOVYA Pro shows
+ * @returns The note, or null when there is none or it cannot be read
+ */
+export const loadAdminNote = async (event: H3Event, bookingId: string): Promise<string | null> => {
+  const { data, error } = await serverSupabaseServiceRole<Database>(event)
+    .from('bookings')
+    .select('admin_note')
+    .eq('id', bookingId)
+    .maybeSingle()
+  if (error) {
+    console.error(`Admin note unavailable for booking ${bookingId}`)
+    return null
+  }
+  return data?.admin_note ?? null
+}
+
 const RANGE_NOT_SATISFIABLE: string = 'PGRST103'
 
 type FilterableQuery<Query> = {
@@ -200,7 +229,7 @@ const withFilters = <Query extends FilterableQuery<Query>>(
   query: Query,
   filters: ProInterventionsFilters,
 ): Query => {
-  const byStatus: Query = query.in('status', filters.statuses).or(PENDING_FILTER)
+  const byStatus: Query = query.in('status', filters.statuses).or(ADMIN_ONLY_FILTER)
   const fromDate: Query = filters.from ? byStatus.gte('scheduled_date', filters.from) : byStatus
   return filters.to ? fromDate.lte('scheduled_date', filters.to) : fromDate
 }

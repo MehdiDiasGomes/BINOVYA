@@ -25,6 +25,7 @@ export const PRO_PROGRESS_VIEWS: Record<ProInterventionProgress, ProProgressView
   completedWithoutPhotos: { labelKey: 'pro.progress.completedWithoutPhotos', icon: 'CircleCheck' },
   cancelled: { labelKey: 'pro.progress.cancelled', icon: 'CircleX' },
   awaitingPayment: { labelKey: 'pro.progress.awaitingPayment', icon: 'Hourglass' },
+  linkExpired: { labelKey: 'pro.progress.linkExpired', icon: 'TimerOff' },
 }
 
 export const PRO_STEP_SEGMENT_CLASS: string =

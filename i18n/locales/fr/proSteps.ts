@@ -8,6 +8,7 @@ export default {
     completedWithoutPhotos: 'Terminée sans photos',
     cancelled: 'Annulée',
     awaitingPayment: 'Paiement en attente',
+    linkExpired: 'Lien expiré',
   },
   card: {
     actions: {
@@ -15,6 +16,7 @@ export default {
       continue: 'Continuer',
       view: 'Voir',
     },
+    recreate: 'Créer à nouveau',
     subject: 'l’intervention de {name}',
     subjectDated: 'l’intervention de {name} du {date}',
     moreName: 'Plus d’actions pour {subject}',
@@ -94,6 +96,10 @@ export default {
     awaitingPayment: {
       title: 'Paiement en attente',
       text: 'L’intervention du {date} sera confirmée dès que le client aura payé en ligne.',
+    },
+    expired: {
+      title: 'Lien de paiement expiré',
+      text: 'Le client n’a pas payé l’intervention du {date} avant l’échéance : la date a été libérée. Créez-la à nouveau pour lui envoyer un nouveau lien.',
     },
     cancelled: {
       title: 'Intervention annulée',

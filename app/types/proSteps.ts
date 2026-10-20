@@ -22,6 +22,7 @@ export type ProInterventionProgress =
   | 'completedWithoutPhotos'
   | 'cancelled'
   | 'awaitingPayment'
+  | 'linkExpired'
 
 export type ProInterventionMode =
   | 'steps'
@@ -29,6 +30,7 @@ export type ProInterventionMode =
   | 'upcoming'
   | 'cancelled'
   | 'awaitingPayment'
+  | 'expired'
 
 export type ProCardAction = 'start' | 'continue' | 'view'
 

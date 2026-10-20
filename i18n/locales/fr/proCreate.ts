@@ -20,7 +20,34 @@ export default {
     },
     bins: {
       legend: 'Bacs à nettoyer',
-      hint: 'Jusqu’à {max} bacs de chaque format. Au-delà, ou pour un petit et un grand bac ensemble, établissez un devis.',
+      hint: 'Jusqu’à {max} bacs de chaque format. Au-delà, ou pour un petit et un grand bac ensemble, choisissez « Sur devis ».',
+      quoteHint: 'Jusqu’à {max} bacs de chaque format, au prix du devis.',
+    },
+    priceSource: {
+      legend: 'Tarif',
+      grid: {
+        label: 'Grille tarifaire',
+        hint: 'Le prix dépend des bacs et de la formule.',
+      },
+      quote: {
+        label: 'Sur devis',
+        hint: 'Vous fixez le prix convenu avec le client.',
+      },
+    },
+    quoteAmount: {
+      label: 'Prix du devis par passage, en euros',
+      hint: 'Montant TTC, par exemple 120,50.',
+    },
+    note: {
+      label: 'Note interne (facultatif)',
+      hint: 'Visible seulement dans BINOVYA Pro, jamais par le client. {maxLength} caractères au plus.',
+    },
+    recreate: {
+      loading: 'Chargement de l’intervention à créer à nouveau…',
+      loaded:
+        'Formulaire rempli avec l’intervention de {name} dont le lien a expiré. Choisissez une nouvelle date.',
+      loadError:
+        'L’intervention à créer à nouveau n’a pas pu être chargée : le formulaire est vide.',
     },
     date: {
       label: 'Date de l’intervention',
@@ -29,7 +56,7 @@ export default {
       legend: 'Mode de paiement',
       payment_link: {
         label: 'Envoyer un lien de paiement',
-        hint: 'Le client reçoit un lien de paiement Stripe par mail. La date lui est réservée près de 24 heures, jusqu’au paiement.',
+        hint: 'Le client reçoit un lien de paiement Stripe par mail. La date lui est réservée environ {hours} heures, jusqu’au paiement.',
       },
       offline: {
         label: 'Paiement réglé hors site',
@@ -38,6 +65,7 @@ export default {
     },
     price: {
       label: 'Prix par passage',
+      quoteLabel: 'Prix sur devis, par passage',
       unknown: 'À définir',
     },
     cancel: 'Annuler',
@@ -54,6 +82,8 @@ export default {
       offline:
         'Intervention de {name} créée pour le {date}, payée hors site. Le client reçoit la confirmation par mail.',
     },
+    replayed:
+      'Intervention de {name} déjà créée pour le {date} : elle n’a pas été créée une seconde fois.',
     emailFailed: {
       payment_link:
         'Le mail n’a pas pu être envoyé : renvoyez le lien de paiement depuis cette page.',
@@ -62,7 +92,9 @@ export default {
     errors: {
       address: 'Recherchez l’adresse puis choisissez-la dans la liste.',
       bins: 'Ajoutez au moins un bac.',
-      quoteRequired: 'Cette combinaison de bacs n’a pas de tarif : établissez un devis.',
+      quoteRequired: 'Cette combinaison de bacs n’a pas de tarif : choisissez « Sur devis ».',
+      quoteAmount: 'Indiquez le prix du devis en euros, au plus {maxAmount}.',
+      note: 'La note interne ne peut pas dépasser {maxLength} caractères.',
       date: 'Choisissez la date de l’intervention.',
       outOfArea:
         'Cette adresse est hors de la zone d’intervention. Vous pouvez forcer la création.',
@@ -74,6 +106,8 @@ export default {
       invalidAddress:
         'Cette adresse a expiré. Recherchez-la de nouveau puis choisissez-la dans la liste.',
       invalidQuantities: 'Choisissez au plus {max} bacs de chaque format.',
+      invalidQuoteAmount:
+        'Le prix du devis n’est pas valide : indiquez un montant d’au plus {maxAmount}.',
       customerNotFound: 'Le compte du client n’a pas pu être retrouvé. Réessayez dans un instant.',
       customerPending:
         'Ce client a déjà un paiement en attente. Attendez qu’il paie ou que le délai expire avant d’envoyer un nouveau lien.',

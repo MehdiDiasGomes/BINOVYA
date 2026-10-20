@@ -152,6 +152,7 @@
                 :intervention="intervention"
                 @outdated="announceAndReload"
               />
+              <ProRecreateButton v-else :intervention="intervention" />
             </section>
           </template>
         </Motion>

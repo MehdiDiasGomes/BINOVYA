@@ -36,9 +36,14 @@ export const PRO_LIST_STATUSES: ProBookingStatus[] = [
   'paid',
   'completed',
   'cancelled',
+  'expired',
 ]
 
-export const PRO_PENDING_PAYMENT_TONE: MediaCardTone = 'neutral'
+export const PRO_ADMIN_ONLY_STATUSES: ProBookingStatus[] = ['pending_payment', 'expired']
+
+export const PRO_PENDING_PAYMENT_TONE: MediaCardTone = 'warning'
+
+export const PRO_EXPIRED_LINK_TONE: MediaCardTone = 'neutral'
 
 export const PRO_STATUS_FILTERS: [ProStatusFilter, ...ProStatusFilter[]] = [
   'all',
@@ -142,5 +147,6 @@ export const PRO_ROW_SHELL_CLASS: string =
 export const PRO_ROW_TONE_CLASSES: Record<MediaCardTone, string> = {
   success: 'bg-emerald-300/15 text-emerald-300',
   info: 'bg-cyan-300/15 text-cyan-300',
+  warning: 'bg-cyan-300/15 text-cyan-300',
   neutral: 'bg-slate-300/15 text-slate-300',
 }
