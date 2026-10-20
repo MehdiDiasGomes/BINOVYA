@@ -23,6 +23,7 @@
       <p :id="`${PRO_CREATE_FIELD_IDS.bins}-hint`" :class="FIELD_HINT_CLASS">
         {{ binsHint }}
       </p>
+      <p class="sr-only" role="status">{{ binsStatus }}</p>
       <ul role="list" class="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <li
           v-for="service in BOOKING_SERVICES"
@@ -39,15 +40,20 @@
               class="size-12 shrink-0 object-contain sm:size-14"
             />
             <div class="min-w-0">
-              <p class="break-words text-sm font-black text-ink">{{ $t(service.titleKey) }}</p>
+              <p :id="binLabelId(service.slug)" class="break-words text-sm font-black text-ink">
+                {{ $t(service.titleKey) }}
+              </p>
               <p class="break-words text-[13px] text-ink/70">{{ $t(service.capacityKey) }}</p>
             </div>
           </div>
-          <BookingQuantityStepper
-            :model-value="countOf(service.slug)"
-            :service-name="$t(service.titleKey)"
+          <ProBinCountField
+            :id="binFieldId(service.slug)"
+            :labelled-by="binLabelId(service.slug)"
             :max="maxBins"
+            :service-name="$t(service.titleKey)"
+            :model-value="countOf(service.slug)"
             @update:model-value="setCount(service.slug, $event)"
+            @clamped="announceTypedClamp($t(service.titleKey), $event)"
           />
         </li>
       </ul>
@@ -120,6 +126,8 @@ const maxBins: ComputedRef<number> = computed(() =>
 
 const quoteCounts: Ref<ProBinCounts | null> = ref(null)
 
+const { message: binsStatus, announce, clear: clearBinsStatus } = useLiveAnnouncement()
+
 const clampCounts = (): void => {
   const { smallBinCount, largeBinCount } = draft.value
   if (smallBinCount <= maxBins.value && largeBinCount <= maxBins.value) {
@@ -128,6 +136,7 @@ const clampCounts = (): void => {
   quoteCounts.value = { smallBinCount, largeBinCount }
   draft.value.smallBinCount = Math.min(smallBinCount, maxBins.value)
   draft.value.largeBinCount = Math.min(largeBinCount, maxBins.value)
+  void announce(t('pro.create.bins.clampedHint', { max: maxBins.value }))
 }
 
 const restoreQuoteCounts = (): void => {
@@ -135,6 +144,7 @@ const restoreQuoteCounts = (): void => {
     draft.value.smallBinCount = quoteCounts.value.smallBinCount
     draft.value.largeBinCount = quoteCounts.value.largeBinCount
     quoteCounts.value = null
+    clearBinsStatus()
   }
 }
 
@@ -182,8 +192,17 @@ const binsDescribedBy: ComputedRef<string | undefined> = computed(() =>
 const countOf = (slug: ServiceSlug): number =>
   slug === 'small-bin' ? draft.value.smallBinCount : draft.value.largeBinCount
 
+const binFieldId = (slug: ServiceSlug): string => `${PRO_CREATE_FIELD_IDS.bins}-${slug}`
+
+const binLabelId = (slug: ServiceSlug): string => `${binFieldId(slug)}-label`
+
+const announceTypedClamp = async (service: string, max: number): Promise<void> => {
+  await announce(t('pro.create.bins.typedClamped', { service, max }))
+}
+
 const setCount = (slug: ServiceSlug, count: number): void => {
   quoteCounts.value = null
+  clearBinsStatus()
   if (slug === 'small-bin') {
     draft.value.smallBinCount = count
   } else {

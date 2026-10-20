@@ -14,6 +14,8 @@ const CHECKOUT_LIFETIME_SECONDS = 31 * 60
 
 const IDEMPOTENCY_KEY_IN_USE: string = 'idempotency_key_in_use'
 
+const IDEMPOTENCY_ERROR_TYPE: string = 'StripeIdempotencyError'
+
 const CHECKOUT_IN_PROGRESS_STATUS: number = 409
 
 type CheckoutMessages = Pick<typeof frBooking, 'plans' | 'checkout'>
@@ -90,8 +92,9 @@ export const bookingPageUrl = (locale: BookingLocale, outcome: CheckoutOutcome):
  * Opens a Stripe Checkout session for a booking that holds its slot, billed to the Stripe customer
  * of its profile, with an invoice created once the payment succeeds. The intervention address is
  * in the line and invoice descriptions, so an invoice names the property it pays for. A customer
- * without a billing address types one, saved on the customer before its invoice; saved cards are
- * neither offered for saving nor shown, since anyone may open a payment for a profile. The session
+ * without a billing address types one, saved on the customer before its invoice. Cards are not
+ * offered for saving, since anyone may open a payment for a profile; only payment methods saved
+ * with `always` redisplay consent, which BINOVYA never creates, could be shown. The session
  * expires before the hold, so a payment can never complete on a slot that was already released:
  * after 31 minutes by default, or at `expiresAt` (Unix seconds, 30 minutes to 24 hours after
  * creation, see Stripe) for a longer hold. The customer returns to the booking page, or to
@@ -153,8 +156,8 @@ const openCheckout = async (
 const isKeyInUse = (error: unknown): boolean =>
   typeof error === 'object' &&
   error !== null &&
-  'code' in error &&
-  error.code === IDEMPOTENCY_KEY_IN_USE
+  (('code' in error && error.code === IDEMPOTENCY_KEY_IN_USE) ||
+    ('type' in error && error.type === IDEMPOTENCY_ERROR_TYPE))
 
 /**
  * Tells whether `attachBookingCheckout` refused because another request is still opening the
@@ -188,8 +191,9 @@ export const expireUnpaidBooking = async (
  * Opens the Checkout session of a booking that holds its slot, billed to the Stripe customer of
  * its profile (created on the first payment, see `ensureStripeCustomer`), and stores it on the
  * booking. When the customer or the session cannot be created, or the session cannot be stored,
- * the session is expired and the slot released, except when a concurrent request is still opening
- * the session of the same booking (Stripe `idempotency_key_in_use`): that one finishes the job.
+ * the session is expired and the slot released, except when another request already opened, or is
+ * still opening, the session of the same booking (Stripe `idempotency_key_in_use`, or an
+ * idempotency error when a replay sends different parameters): that one finishes the job.
  * @param client - Supabase client using the secret key
  * @param checkout - Booking, profile, amount, plan, date, address and optional expiry and return
  * pages

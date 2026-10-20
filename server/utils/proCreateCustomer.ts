@@ -1,4 +1,5 @@
 import { findOrCreateCustomer } from './bookingCustomer'
+import { normalizeEmail } from './emailAddress'
 import { codedError } from './proErrors'
 
 import type { Database } from '@/types/database.types'
@@ -65,7 +66,7 @@ export const resolveAdminBookingCustomer = async (
     return findOrCreateCustomer(client, request.contact)
   }
   const email: string | null = await findProfileEmail(client, existingId)
-  if (email !== request.contact.email.trim().toLowerCase()) {
+  if (email !== normalizeEmail(request.contact.email)) {
     throw codedError(OTHER_CUSTOMER_REPLAY)
   }
   return existingId

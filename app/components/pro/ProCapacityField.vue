@@ -8,7 +8,7 @@
         :min="props.min"
         :max="props.max"
         :step="1"
-        :format-options="CAPACITY_FORMAT"
+        :format-options="WHOLE_NUMBER_FORMAT"
         :locale="locale"
         class="contents"
         disable-wheel-change
@@ -34,7 +34,7 @@
             :aria-label="
               $t('pro.availability.capacityField.decrease', { context: props.contextLabel })
             "
-            :class="CAPACITY_STEP_BUTTON_CLASS"
+            :class="NUMBER_FIELD_STEP_BUTTON_CLASS"
           />
           <NumberFieldInput
             :aria-labelledby="labelId"
@@ -50,7 +50,7 @@
             :aria-label="
               $t('pro.availability.capacityField.increase', { context: props.contextLabel })
             "
-            :class="CAPACITY_STEP_BUTTON_CLASS"
+            :class="NUMBER_FIELD_STEP_BUTTON_CLASS"
           />
         </NumberFieldContent>
       </NumberField>
@@ -106,11 +106,18 @@ import {
   NumberFieldIncrement,
   NumberFieldInput,
 } from '@/components/ui/number-field'
-import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, FIELD_INPUT_CLASS } from '@/constants/form'
+import {
+  DIGITS_PATTERN,
+  FIELD_ERROR_CLASS,
+  FIELD_HINT_CLASS,
+  FIELD_INPUT_CLASS,
+  NUMBER_FIELD_STEP_BUTTON_CLASS,
+  WHOLE_NUMBER_FORMAT,
+} from '@/constants/form'
 import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { PRO_DAY_CAPACITY_MAX } from '@/constants/pro'
 import { cn } from '@/lib/utils'
-import { describedByIds } from '@/utils/field'
+import { describedByIds, replaceInputText } from '@/utils/field'
 import { focusFirstElement } from '@/utils/focus'
 
 const props = withDefaults(
@@ -142,11 +149,6 @@ const emit = defineEmits<{
   'update:modelValue': [value: number | null]
 }>()
 
-const CAPACITY_FORMAT: Intl.NumberFormatOptions = { maximumFractionDigits: 0, useGrouping: false }
-
-const CAPACITY_STEP_BUTTON_CLASS: string =
-  'mx-0.5 flex size-11 cursor-pointer items-center justify-center rounded-md p-0 text-ink transition-colors duration-press ease-brand hover:bg-primary/10 hover:text-primary active:bg-primary/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-ink/40 disabled:opacity-100 motion-reduce:transition-none'
-
 const FALLBACK_KEY_STEPS: Record<string, number> = {
   ArrowUp: 1,
   ArrowDown: -1,
@@ -157,8 +159,6 @@ const FALLBACK_KEY_STEPS: Record<string, number> = {
 const STEP_BUTTON_DELTAS: Record<string, number> = { increment: 1, decrement: -1 }
 
 const STEP_BUTTON_SELECTOR: string = '[data-slot="increment"], [data-slot="decrement"]'
-
-const DIGITS_PATTERN: RegExp = /^\d+$/
 
 const { t, locale } = useI18n()
 
@@ -187,7 +187,7 @@ const describedBy: ComputedRef<string | undefined> = computed(() =>
 )
 
 const capacityFormatter: ComputedRef<Intl.NumberFormat> = computed(
-  () => new Intl.NumberFormat(locale.value, CAPACITY_FORMAT),
+  () => new Intl.NumberFormat(locale.value, WHOLE_NUMBER_FORMAT),
 )
 
 const clampCapacity = (value: number): number => Math.min(props.max, Math.max(props.min, value))
@@ -221,9 +221,7 @@ const stepFromFallback = (event: Event, delta: number | undefined): void => {
   event.preventDefault()
   event.stopPropagation()
   input.focus()
-  const next: number = clampCapacity(props.fallbackValue + delta)
-  input.value = String(next)
-  input.dispatchEvent(new Event('input', { bubbles: true }))
+  replaceInputText(input, String(clampCapacity(props.fallbackValue + delta)))
 }
 
 /**
@@ -276,10 +274,8 @@ const update = (value: number | undefined): void => {
     return
   }
   const input: HTMLInputElement | null = fieldInput()
-  const text: string = next === null ? '' : capacityFormatter.value.format(next)
-  if (input && input.value !== text) {
-    input.value = text
-    input.dispatchEvent(new Event('input', { bubbles: true }))
+  if (input) {
+    replaceInputText(input, next === null ? '' : capacityFormatter.value.format(next))
   }
 }
 

@@ -1,3 +1,5 @@
+import { normalizeEmail } from './emailAddress'
+
 import type { LoginLink, LoginLinkRpc, LoginLinkTarget } from '@/types/account'
 import type { BookingLocale } from '@/types/booking'
 import type { Database } from '@/types/database.types'
@@ -19,8 +21,6 @@ type MagicLinkRequest = {
 }
 
 const CONFIRM_PATH = '/account/confirm'
-
-const normalizeEmail = (email: string | undefined): string => (email ?? '').trim().toLowerCase()
 
 const loadVerifiedProfile = async (
   client: SupabaseClient<Database>,

@@ -243,6 +243,19 @@ const sendNewPaymentLink = async (
   return { mode: 'payment_link', scheduledDate: target.scheduledDate, paymentDueAt, isEmailSent }
 }
 
+/**
+ * Returns the billing address of a new booking as `admin_create_booking` stores it (trimmed), so a
+ * replay opening its Checkout session from the booking row sends Stripe the same parameters.
+ * @param address - Address of the request
+ * @returns Trimmed label, city and postcode with the country code
+ */
+const storedAddress = (address: BillingAddress): BillingAddress => ({
+  label: address.label.trim(),
+  city: address.city.trim(),
+  postcode: address.postcode.trim(),
+  countryCode: address.countryCode,
+})
+
 const finishNewBooking = async (
   client: SupabaseClient<Database>,
   command: AdminBookingCommand,
@@ -263,7 +276,7 @@ const finishNewBooking = async (
     holdExpiresAt: created.holdExpiresAt,
     plan: request.plan,
     scheduledDate: request.date,
-    address: request.address,
+    address: storedAddress(request.address),
   })
 }
 

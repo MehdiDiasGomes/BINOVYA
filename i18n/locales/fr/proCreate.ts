@@ -24,6 +24,7 @@ export default {
       quoteHint: 'Jusqu’à {max} bacs de chaque format, au prix du devis.',
       clampedHint:
         'Les quantités saisies sur devis ont été ramenées à {max} par format. Revenez sur « Sur devis » pour les retrouver.',
+      typedClamped: '{service} : quantité ramenée à {max}, le maximum par format.',
     },
     priceSource: {
       legend: 'Tarif',

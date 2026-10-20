@@ -24,6 +24,7 @@ export default {
       quoteHint: 'Up to {max} bins of each size, at the quote price.',
       clampedHint:
         'The quantities entered for the quote were reduced to {max} per size. Switch back to « Quote » to get them back.',
+      typedClamped: '{service}: quantity set to {max}, the maximum per size.',
     },
     priceSource: {
       legend: 'Pricing',
