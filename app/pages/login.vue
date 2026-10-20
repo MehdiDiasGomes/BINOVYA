@@ -102,7 +102,7 @@
         />
         <HoneypotField id="login-website" v-model="website" />
 
-        <p v-if="hasFailed" role="alert" :class="SUBMIT_ERROR_CLASS">
+        <p v-if="hasFailed" role="alert" :class="ERROR_MESSAGE_CLASS">
           <Icon name="CircleAlert" :size="16" aria-hidden="true" />
           {{ $t('account.login.errors.submit') }}
         </p>
@@ -116,7 +116,7 @@
 
 <script setup lang="ts">
 import { LOGIN_LINK_LIFETIME_HOURS, SESSION_EXPIRED_QUERY } from '@/constants/account'
-import { SUBMIT_ERROR_CLASS } from '@/constants/feedback'
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { HERO_ENTER_CLASS, POP_SPRING, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 definePageMeta({
@@ -164,5 +164,6 @@ useSeoMeta({
   ogTitle: () => t('account.login.seo.title'),
   ogDescription: () => t('account.login.seo.description'),
   ogType: 'website',
+  robots: 'noindex, nofollow',
 })
 </script>
