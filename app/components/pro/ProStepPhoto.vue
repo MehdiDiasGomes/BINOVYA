@@ -124,7 +124,7 @@ const hasSwapped: Ref<boolean> = ref(false)
 const hasPhoto: ComputedRef<boolean> = computed(() => props.upload.photos.value[props.kind])
 
 const swapInitial: ComputedRef<{ opacity: number; y: number } | false> = computed(() =>
-  hasSwapped.value ? { opacity: 0, y: FEEDBACK_OFFSET } : false,
+  hasSwapped.value ? { opacity: 0, y: -FEEDBACK_OFFSET } : false,
 )
 
 const binsLabel: ComputedRef<string> = computed(() => bookingServicesLabel(props.intervention, t))

@@ -12,7 +12,9 @@
           {{ isSubmitting ? $t('pro.complete.submittingStatus') : '' }}
         </p>
         <AlertDialogTitle
-          :class="cn('font-heading text-xl font-black leading-tight', isForced && 'text-red-700')"
+          :class="
+            cn('font-heading text-xl font-black leading-tight', isForced && ERROR_TEXT_TONE_CLASS)
+          "
         >
           {{ isForced ? $t('pro.complete.forceTitle') : $t('pro.complete.title') }}
         </AlertDialogTitle>
@@ -24,7 +26,12 @@
         <p
           v-if="refusal"
           role="alert"
-          class="mt-4 flex items-start gap-2 break-words rounded-xl border border-destructive/50 bg-destructive/5 p-4 text-sm font-bold text-red-700"
+          :class="
+            cn(
+              INLINE_ERROR_CLASS,
+              'mt-4 rounded-xl border border-destructive/50 bg-destructive/5 p-4',
+            )
+          "
         >
           <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
           {{ refusal }}
@@ -66,6 +73,7 @@ import type { FocusTarget } from '@/types/button'
 import type { ProIntervention, ProInterventionPhotos, ProPhotoKind } from '@/types/pro'
 import type { ProCompletedEvent, ProCompleteRequest, ProCompleteResponse } from '@/types/proPhotos'
 
+import { ERROR_TEXT_TONE_CLASS, INLINE_ERROR_CLASS } from '@/constants/feedback'
 import {
   PRO_COMPLETE_TIMEOUT_MS,
   PRO_DIALOG_CONTENT_CLASS,

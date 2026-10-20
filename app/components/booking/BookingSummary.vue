@@ -98,7 +98,7 @@
           <Motion
             :key="totalLabel"
             as="span"
-            :initial="{ opacity: 0.4, y: -STEP_OFFSET / 4 }"
+            :initial="{ opacity: 0.4, y: -FEEDBACK_OFFSET / 2 }"
             :animate="{ opacity: 1, y: 0 }"
             :transition="STEP_TRANSITION"
             class="inline-block"
@@ -116,7 +116,7 @@
 import type { BookingService } from '@/types/booking'
 
 import { BOOKING_SERVICES } from '@/constants/booking'
-import { FEEDBACK_OFFSET, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 const { t, locale } = useI18n()
 const { draft } = useBookingDraft()

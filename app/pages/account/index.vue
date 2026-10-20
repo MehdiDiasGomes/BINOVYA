@@ -58,7 +58,7 @@
         </ul>
 
         <div v-else-if="error || !overview" role="alert" class="mt-4">
-          <p :class="LOAD_ERROR_CLASS">
+          <p :class="ERROR_MESSAGE_CLASS">
             <Icon name="CircleAlert" :size="16" aria-hidden="true" />
             {{ $t('account.dashboard.loadError') }}
           </p>
@@ -87,7 +87,7 @@
           </AppButton>
         </Motion>
 
-        <ul v-else class="mt-4 grid gap-6 sm:grid-cols-2">
+        <ul v-else role="list" class="mt-4 grid gap-6 sm:grid-cols-2">
           <Reveal
             v-for="(booking, index) in overview.bookings"
             :key="booking.id"
@@ -115,7 +115,7 @@ import {
   ACCOUNT_SKELETON_CARD_COUNT,
   ACCOUNT_SKELETON_MOBILE_CARD_COUNT,
 } from '@/constants/account'
-import { LOAD_ERROR_CLASS } from '@/constants/feedback'
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import {
   CONTENT_ENTER_OFFSET,
   CONTENT_ENTER_TRANSITION,

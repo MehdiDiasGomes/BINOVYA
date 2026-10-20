@@ -66,7 +66,7 @@
         :animate="{ opacity: 1, y: 0 }"
         :exit="{ opacity: 0 }"
         :transition="STEP_TRANSITION"
-        class="mt-3 flex items-start gap-2 break-words text-sm font-bold text-red-700"
+        :class="cn(INLINE_ERROR_CLASS, 'mt-3')"
       >
         <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
         {{ errorMessage }}
@@ -87,6 +87,7 @@
 import type { ProPhotoKind } from '@/types/pro'
 import type { ProPhotoUploadState } from '@/types/proPhotoUpload'
 
+import { INLINE_ERROR_CLASS } from '@/constants/feedback'
 import { CONTENT_ENTER_TRANSITION, FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
 import { describedByIds } from '@/utils/field'

@@ -5,7 +5,10 @@
       <p :id="HINT_ID" class="mb-4 text-sm text-ink/80">
         {{ $t('pro.availability.rules.hint', { max: PRO_DAY_CAPACITY_MAX }) }}
       </p>
-      <ul class="grid grid-cols-2 items-start gap-x-3 gap-y-4 sm:grid-cols-4 sm:gap-x-4">
+      <ul
+        role="list"
+        class="grid grid-cols-2 items-start gap-x-3 gap-y-4 sm:grid-cols-4 sm:gap-x-4"
+      >
         <li v-for="weekday in WEEKDAYS_MONDAY_FIRST" :key="weekday" class="min-w-0">
           <ProCapacityField
             :id="fieldId(weekday)"

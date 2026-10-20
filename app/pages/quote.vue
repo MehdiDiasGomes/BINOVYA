@@ -125,7 +125,7 @@
               <Separator />
 
               <div class="space-y-4">
-                <p v-if="hasFailed" role="alert" :class="SUBMIT_ERROR_CLASS">
+                <p v-if="hasFailed" role="alert" :class="ERROR_MESSAGE_CLASS">
                   <Icon name="CircleAlert" :size="16" aria-hidden="true" />
                   {{ $t('quote.errors.submit') }}
                 </p>
@@ -159,7 +159,7 @@
 import type { BookingContact, ContactErrors } from '@/types/booking'
 import type { QuoteField } from '@/types/quote'
 
-import { SUBMIT_ERROR_CLASS } from '@/constants/feedback'
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { FIELD_TEXTAREA_CLASS } from '@/constants/form'
 import { FEEDBACK_OFFSET, HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { QUOTE_ADDRESS_INPUT_ID, QUOTE_COMMENT_MAX_LENGTH } from '@/constants/quote'

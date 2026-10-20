@@ -19,7 +19,12 @@
           tabindex="-1"
           class="flex items-center gap-2 text-2xl font-black text-ink outline-none"
         >
-          <Icon name="CircleAlert" :size="26" aria-hidden="true" class="shrink-0 text-red-700" />
+          <Icon
+            name="CircleAlert"
+            :size="26"
+            aria-hidden="true"
+            :class="cn('shrink-0', ERROR_TEXT_TONE_CLASS)"
+          />
           {{ $t('account.confirm.failedTitle') }}
         </h1>
         <p class="mt-3 text-[15px] leading-relaxed text-ink/80">
@@ -55,7 +60,9 @@
 
 <script setup lang="ts">
 import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION } from '@/constants/motion'
+import { cn } from '@/lib/utils'
 
 definePageMeta({
   layout: 'default',

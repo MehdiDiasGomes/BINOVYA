@@ -154,7 +154,7 @@
       </Motion>
 
       <div v-else role="alert">
-        <p :class="LOAD_ERROR_CLASS">
+        <p :class="ERROR_MESSAGE_CLASS">
           <Icon name="CircleAlert" :size="16" aria-hidden="true" />
           {{ $t('pro.steps.loadError') }}
         </p>
@@ -186,7 +186,7 @@ import type { ShallowRef } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
 import { BACK_LINK_CLASS } from '@/constants/buttons'
-import { LOAD_ERROR_CLASS } from '@/constants/feedback'
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import {
   CONTENT_ENTER_OFFSET,
   CONTENT_ENTER_TRANSITION,

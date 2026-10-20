@@ -54,7 +54,12 @@
         :animate="{ opacity: 1, y: 0 }"
         :exit="{ opacity: 0 }"
         :transition="STEP_TRANSITION"
-        class="rounded-2xl border border-destructive/50 bg-destructive/5 p-4 text-sm text-red-700"
+        :class="
+          cn(
+            'rounded-2xl border border-destructive/50 bg-destructive/5 p-4 text-sm',
+            ERROR_TEXT_TONE_CLASS,
+          )
+        "
       >
         <p class="flex items-start gap-2 break-words font-bold">
           <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
@@ -79,8 +84,10 @@
 import type { ProIntervention, ProPhotoKind } from '@/types/pro'
 import type { ProPhotoUploadState } from '@/types/proPhotoUpload'
 
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import { FEEDBACK_OFFSET, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { PRO_STEP_PHOTO_KINDS } from '@/constants/proSteps'
+import { cn } from '@/lib/utils'
 import { initialInterventionStep, photoStepNumber } from '@/utils/proSteps'
 
 const props = withDefaults(

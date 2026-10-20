@@ -49,7 +49,7 @@
     </ul>
 
     <div v-else-if="props.hasError" role="alert">
-      <p :class="LOAD_ERROR_CLASS">
+      <p :class="ERROR_MESSAGE_CLASS">
         <Icon name="CircleAlert" :size="16" aria-hidden="true" />
         {{ $t('pro.loadError') }}
       </p>
@@ -75,7 +75,7 @@
       {{ props.emptyText }}
     </Motion>
 
-    <ul v-else class="grid grid-cols-1 gap-3 sm:gap-6 md:grid-cols-2">
+    <ul v-else role="list" class="grid grid-cols-1 gap-3 sm:gap-6 md:grid-cols-2">
       <Reveal
         v-for="(intervention, index) in props.interventions"
         :key="intervention.id"
@@ -116,7 +116,7 @@ import {
   ACCOUNT_SKELETON_CARD_COUNT,
   ACCOUNT_SKELETON_MOBILE_CARD_COUNT,
 } from '@/constants/account'
-import { LOAD_ERROR_CLASS } from '@/constants/feedback'
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { MEDIA_CARD_TONES } from '@/constants/mediaCard'
 import {
   CONTENT_ENTER_OFFSET,

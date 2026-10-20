@@ -66,11 +66,7 @@
       <p class="mt-1.5 text-sm leading-relaxed text-ink/80">
         {{ $t('account.deletion.confirmText') }}
       </p>
-      <p
-        v-if="hasFailed"
-        role="alert"
-        class="mt-3 flex items-center gap-2 text-sm font-bold text-red-700"
-      >
+      <p v-if="hasFailed" role="alert" :class="cn(ERROR_MESSAGE_CLASS, 'mt-3')">
         <Icon name="CircleAlert" :size="16" aria-hidden="true" />
         {{ $t('account.deletion.error') }}
       </p>
@@ -111,6 +107,7 @@ import { FetchError } from 'ofetch'
 
 import type { DeletionRequestResponse, DeletionStep } from '@/types/account'
 
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
 import { formatFullDate, toIsoDate } from '@/utils/date'

@@ -8,12 +8,7 @@
       :animate="{ opacity: 1, y: 0 }"
       :exit="{ opacity: 0 }"
       :transition="STEP_TRANSITION"
-      :class="
-        cn(
-          'flex items-start gap-2 break-words text-sm font-bold',
-          props.isError ? ERROR_TEXT_TONE_CLASS : 'text-ink',
-        )
-      "
+      :class="props.isError ? INLINE_ERROR_CLASS : cn(INLINE_FEEDBACK_CLASS, 'text-ink')"
     >
       <Icon
         :name="props.isError ? 'CircleAlert' : 'CircleCheck'"
@@ -27,7 +22,7 @@
 </template>
 
 <script setup lang="ts">
-import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
+import { INLINE_ERROR_CLASS, INLINE_FEEDBACK_CLASS } from '@/constants/feedback'
 import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
 

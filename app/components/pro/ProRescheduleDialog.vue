@@ -53,11 +53,7 @@
             v-if="refusal"
             class="space-y-3 rounded-xl border border-destructive/50 bg-destructive/5 p-4"
           >
-            <p
-              :id="REFUSAL_ID"
-              role="alert"
-              class="flex items-start gap-2 break-words text-sm font-bold text-red-700"
-            >
+            <p :id="REFUSAL_ID" role="alert" :class="INLINE_ERROR_CLASS">
               <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
               {{ refusal }}
             </p>
@@ -115,6 +111,7 @@ import type { FocusTarget } from '@/types/button'
 import type { ProIntervention } from '@/types/pro'
 import type { ProRescheduledEvent, ProRescheduleResponse } from '@/types/proAvailability'
 
+import { INLINE_ERROR_CLASS } from '@/constants/feedback'
 import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import {
   PRO_AVAILABILITY_HORIZON_DAYS,

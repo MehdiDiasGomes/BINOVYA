@@ -113,7 +113,7 @@ import {
   CALENDAR_HEADING_CLASS,
   CALENDAR_NAV_BUTTON_CLASS,
   CALENDAR_RECOMMENDED_CLASS,
-} from '@/constants/form'
+} from '@/constants/calendar'
 import { STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
 import { calendarDayAttributes, mondayWeekStart } from '@/utils/calendar'

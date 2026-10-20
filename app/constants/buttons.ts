@@ -19,10 +19,10 @@ const BUTTON_VARIANT_CLASSES: Record<ButtonVariant, string> = {
   onDarkWarning: `${BUTTON_LIFT_CLASS} rounded-full border-transparent bg-amber-300 font-heading text-base text-navy-950 hover:bg-amber-200 focus-visible:ring-turquoise focus-visible:ring-offset-navy-900`,
   onDarkGhost:
     'rounded-full border-white/40 bg-white/10 text-sm text-white hover:border-white/70 hover:bg-white/20 focus-visible:ring-turquoise focus-visible:ring-offset-navy-900',
-  ghost:
-    'rounded-lg border-transparent bg-transparent text-ink/70 hover:bg-paper-2 hover:text-ink focus-visible:ring-primary aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink/70',
   onDarkOutline:
     'rounded-lg border-white/30 bg-transparent text-sm text-white hover:border-turquoise hover:text-turquoise focus-visible:ring-white/60 focus-visible:ring-offset-0 active:bg-white/10',
+  ghost:
+    'rounded-lg border-transparent bg-transparent text-sm text-ink/70 hover:bg-paper-2 hover:text-ink focus-visible:ring-primary aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink/70',
 }
 
 const BUTTON_SIZE_CLASSES: Record<ButtonSize, string> = {

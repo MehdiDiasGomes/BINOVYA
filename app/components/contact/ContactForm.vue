@@ -60,7 +60,7 @@
           required
           :aria-invalid="visibleError('subject') ? 'true' : undefined"
           :aria-describedby="visibleError('subject') ? 'contact-subject-error' : undefined"
-          class="h-12 w-full cursor-pointer appearance-none rounded-lg border border-ink/50 bg-white pl-4 pr-11 text-[15px] text-ink outline-none transition-shadow focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60 aria-invalid:border-red-700"
+          :class="cn(FIELD_INPUT_CLASS, 'cursor-pointer appearance-none pr-11')"
         >
           <option value="" disabled>{{ $t('contact.form.subjectPlaceholder') }}</option>
           <option v-for="subject in CONTACT_SUBJECTS" :key="subject" :value="subject">
@@ -91,7 +91,7 @@
         :placeholder="$t('contact.form.messagePlaceholder')"
         :aria-invalid="visibleError('message') ? 'true' : undefined"
         :aria-describedby="visibleError('message') ? 'contact-message-error' : undefined"
-        class="block w-full resize-none rounded-lg border border-ink/50 bg-white px-4 py-3 text-[15px] text-ink outline-none transition-shadow placeholder:text-ink/60 focus-visible:border-primary focus-visible:ring-[3px] focus-visible:ring-primary/60 aria-invalid:border-red-700"
+        :class="FIELD_TEXTAREA_CLASS"
       />
       <span v-if="visibleError('message')" id="contact-message-error" :class="FIELD_ERROR_CLASS">
         <Icon name="CircleAlert" :size="14" aria-hidden="true" />
@@ -101,24 +101,19 @@
 
     <HoneypotField id="contact-website" v-model="form.website" />
 
-    <p v-if="props.hasFailed" role="alert" :class="SUBMIT_ERROR_CLASS">
+    <p v-if="props.hasFailed" role="alert" :class="ERROR_MESSAGE_CLASS">
       <Icon name="CircleAlert" :size="16" aria-hidden="true" />
       {{ $t('contact.errors.submit') }}
     </p>
-    <button
+    <AppButton
       type="submit"
-      :aria-disabled="props.isSubmitting"
+      icon="Send"
+      :is-loading="props.isSubmitting"
       :aria-busy="props.isSubmitting"
-      class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-[translate,scale,background-color,box-shadow] duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
+      class="w-full shadow-md shadow-primary/30 sm:w-auto"
     >
-      <Icon
-        :name="props.isSubmitting ? 'Loader2' : 'Send'"
-        :size="16"
-        aria-hidden="true"
-        :class="props.isSubmitting && 'animate-spin'"
-      />
       {{ props.isSubmitting ? $t('contact.form.submitting') : $t('contact.form.submit') }}
-    </button>
+    </AppButton>
   </form>
 </template>
 
@@ -131,8 +126,9 @@ import {
   CONTACT_MESSAGE_MIN_LENGTH,
   CONTACT_SUBJECTS,
 } from '@/constants/contact'
-import { SUBMIT_ERROR_CLASS } from '@/constants/feedback'
-import { FIELD_ERROR_CLASS } from '@/constants/form'
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
+import { FIELD_ERROR_CLASS, FIELD_INPUT_CLASS, FIELD_TEXTAREA_CLASS } from '@/constants/form'
+import { cn } from '@/lib/utils'
 import { focusFirstElement } from '@/utils/focus'
 
 const props = withDefaults(
