@@ -13,6 +13,7 @@ type BookingStatus = 'pending_payment' | 'paid' | 'completed' | 'cancelled' | 'e
 type QuoteStatus = 'new' | 'answered' | 'closed'
 type QuoteEquipment = 'bins' | 'pav' | 'urban_furniture' | 'signage'
 type PaymentMethod = 'stripe' | 'offline'
+type PriceSource = 'grid' | 'quote'
 
 type Table<Row, Required extends keyof Row = never> = {
   Row: Row
@@ -27,6 +28,7 @@ type ProfileRow = {
   first_name: string
   last_name: string
   phone: string
+  stripe_customer_id: string | null
   login_link_sent_at: string | null
   deletion_requested_at: string | null
   login_link_count: number
@@ -80,6 +82,9 @@ type BookingRow = {
   reschedule_window_start: string | null
   payment_method: PaymentMethod
   created_by_admin: boolean
+  admin_request_id: string | null
+  price_source: PriceSource
+  admin_note: string | null
   checkout_link_resent_at: string | null
   checkout_link_resend_count: number
   checkout_link_resend_window_start: string | null

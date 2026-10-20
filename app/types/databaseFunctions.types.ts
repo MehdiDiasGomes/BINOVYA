@@ -19,6 +19,7 @@ type AdminCreateRefusal =
   | RescheduleOverridable
   | 'invalid_input'
   | 'invalid_quantities'
+  | 'invalid_quote_amount'
   | 'quote_required'
   | 'customer_not_found'
   | 'past_date'
@@ -72,6 +73,7 @@ export type DatabaseFunctions = {
   admin_create_booking: {
     Args: {
       p_customer_id: string
+      p_request_id: string
       p_mode: AdminBookingMode
       p_scheduled_date: string
       p_address: string
@@ -87,6 +89,8 @@ export type DatabaseFunctions = {
       p_country_code?: CountryCode
       p_force?: boolean
       p_hold_minutes?: number
+      p_quote_amount_cents?: number | null
+      p_note?: string | null
     }
     Returns: {
       ok: boolean
@@ -95,6 +99,7 @@ export type DatabaseFunctions = {
       total_cents: number | null
       hold_expires_at: string | null
       overridden_reasons: RescheduleOverridable[] | null
+      is_replay: boolean
     }[]
   }
   admin_claim_checkout_link_resend: {
