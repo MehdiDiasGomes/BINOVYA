@@ -43,7 +43,7 @@
             <AppButton
               v-if="recreateRoute"
               :to="localePath(recreateRoute)"
-              variant="onDark"
+              variant="onDarkGhost"
               icon="RotateCcw"
               class="min-w-0 flex-1 gap-2.5"
             >

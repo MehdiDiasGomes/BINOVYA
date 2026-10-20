@@ -27,11 +27,21 @@
         <li
           v-for="service in BOOKING_SERVICES"
           :key="service.slug"
-          class="flex items-center justify-between gap-3 rounded-xl border border-border bg-paper-2/50 p-4"
+          class="flex items-center justify-between gap-3 rounded-xl border border-border bg-paper-2/50 p-3 sm:p-4"
         >
-          <div class="min-w-0">
-            <p class="break-words text-sm font-black text-ink">{{ $t(service.titleKey) }}</p>
-            <p class="break-words text-[13px] text-ink/70">{{ $t(service.capacityKey) }}</p>
+          <div class="flex min-w-0 flex-1 items-center gap-3">
+            <NuxtImg
+              :src="service.image"
+              alt=""
+              width="56"
+              height="56"
+              loading="lazy"
+              class="size-12 shrink-0 object-contain sm:size-14"
+            />
+            <div class="min-w-0">
+              <p class="break-words text-sm font-black text-ink">{{ $t(service.titleKey) }}</p>
+              <p class="break-words text-[13px] text-ink/70">{{ $t(service.capacityKey) }}</p>
+            </div>
           </div>
           <BookingQuantityStepper
             :model-value="countOf(service.slug)"

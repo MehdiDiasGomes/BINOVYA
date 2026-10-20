@@ -1,5 +1,11 @@
 <template>
-  <AppButton v-if="route" :to="localePath(route)" icon="RotateCcw" class="mt-4 w-full sm:w-auto">
+  <AppButton
+    v-if="route"
+    :to="localePath(route)"
+    variant="secondary"
+    icon="RotateCcw"
+    class="mt-4 w-full sm:w-auto"
+  >
     {{ $t('pro.card.recreate') }}
   </AppButton>
 </template>

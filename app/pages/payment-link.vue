@@ -6,10 +6,19 @@
         aria-labelledby="payment-link-title"
         class="rounded-2xl border border-border bg-white p-6 shadow-sm sm:p-8"
       >
+        <span
+          aria-hidden="true"
+          class="mb-5 flex size-14 items-center justify-center rounded-full bg-paper-2 text-primary"
+        >
+          <Icon name="LinkIcon" :size="28" :stroke-width="2.25" />
+        </span>
         <span class="mb-2.5 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary">
           {{ $t('booking.paymentLink.eyebrow') }}
         </span>
-        <h1 id="payment-link-title" class="text-[32px] font-black leading-tight text-ink">
+        <h1
+          id="payment-link-title"
+          class="text-[28px] font-black leading-tight text-ink sm:text-[32px]"
+        >
           {{ $t('booking.paymentLink.title') }}
         </h1>
         <p class="mt-3 text-[15px] leading-relaxed text-ink/80">

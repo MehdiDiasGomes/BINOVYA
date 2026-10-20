@@ -147,6 +147,6 @@ export const PRO_ROW_SHELL_CLASS: string =
 export const PRO_ROW_TONE_CLASSES: Record<MediaCardTone, string> = {
   success: 'bg-emerald-300/15 text-emerald-300',
   info: 'bg-cyan-300/15 text-cyan-300',
-  warning: 'bg-cyan-300/15 text-cyan-300',
+  warning: 'bg-amber-300/15 text-amber-300',
   neutral: 'bg-slate-300/15 text-slate-300',
 }

@@ -45,7 +45,9 @@
               </div>
               <div v-for="row in rows" :key="row.labelKey" :class="DETAIL_ROW_CLASS">
                 <dt class="text-ink/80">{{ $t(row.labelKey) }}</dt>
-                <dd class="break-words font-semibold sm:text-right">{{ row.value }}</dd>
+                <dd class="whitespace-pre-line break-words font-semibold sm:text-right">
+                  {{ row.value }}
+                </dd>
               </div>
             </dl>
           </div>
