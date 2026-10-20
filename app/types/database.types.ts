@@ -81,6 +81,7 @@ type BookingRow = {
   amount_total_cents: number
   stripe_checkout_session_id: string | null
   stripe_payment_intent_id: string | null
+  stripe_invoice_id: string | null
   expires_at: string | null
   reminder_sent_at: string | null
   day_of_sms_sent_at: string | null
