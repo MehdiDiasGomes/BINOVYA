@@ -1,3 +1,5 @@
+import { createMemoryCache, type MemoryCache } from './memoryCache'
+
 import type {
   AccountBookingDocuments,
   AccountBookingPhotos,
@@ -27,12 +29,9 @@ type SignedUrl = {
   signedUrl: string | null
 }
 
-type CachedReceipt = {
-  url: string | null
-  expiresAt: number
-}
-
-const receiptCache: Map<string, CachedReceipt> = new Map()
+const receiptCache: MemoryCache<string | null> = createMemoryCache<string | null>(
+  PAYMENT_RECEIPT_CACHE_MAX_ENTRIES,
+)
 
 const NO_PHOTOS: AccountBookingPhotos = { before: null, after: null }
 
@@ -99,25 +98,9 @@ const receiptUrlOf = (paymentIntent: Stripe.PaymentIntent): string | null => {
   return receiptUrl && isStripeReceiptUrl(receiptUrl) ? receiptUrl : null
 }
 
-const readCachedReceipt = (bookingId: string, now: number): CachedReceipt | undefined => {
-  const cached: CachedReceipt | undefined = receiptCache.get(bookingId)
-  if (cached && cached.expiresAt <= now) {
-    receiptCache.delete(bookingId)
-    return undefined
-  }
-  return cached
-}
-
 const cacheReceipt = (bookingId: string, url: string | null, now: number): void => {
-  receiptCache.delete(bookingId)
-  if (receiptCache.size >= PAYMENT_RECEIPT_CACHE_MAX_ENTRIES) {
-    const oldest: string | undefined = receiptCache.keys().next().value
-    if (oldest !== undefined) {
-      receiptCache.delete(oldest)
-    }
-  }
   const ttl: number = url ? PAYMENT_RECEIPT_CACHE_TTL_MS : PAYMENT_RECEIPT_MISS_CACHE_TTL_MS
-  receiptCache.set(bookingId, { url, expiresAt: now + ttl })
+  receiptCache.write(bookingId, url, now + ttl)
 }
 
 const fetchReceiptUrl = async (
@@ -141,7 +124,7 @@ const fetchReceiptUrl = async (
  * Reads the Stripe receipt URL of a booking, kept in memory per booking for 5 minutes, or 30
  * seconds when Stripe gave none, so reloading a booking page neither spends the Stripe rate limit
  * shared with Checkout nor hammers Stripe during an outage. The cache is per server instance and
- * bounded, the oldest entry leaving first.
+ * bounded, the least recently read entry leaving first.
  * @param record - Booking of this customer and its payment intent
  * @returns The receipt URL, or null when unavailable
  */
@@ -150,9 +133,9 @@ const loadReceiptUrl = async (record: AccountBookingRecord): Promise<string | nu
     return null
   }
   const bookingId: string = record.booking.id
-  const cached: CachedReceipt | undefined = readCachedReceipt(bookingId, Date.now())
-  if (cached) {
-    return cached.url
+  const cached: string | null | undefined = receiptCache.read(bookingId, Date.now())
+  if (cached !== undefined) {
+    return cached
   }
   const url: string | null = await fetchReceiptUrl(bookingId, record.paymentIntentId)
   cacheReceipt(bookingId, url, Date.now())

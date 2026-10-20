@@ -1,6 +1,9 @@
 import { LUXEMBOURG_COMMUNES } from './luxembourgCommunes'
+import { createMemoryCache, type MemoryCache } from './memoryCache'
 
-import type { AddressDetails, CountryCode, LuxembourgCommune } from '@/types/booking'
+import type { AddressDetails, AddressKind, CountryCode, LuxembourgCommune } from '@/types/booking'
+
+import { ADDRESS_SEARCH_CACHE_MAX_ENTRIES, ADDRESS_SEARCH_CACHE_TTL_MS } from '@/constants/address'
 
 type FranceFeature = {
   geometry: { coordinates: [number, number] }
@@ -154,24 +157,44 @@ const searchLuxembourgMunicipalities = async (query: string): Promise<AddressDet
     .map(match => toLuxembourgMunicipality(match.commune))
 }
 
-const SEARCH_BY_COUNTRY: Record<CountryCode, (query: string) => Promise<AddressDetails[]>> = {
-  FR: searchFrance,
-  LU: searchLuxembourg,
+type CountrySearch = (query: string) => Promise<AddressDetails[]>
+
+const SEARCH_BY_KIND_AND_COUNTRY: Record<AddressKind, Record<CountryCode, CountrySearch>> = {
+  address: { FR: searchFrance, LU: searchLuxembourg },
+  municipality: { FR: searchFranceMunicipalities, LU: searchLuxembourgMunicipalities },
 }
 
-const MUNICIPALITY_SEARCH_BY_COUNTRY: Record<
-  CountryCode,
-  (query: string) => Promise<AddressDetails[]>
-> = {
-  FR: searchFranceMunicipalities,
-  LU: searchLuxembourgMunicipalities,
+const searchCache: MemoryCache<AddressDetails[]> = createMemoryCache<AddressDetails[]>(
+  ADDRESS_SEARCH_CACHE_MAX_ENTRIES,
+)
+
+const normalizeQuery = (query: string): string => query.trim().replace(/\s+/g, ' ').toLowerCase()
+
+const cachedSearch = async (
+  kind: AddressKind,
+  query: string,
+  countryCode: CountryCode,
+): Promise<AddressDetails[]> => {
+  const normalizedQuery: string = normalizeQuery(query)
+  const key: string = JSON.stringify([kind, countryCode, normalizedQuery])
+  const cached: AddressDetails[] | undefined = searchCache.read(key, Date.now())
+  if (cached) {
+    return [...cached]
+  }
+  const results: AddressDetails[] =
+    await SEARCH_BY_KIND_AND_COUNTRY[kind][countryCode](normalizedQuery)
+  searchCache.write(key, [...results], Date.now() + ADDRESS_SEARCH_CACHE_TTL_MS)
+  return results
 }
 
 const providerUnavailable = (): Error =>
   createError({ statusCode: 502, statusMessage: 'Address provider unavailable' })
 
 /**
- * Searches addresses of one country: IGN for France, geoportail.lu for Luxembourg.
+ * Searches addresses of one country: IGN for France, geoportail.lu for Luxembourg. Successful
+ * results are kept in memory for 5 minutes per kind, country and query (trimmed, lowercased,
+ * spaces collapsed), so repeating the same query does not spend the geocoders' quota again; a
+ * failure is never kept.
  * @param query - Text typed by the customer
  * @param countryCode - Country picked next to the address field
  * @returns Address suggestions of that country
@@ -181,7 +204,7 @@ export const searchAddresses = async (
   countryCode: CountryCode,
 ): Promise<AddressDetails[]> => {
   try {
-    return await SEARCH_BY_COUNTRY[countryCode](query)
+    return await cachedSearch('address', query, countryCode)
   } catch {
     throw providerUnavailable()
   }
@@ -191,7 +214,7 @@ export const searchAddresses = async (
  * Searches municipalities of one country, located at their centre: IGN `type=municipality` for
  * France, labelled `<name> (<postcode>)`; the fixed list of the Luxembourg communes near the
  * depot, matched on their name regardless of accents and case, labelled `<name> (LU)` with an
- * empty postcode.
+ * empty postcode. Cached like `searchAddresses`.
  * @param query - Text typed by the admin
  * @param countryCode - Country of the municipality
  * @returns Municipality suggestions of that country, at most five
@@ -201,7 +224,7 @@ export const searchMunicipalities = async (
   countryCode: CountryCode,
 ): Promise<AddressDetails[]> => {
   try {
-    return await MUNICIPALITY_SEARCH_BY_COUNTRY[countryCode](query)
+    return await cachedSearch('municipality', query, countryCode)
   } catch {
     throw providerUnavailable()
   }
