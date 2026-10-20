@@ -157,6 +157,7 @@ import type { GeoPoint } from '@/types/booking'
 import type { ProPlanning } from '@/types/pro'
 import type { ProDayOverview, ProDayStatus } from '@/types/proAvailability'
 
+import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
 import {
   CONTENT_ENTER_OFFSET,
   CONTENT_ENTER_TRANSITION,
@@ -196,6 +197,7 @@ const {
   query: { date: selectedDate },
   server: false,
   lazy: true,
+  timeout: PAGE_DATA_TIMEOUT_MS,
 })
 
 const {

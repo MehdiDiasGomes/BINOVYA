@@ -114,6 +114,7 @@ import type { FocusTarget } from '@/types/button'
 import {
   ACCOUNT_SKELETON_CARD_COUNT,
   ACCOUNT_SKELETON_MOBILE_CARD_COUNT,
+  PAGE_DATA_TIMEOUT_MS,
 } from '@/constants/account'
 import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import {
@@ -143,6 +144,7 @@ const {
   key: 'account-overview',
   server: false,
   lazy: true,
+  timeout: PAGE_DATA_TIMEOUT_MS,
 })
 
 const titleRef: Ref<HTMLElement | null> = ref(null)

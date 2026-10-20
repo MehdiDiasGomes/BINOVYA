@@ -126,6 +126,7 @@ import type {
 } from '@/types/account'
 import type { FocusTarget } from '@/types/button'
 
+import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
 import { BACK_LINK_CLASS } from '@/constants/buttons'
 import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { DETAIL_ROW_CLASS } from '@/constants/mediaCard'
@@ -151,6 +152,7 @@ const { data, status, error, refresh } = useFetch<AccountBookingDetail>(
     key: () => `account-booking-${bookingId.value}`,
     server: false,
     lazy: true,
+    timeout: PAGE_DATA_TIMEOUT_MS,
   },
 )
 

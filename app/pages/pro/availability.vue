@@ -193,6 +193,7 @@
 import type { FocusTarget } from '@/types/button'
 import type { ProAvailability, ProDayOverview } from '@/types/proAvailability'
 
+import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
 import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import {
   CONTENT_ENTER_OFFSET,
@@ -234,6 +235,7 @@ const {
   key: 'pro-availability',
   server: false,
   lazy: true,
+  timeout: PAGE_DATA_TIMEOUT_MS,
 })
 
 const hasError: ComputedRef<boolean> = computed(() => Boolean(error.value) || !availability.value)

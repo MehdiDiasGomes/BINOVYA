@@ -185,6 +185,7 @@ import type { ProInterventionMode, ProInterventionOrigin, ProProgressView } from
 import type { ShallowRef } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
+import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
 import { BACK_LINK_CLASS } from '@/constants/buttons'
 import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import {
@@ -229,6 +230,7 @@ const {
     key: () => `pro-intervention-${bookingId.value}`,
     server: false,
     lazy: true,
+    timeout: PAGE_DATA_TIMEOUT_MS,
   },
 )
 

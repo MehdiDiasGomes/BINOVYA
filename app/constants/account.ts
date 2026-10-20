@@ -24,6 +24,8 @@ export const SESSION_EXPIRED_QUERY = 'expired'
 
 export const SIGN_OUT_TIMEOUT_MS = 3000
 
+export const PAGE_DATA_TIMEOUT_MS: number = 15000
+
 export const ACCOUNT_BOOKING_STATUSES: AccountBookingStatus[] = ['paid', 'completed', 'cancelled']
 
 /**
