@@ -7,8 +7,9 @@ export type ButtonVariant =
   | 'onDarkWarning'
   | 'onDarkGhost'
   | 'onDarkOutline'
+  | 'ghost'
 
-export type ButtonSize = 'md' | 'sm'
+export type ButtonSize = 'md' | 'sm' | 'icon'
 
 export type ButtonType = 'button' | 'submit' | 'reset'
 

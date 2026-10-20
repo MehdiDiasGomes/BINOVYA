@@ -21,12 +21,16 @@
         <DialogDescription class="mt-2 break-words text-sm text-ink/80">
           {{ description }}
         </DialogDescription>
-        <DialogClose
-          :aria-disabled="isSubmitting || undefined"
-          class="absolute right-3 top-3 flex size-11 items-center justify-center rounded-lg text-ink/70 transition-colors duration-press ease-brand hover:bg-paper-2 hover:text-ink focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:bg-transparent aria-disabled:hover:text-ink/70 motion-reduce:transition-none"
-        >
-          <Icon name="X" :size="18" aria-hidden="true" />
-          <span class="sr-only">{{ $t('pro.reschedule.close') }}</span>
+        <DialogClose as-child>
+          <AppButton
+            variant="ghost"
+            size="icon"
+            icon="X"
+            :is-disabled="isSubmitting"
+            class="absolute right-3 top-3"
+          >
+            <span class="sr-only">{{ $t('pro.reschedule.close') }}</span>
+          </AppButton>
         </DialogClose>
 
         <form
@@ -62,7 +66,7 @@
                 v-if="isForceable"
                 key="force"
                 as="div"
-                :initial="{ opacity: 0, y: STEP_OFFSET / 2 }"
+                :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
                 :animate="{ opacity: 1, y: 0 }"
                 :exit="{ opacity: 0 }"
                 :transition="STEP_TRANSITION"
@@ -111,7 +115,7 @@ import type { FocusTarget } from '@/types/button'
 import type { ProIntervention } from '@/types/pro'
 import type { ProRescheduledEvent, ProRescheduleResponse } from '@/types/proAvailability'
 
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import {
   PRO_AVAILABILITY_HORIZON_DAYS,
   PRO_DIALOG_CONTENT_CLASS,
