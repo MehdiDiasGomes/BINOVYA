@@ -140,6 +140,28 @@ export const readBookingDate = async (bookingId: string): Promise<BookingDateRow
   return row
 }
 
+export type BookingProgress = {
+  status: string
+  completed_without_photos: boolean
+  intervention_photos: { kind: string }[]
+}
+
+/**
+ * Reads the status, the « completed without photos » flag and the stored photo kinds of a booking.
+ * @param bookingId - Booking identifier
+ * @returns Status, flag and photo kinds
+ */
+export const readBookingProgress = async (bookingId: string): Promise<BookingProgress> => {
+  const response: Response = await rest(
+    `/rest/v1/bookings?select=status,completed_without_photos,intervention_photos(kind)&id=eq.${bookingId}`,
+  )
+  const [row] = (await response.json()) as BookingProgress[]
+  if (!row) {
+    throw new Error(`Booking ${bookingId} not found`)
+  }
+  return row
+}
+
 /**
  * Creates or replaces the exception of a date directly in the database, to prepare a scenario
  * without going through the admin routes.

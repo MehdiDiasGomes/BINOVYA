@@ -21,7 +21,7 @@ import {
   messagePattern,
   pickCalendarDate,
   readAnnouncement,
-  signInNewAdmin,
+  signInAdmin,
   watchAnnouncement,
 } from '../support/pro'
 
@@ -61,10 +61,14 @@ const seedBooking = async (tag: string, date: string): Promise<{ id: string; ema
 
 const submitName = new RegExp(`^${RESCHEDULE.submit}`)
 
+const moreActions = (page: Page): Locator =>
+  page.getByRole('button', { name: new RegExp(`^${frPro.card.moreName.split('{subject}')[0]}`) })
+
 const openDialog = async (page: Page, date: string): Promise<Locator> => {
   await page.goto(`/pro?date=${date}`)
   await page.waitForLoadState('networkidle')
-  await page.getByRole('button', { name: new RegExp(`^${frPro.intervention.reschedule}`) }).click()
+  await moreActions(page).click()
+  await page.getByRole('menuitem', { name: frPro.intervention.reschedule }).click()
   const dialog = page.getByRole('dialog', { name: RESCHEDULE.title })
   await expect(dialog).toBeVisible()
   return dialog
@@ -117,7 +121,7 @@ test.describe('reschedule dialog', () => {
     page,
   }) => {
     const booking = await seedBooking('e2e-resched-ok', OK_DAY)
-    await signInNewAdmin(page, 'pro-resched-ok')
+    await signInAdmin(page)
     const dialog = await openDialog(page, OK_DAY)
     await dialog.getByRole('button', { name: RESCHEDULE.submit }).click()
     await expect(dialog.getByText(RESCHEDULE.errors.dateRequired)).toBeVisible()
@@ -147,7 +151,7 @@ test.describe('reschedule dialog', () => {
     page,
   }) => {
     const booking = await seedBooking('e2e-resched-force', FORCE_DAY)
-    await signInNewAdmin(page, 'pro-resched-force')
+    await signInAdmin(page)
     const dialog = await openDialog(page, FORCE_DAY)
 
     await pickInDialog(page, dialog, CLOSED_DAY)
@@ -170,13 +174,13 @@ test.describe('reschedule dialog', () => {
     page,
   }) => {
     const booking = await seedBooking('e2e-resched-kbd', KEYBOARD_DAY)
-    await signInNewAdmin(page, 'pro-resched-kbd')
+    await signInAdmin(page)
     await page.goto(`/pro?date=${KEYBOARD_DAY}`)
     await page.waitForLoadState('networkidle')
-    const trigger = page.getByRole('button', {
-      name: new RegExp(`^${frPro.intervention.reschedule}`),
-    })
+    const trigger = moreActions(page)
     await trigger.focus()
+    await page.keyboard.press('Enter')
+    await expect(page.getByRole('menuitem', { name: frPro.intervention.reschedule })).toBeFocused()
     await page.keyboard.press('Enter')
 
     const dialog = page.getByRole('dialog', { name: RESCHEDULE.title })
@@ -200,7 +204,7 @@ test.describe('reschedule dialog', () => {
 
   test('puts focus on the new date field when the dialog opens', async ({ page }) => {
     await seedBooking('e2e-resched-focus', FOCUS_DAY)
-    await signInNewAdmin(page, 'pro-resched-focus')
+    await signInAdmin(page)
     const dialog = await openDialog(page, FOCUS_DAY)
     await expect(dateField(dialog)).toBeFocused()
   })
@@ -211,7 +215,7 @@ test.describe('reschedule dialog while the request is pending', () => {
     page,
   }) => {
     const booking = await seedBooking('e2e-resched-block', BLOCKED_DAY)
-    await signInNewAdmin(page, 'pro-resched-block')
+    await signInAdmin(page)
     const dialog = await openDialog(page, BLOCKED_DAY)
     await pickInDialog(page, dialog, TARGET_DAY)
     const delayed = await delayRoute(page, RESCHEDULE_ROUTE)
@@ -248,7 +252,7 @@ test.describe('reschedule dialog while the request is pending', () => {
     }) => {
       await seedBooking(`e2e-resched-live-${motion}`, ANNOUNCE_DAY)
       await page.emulateMedia({ reducedMotion: motion })
-      await signInNewAdmin(page, `pro-resched-live-${motion}`)
+      await signInAdmin(page)
       const dialog = await openDialog(page, ANNOUNCE_DAY)
       await pickInDialog(page, dialog, TARGET_DAY)
       await watchAnnouncement(page, successNeedle())
@@ -267,7 +271,7 @@ test.describe('reschedule dialog while the request is pending', () => {
   }) => {
     const booking = await seedBooking('e2e-resched-timeout', TIMEOUT_DAY)
     await page.clock.install()
-    await signInNewAdmin(page, 'pro-resched-timeout')
+    await signInAdmin(page)
     const dialog = await openDialog(page, TIMEOUT_DAY)
     await pickInDialog(page, dialog, TARGET_DAY)
     const delayed = await delayRoute(page, RESCHEDULE_ROUTE)
@@ -306,7 +310,7 @@ test.describe('reschedule dialog on a phone', () => {
   }) => {
     await seedBooking('e2e-resched-phone', MOBILE_DAY)
     await page.setViewportSize(MOBILE)
-    await signInNewAdmin(page, 'pro-resched-phone')
+    await signInAdmin(page)
     const dialog = await openDialog(page, MOBILE_DAY)
     await expect
       .poll(async () => {

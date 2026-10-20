@@ -13,7 +13,7 @@ import {
 import { removeE2eAdmins } from '../../support/admin'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { uniqueTestEmail } from '../../support/env'
-import { historyLength, signInNewAdmin } from '../support/pro'
+import { historyLength, signInAdmin } from '../support/pro'
 
 const FROM = '2041-08-01'
 
@@ -71,7 +71,7 @@ test.afterAll(async () => {
 
 test.describe('status filter', () => {
   test('changing the status updates the URL with replace and the list', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-status')
+    await signInAdmin(page)
     await openList(page, LIST)
     await expect(page.getByRole('article')).toHaveCount(4)
     await expect(page.getByRole('heading', { level: 2, name: '4 interventions' })).toBeVisible()
@@ -91,14 +91,12 @@ test.describe('status filter', () => {
     await page.getByRole('option', { name: FILTERS.statuses.cancelled }).click()
     await expect(page).toHaveURL(/status=cancelled/)
     await expect(page.getByRole('article')).toHaveCount(1)
-    await expect(page.getByRole('article').first()).toContainText(
-      frPro.intervention.payments.refunded,
-    )
+    await expect(page.getByRole('article').first()).toContainText(frPro.progress.cancelled)
     expect(await historyLength(page)).toBe(before)
   })
 
   test('the status Select works with the keyboard and Escape closes it', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-select-kb')
+    await signInAdmin(page)
     await openList(page, LIST)
     await statusSelect(page).focus()
     await page.keyboard.press('Enter')
@@ -117,7 +115,7 @@ test.describe('status filter', () => {
   })
 
   test('"Réinitialiser" clears the filters', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-reset')
+    await signInAdmin(page)
     await openList(page, `${LIST}&status=paid`)
     await expect(page.getByRole('article')).toHaveCount(2)
     await page.getByRole('button', { name: FILTERS.reset }).click()
@@ -132,7 +130,7 @@ test.describe('date filters', () => {
   test('a date picked by keyboard updates ?from=, closes the calendar and refocuses the trigger', async ({
     page,
   }) => {
-    await signInNewAdmin(page, 'pro-date-kb')
+    await signInAdmin(page)
     await openList(page, LIST)
     const trigger = dateTrigger(page, FILTERS.from, FROM)
     await expect(trigger).toBeVisible()
@@ -151,7 +149,7 @@ test.describe('date filters', () => {
   })
 
   test('Escape closes the calendar and returns the focus to the trigger', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-date-esc')
+    await signInAdmin(page)
     await openList(page, LIST)
     const trigger = dateTrigger(page, FILTERS.to, TO)
     await trigger.click()
@@ -164,7 +162,7 @@ test.describe('date filters', () => {
   })
 
   test('"Du" and "Au" are bounded by each other', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-date-bounds')
+    await signInAdmin(page)
     await openList(page, `${LIST.split('?')[0]}?from=2041-08-10&to=2041-08-20`)
     await dateTrigger(page, FILTERS.to, '2041-08-20').click()
     const dialog = page.getByRole('dialog', { name: FILTERS.to })
@@ -172,14 +170,37 @@ test.describe('date filters', () => {
       'aria-disabled',
       'true',
     )
-    await expect(dialog.getByRole('button', { name: /(^|\s)10 août 2041$/ })).not.toHaveAttribute(
-      'aria-disabled',
-      'true',
-    )
+    await expect(
+      dialog.getByRole('button', { name: /(^|\s)10 août 2041(,|$)/ }),
+    ).not.toHaveAttribute('aria-disabled', 'true')
+  })
+
+  test('marks the days that hold a paid or completed intervention, with a legend', async ({
+    page,
+  }) => {
+    await signInAdmin(page)
+    await openList(page, LIST)
+    await dateTrigger(page, FILTERS.from, FROM).click()
+    const dialog = page.getByRole('dialog', { name: FILTERS.from })
+    await expect(
+      dialog.getByRole('button', { name: /10 août 2041, une intervention$/ }),
+    ).toBeVisible()
+    await expect(
+      dialog.getByRole('button', { name: /11 août 2041, une intervention$/ }),
+    ).toBeVisible()
+    await expect(
+      dialog.getByRole('button', { name: /12 août 2041, une intervention$/ }),
+    ).toBeVisible()
+    await expect(dialog.getByRole('button', { name: /(^|\s)13 août 2041$/ })).toBeVisible()
+    await expect(dialog.getByRole('button', { name: /(^|\s)9 août 2041$/ })).toBeVisible()
+    await expect(dialog.getByText(SITE_FR.common.datePicker.markedLegend)).toBeVisible()
+
+    await dialog.getByRole('button', { name: SITE_FR.common.datePicker.previousMonth }).click()
+    await expect(dialog.getByText(SITE_FR.common.datePicker.markedLegend)).toHaveCount(0)
   })
 
   test('a "Du" without date reads "Choisir une date"', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-date-empty')
+    await signInAdmin(page)
     await openList(page, `/pro/interventions?from=&to=${TO}`)
     await expect(
       page.getByRole('button', {
@@ -191,7 +212,7 @@ test.describe('date filters', () => {
 
 test.describe('pagination', () => {
   test('a page beyond the last one goes back to the last page with replace', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-page')
+    await signInAdmin(page)
     const before = await historyLength(page)
     await openList(page, `/pro/interventions?from=${BULK_FROM}&to=${BULK_TO}&page=99`)
     await expect(page).toHaveURL(/page=2/)
@@ -205,7 +226,7 @@ test.describe('pagination', () => {
   test('the next page button pushes a history entry and focuses the results title', async ({
     page,
   }) => {
-    await signInNewAdmin(page, 'pro-page-next')
+    await signInAdmin(page)
     await openList(page, `/pro/interventions?from=${BULK_FROM}&to=${BULK_TO}`)
     await expect(page.getByRole('article')).toHaveCount(PRO_INTERVENTIONS_PAGE_SIZE)
     const before = await historyLength(page)

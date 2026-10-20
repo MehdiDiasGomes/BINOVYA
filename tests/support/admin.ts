@@ -5,6 +5,9 @@ import { sleep } from '../../scripts/test-process'
 
 import type { AccountCustomer } from './account'
 
+/** Admin shared by the whole Playwright run: signed in once, its session reused by every test. */
+export const SHARED_ADMIN_EMAIL: string = 'e2e+pro-shared-admin@binovya.test'
+
 type AuthUserRow = { id: string; email?: string; app_metadata?: { role?: string } }
 
 export type AdminThrottle = { sent_at: string; link_count: number; window_start: string }
@@ -45,11 +48,19 @@ const listAuthUsers = async (): Promise<AuthUserRow[]> => {
 /**
  * Deletes the admins created by tests: role admin AND an `e2e+…@binovya.test` address. The manual
  * dev admin and the demo customers never match. The throttle row goes with the user (cascade).
+ * The admin shared by the Playwright run is kept unless asked, so a spec cleaning up its own
+ * admins does not end the session of the others.
+ * @param options - `includeShared` also deletes the shared admin, at the start and end of a run
  * @returns Number of admins deleted
  */
-export const removeE2eAdmins = async (): Promise<number> => {
+export const removeE2eAdmins = async (
+  options: { includeShared?: boolean } = {},
+): Promise<number> => {
   const admins: AuthUserRow[] = (await listAuthUsers()).filter(
-    user => user.app_metadata?.role === ADMIN_ROLE && E2E_EMAIL_PATTERN.test(user.email ?? ''),
+    user =>
+      user.app_metadata?.role === ADMIN_ROLE &&
+      E2E_EMAIL_PATTERN.test(user.email ?? '') &&
+      (options.includeShared === true || user.email !== SHARED_ADMIN_EMAIL),
   )
   await Promise.all(
     admins.map(admin => rest(`/auth/v1/admin/users/${admin.id}`, { method: 'DELETE' })),

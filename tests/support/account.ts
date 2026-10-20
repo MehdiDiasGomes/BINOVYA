@@ -78,6 +78,9 @@ export const pngFixture = (color: [number, number, number]): Uint8Array => {
   )
 }
 
+const JPEG_FIXTURE_BASE64: string =
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA='
+
 const publishableKey = (): string => readEnv('NUXT_PUBLIC_SUPABASE_KEY')
 
 const supabaseUrl = (): string => readEnv('NUXT_PUBLIC_SUPABASE_URL')
@@ -169,14 +172,14 @@ export const seedPhoto = async (options: {
   bookingId: string
   kind: 'before' | 'after'
 }): Promise<string> => {
-  const path = `${options.bookingId}/${options.kind}.png`
+  const path = `${options.bookingId}/${options.kind}.jpg`
   const key: string = readEnv('NUXT_SUPABASE_SECRET_KEY')
   const upload: Response = await fetch(
     `${supabaseUrl()}/storage/v1/object/${PHOTO_BUCKET}/${path}`,
     {
       method: 'POST',
-      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'image/png' },
-      body: pngFixture(options.kind === 'before' ? [150, 90, 40] : [40, 150, 90]) as BodyInit,
+      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'image/jpeg' },
+      body: Buffer.from(JPEG_FIXTURE_BASE64, 'base64') as BodyInit,
     },
   )
   if (!upload.ok) {

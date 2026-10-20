@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { ACCOUNT_STATUS_ICONS, ACCOUNT_STATUS_TONES } from '../../../app/constants/account'
+import { ACCOUNT_STATUS_TONES } from '../../../app/constants/account'
 import {
   collectionWeekdaysLabel,
   proCustomerName,
@@ -32,15 +32,9 @@ const intervention = (status: ProBookingStatus): ProIntervention => ({
 })
 
 describe('proInterventionView', () => {
-  it.each(['paid', 'completed', 'cancelled'] as const)(
-    'takes the tone, the icon and the status key of %s',
-    status => {
-      const view = proInterventionView(intervention(status))
-      expect(view.tone).toBe(ACCOUNT_STATUS_TONES[status])
-      expect(view.icon).toBe(ACCOUNT_STATUS_ICONS[status])
-      expect(view.statusKey).toBe(`pro.intervention.statuses.${status}`)
-    },
-  )
+  it.each(['paid', 'completed', 'cancelled'] as const)('takes the tone of %s', status => {
+    expect(proInterventionView(intervention(status)).tone).toBe(ACCOUNT_STATUS_TONES[status])
+  })
 
   it.each(['paid', 'completed'] as const)('shows %s as paid', status => {
     expect(proInterventionView(intervention(status)).paymentKey).toBe(

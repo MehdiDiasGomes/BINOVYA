@@ -13,9 +13,10 @@ const VARIANTS: ButtonVariant[] = [
   'onDarkWarning',
   'onDarkGhost',
   'onDarkOutline',
+  'ghost',
 ]
 
-const SIZES: ButtonSize[] = ['md', 'sm']
+const SIZES: ButtonSize[] = ['md', 'sm', 'icon']
 
 describe('buttonClass', () => {
   it('uses the primary medium button when nothing is given', () => {

@@ -5,7 +5,7 @@ import frPro from '../../../i18n/locales/fr/pro'
 import { removeE2eAdmins } from '../../support/admin'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { FAR_RANGES, farDates } from '../../support/pro'
-import { expectCalendarBelowField, signInNewAdmin } from '../support/pro'
+import { expectCalendarBelowField, signInAdmin } from '../support/pro'
 
 const [FROM_DAY, TO_DAY] = farDates(FAR_RANGES.e2eDatePicker) as [string, string, ...string[]]
 
@@ -40,7 +40,7 @@ test.describe('DatePicker calendar', () => {
       page,
     }) => {
       await page.setViewportSize(viewport.size)
-      await signInNewAdmin(page, 'pro-picker-below')
+      await signInAdmin(page)
       await openList(page)
       await expectCalendarBelowField(
         page,
@@ -56,7 +56,7 @@ test.describe('DatePicker calendar', () => {
 
 test.describe('DatePicker clear button', () => {
   test('centres its icon in the button', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-picker-clear')
+    await signInAdmin(page)
     await openList(page, `?from=${FROM_DAY}&to=${TO_DAY}`)
     const clear = page.getByRole('button', {
       name: SITE_FR.common.datePicker.clear.replace('{label}', FILTERS.from),

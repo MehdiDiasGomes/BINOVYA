@@ -96,6 +96,7 @@ describe('GET /api/account/bookings/[id]: own booking', () => {
         amountTotalCents: 1990,
         status: 'paid',
       },
+      documents: { photos: { before: null, after: null }, receiptUrl: null },
     })
   })
 

@@ -1,11 +1,11 @@
-import { expect, type Locator, type Page } from '@playwright/test'
+import { readFileSync } from 'node:fs'
+
+import { expect, type BrowserContextOptions, type Locator, type Page } from '@playwright/test'
 
 import { PRO_CONFIRM_PATH, PRO_HOME_PATH } from '../../../app/constants/pro'
 import { formatFullDate } from '../../../app/utils/date'
 import SITE_FR from '../../../i18n/locales/fr'
-import { generateTokenHash, type AccountCustomer } from '../../support/account'
-import { createAdmin } from '../../support/admin'
-import { uniqueTestEmail } from '../../support/env'
+import { generateTokenHash } from '../../support/account'
 
 import type { Lang } from './account'
 
@@ -20,18 +20,22 @@ export const proConfirmPath = async (email: string, lang: Lang = 'fr'): Promise<
   return `${lang === 'fr' ? '' : '/en'}${PRO_CONFIRM_PATH}#token_hash=${tokenHash}`
 }
 
+export const ADMIN_STORAGE_STATE_PATH: string = 'tests/e2e/.auth/admin.json'
+
+type StorageState = Exclude<NonNullable<BrowserContextOptions['storageState']>, string>
+
 /**
- * Creates a test admin and opens its session in the browser through the confirm page.
+ * Signs in the admin shared by the run (see `global-setup.ts`) by loading its stored cookies into
+ * the page's context, then opens the Pro home page.
  * @param page - Page of the test
- * @param tag - Short label put in the email
- * @returns The admin
  */
-export const signInNewAdmin = async (page: Page, tag: string): Promise<AccountCustomer> => {
-  const admin: AccountCustomer = await createAdmin(uniqueTestEmail(tag))
-  await page.goto(await proConfirmPath(admin.email))
-  await page.waitForURL(url => url.pathname === PRO_HOME_PATH)
+export const signInAdmin = async (page: Page): Promise<void> => {
+  const state = JSON.parse(readFileSync(ADMIN_STORAGE_STATE_PATH, 'utf8')) as StorageState
+  await page.context().addCookies(state.cookies)
+  await page.goto(PRO_HOME_PATH)
+  await expect(page).toHaveURL(url => url.pathname === PRO_HOME_PATH)
   await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
-  return admin
+  await waitForHydration(page)
 }
 
 /**

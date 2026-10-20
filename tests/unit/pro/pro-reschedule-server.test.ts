@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { bookingNotFound } from '../../../server/utils/proErrors'
 import {
   flagInterventionsToMove,
   paidInterventionDates,
 } from '../../../server/utils/proInterventions'
-import { bookingNotFound, rescheduleBooking } from '../../../server/utils/proReschedule'
+import { rescheduleBooking } from '../../../server/utils/proReschedule'
 import {
   asClient,
   caught,
@@ -13,6 +14,8 @@ import {
   stubCreateError,
   type HttpError,
 } from '../../support/pro-fixtures'
+
+vi.mock('#supabase/server', () => ({ serverSupabaseServiceRole: vi.fn() }))
 
 beforeEach(() => {
   stubCreateError()

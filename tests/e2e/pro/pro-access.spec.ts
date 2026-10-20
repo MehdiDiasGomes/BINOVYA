@@ -1,8 +1,9 @@
 import { expect, test } from '@playwright/test'
 
-import { directionsUrl, roundDirectionsUrls } from '../../../app/utils/googleMaps'
-import { telHref } from '../../../app/utils/phone'
+import { roundDirectionsUrls } from '../../../app/utils/googleMaps'
+import enSite from '../../../i18n/locales/en'
 import enAccount from '../../../i18n/locales/en/account'
+import enPro from '../../../i18n/locales/en/pro'
 import frAccount from '../../../i18n/locales/fr/account'
 import frPro from '../../../i18n/locales/fr/pro'
 import { createCustomer, seedAccountBooking, type AccountCustomer } from '../../support/account'
@@ -12,7 +13,7 @@ import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { uniqueTestEmail } from '../../support/env'
 import { findLink, waitForOneMail } from '../../support/outbox'
 import { confirmPath } from '../support/account'
-import { signInNewAdmin } from '../support/pro'
+import { signInAdmin } from '../support/pro'
 
 const DAY = '2041-08-05'
 
@@ -70,20 +71,10 @@ test.describe('admin journey', () => {
     await page.goto(`/pro?date=${DAY}`)
     await expect(page.getByRole('article')).toHaveCount(2)
     const [paidCard, doneCard] = await page.getByRole('article').all()
-    await expect(paidCard).toContainText(frPro.intervention.statuses.paid)
+    await expect(paidCard).toContainText(frPro.progress.todo)
     await expect(paidCard).toContainText('Compte Ada')
     await expect(paidCard).toContainText(THIONVILLE_ADDRESS.label)
-    await expect(paidCard.getByRole('link', { name: '+33612345678' })).toHaveAttribute(
-      'href',
-      telHref('+33612345678'),
-    )
-    await expect(
-      paidCard.getByRole('link', { name: frPro.intervention.directions }),
-    ).toHaveAttribute(
-      'href',
-      directionsUrl({ ...THIONVILLE_ADDRESS, address: THIONVILLE_ADDRESS.label }),
-    )
-    await expect(doneCard).toContainText(frPro.intervention.statuses.completed)
+    await expect(doneCard).toContainText(frPro.progress.completed)
     await expect(doneCard).toContainText('Compte Bob')
     await expect(doneCard).toContainText(UCKANGE_ADDRESS.label)
 
@@ -99,7 +90,7 @@ test.describe('admin journey', () => {
   })
 
   test('the planning of an empty day shows the empty states', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-empty')
+    await signInAdmin(page)
     await page.goto('/pro?date=2041-08-06')
     await expect(page.getByText(frPro.planning.empty)).toBeVisible()
     await expect(page.getByText(frPro.planning.round.empty)).toBeVisible()
@@ -125,7 +116,7 @@ test.describe('access rules in the browser', () => {
   })
 
   test('an admin on /login and /account is sent to /pro', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-redirect')
+    await signInAdmin(page)
     await page.goto('/login')
     await page.waitForURL(url => url.pathname === '/pro')
     await page.goto('/account')
@@ -136,7 +127,7 @@ test.describe('access rules in the browser', () => {
     page,
   }) => {
     await page.setViewportSize({ width: 1280, height: 800 })
-    await signInNewAdmin(page, 'pro-navbar')
+    await signInAdmin(page)
     await page.goto('/')
     const link = page.getByRole('link', { name: frAccount.navAdmin })
     await expect(link).toHaveAttribute('href', '/pro')
@@ -149,5 +140,30 @@ test.describe('access rules in the browser', () => {
       '/en/pro',
     )
     await expect(page.getByRole('link', { name: frAccount.nav })).toHaveCount(0)
+  })
+
+  test('the footer of the Pro layout links to the legal pages and the site, in English too', async ({
+    page,
+  }) => {
+    await signInAdmin(page)
+    await page.goto('/en/pro')
+    await expect(page.getByRole('heading', { level: 1 })).toBeVisible()
+    const footer = page.getByRole('contentinfo')
+    await expect(
+      footer.getByText(enPro.footer.copyright.replace('{year}', String(new Date().getFullYear()))),
+    ).toBeVisible()
+    const links = footer.getByRole('navigation', { name: enPro.footer.navLabel })
+    await expect(links.getByRole('link', { name: enSite.footer.info.legal })).toHaveAttribute(
+      'href',
+      '/en/legal',
+    )
+    await expect(links.getByRole('link', { name: enSite.footer.info.privacy })).toHaveAttribute(
+      'href',
+      '/en/privacy',
+    )
+    await expect(links.getByRole('link', { name: enPro.footer.backToSite })).toHaveAttribute(
+      'href',
+      '/en',
+    )
   })
 })

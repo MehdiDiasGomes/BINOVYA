@@ -23,6 +23,8 @@ const order: string[] = []
 const headers: [string, string][] = []
 const loadBookingsMock = vi.fn()
 const loadBookingMock = vi.fn()
+const loadDocumentsMock = vi.fn()
+const DOCUMENTS = { photos: [], receiptUrl: null }
 
 const client = {
   from: () => ({
@@ -56,7 +58,8 @@ beforeEach(() => {
   headers.length = 0
   state.profile = { data: { first_name: 'Ada', deletion_requested_at: null }, error: null }
   state.routerParams = { id: BOOKING_ID }
-  state.booking = { id: BOOKING_ID }
+  state.booking = { booking: { id: BOOKING_ID }, paymentIntentId: 'pi_1' }
+  loadDocumentsMock.mockResolvedValue(DOCUMENTS)
   loadBookingsMock.mockResolvedValue([])
   loadBookingMock.mockImplementation(async () => state.booking)
   vi.stubGlobal('defineEventHandler', (handler: Handler) => handler)
@@ -72,6 +75,7 @@ beforeEach(() => {
   vi.stubGlobal('accountBookingParamsSchema', accountBookingParamsSchema)
   vi.stubGlobal('loadAccountBookings', loadBookingsMock)
   vi.stubGlobal('loadAccountBooking', loadBookingMock)
+  vi.stubGlobal('loadAccountBookingDocuments', loadDocumentsMock)
   vi.stubGlobal('createError', (options: { statusCode: number; statusMessage: string }) =>
     Object.assign(new Error(options.statusMessage), { statusCode: options.statusCode }),
   )
@@ -82,6 +86,7 @@ afterEach(() => {
   vi.restoreAllMocks()
   loadBookingsMock.mockReset()
   loadBookingMock.mockReset()
+  loadDocumentsMock.mockReset()
 })
 
 describe('GET /api/account/bookings handler', () => {
@@ -165,8 +170,21 @@ describe('GET /api/account/bookings/[id] handler', () => {
     expect(loadBookingMock).toHaveBeenCalledWith(client, 'customer-1', BOOKING_ID)
   })
 
-  it('wraps the booking in a booking property', async () => {
+  it('answers the booking and its documents, without the payment intent', async () => {
     const handler = await loadDetail()
-    expect(await handler({})).toEqual({ booking: { id: BOOKING_ID } })
+    expect(await handler({})).toEqual({ booking: { id: BOOKING_ID }, documents: DOCUMENTS })
+  })
+
+  it('loads the documents of the record found', async () => {
+    const handler = await loadDetail()
+    await handler({})
+    expect(loadDocumentsMock).toHaveBeenCalledWith(client, state.booking)
+  })
+
+  it('does not load documents of a missing booking', async () => {
+    state.booking = null
+    const handler = await loadDetail()
+    await failureOf(handler({}))
+    expect(loadDocumentsMock).not.toHaveBeenCalled()
   })
 })

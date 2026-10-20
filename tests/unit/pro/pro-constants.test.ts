@@ -6,16 +6,12 @@ import {
   ACCOUNT_NAV_PATHS,
 } from '../../../app/constants/account'
 import {
-  PRO_CARD_EXPANDED_MIN_WIDTH,
-  PRO_CARD_EXPANDED_QUERY,
   PRO_HOME_PATH,
   PRO_LIST_STATUSES,
   PRO_PLANNING_STATUSES,
-  PRO_SKELETON_COLLAPSED_ROWS,
   PRO_SKELETON_DATE_ROWS,
   PRO_SKELETON_DETAIL_ROWS,
   PRO_SKELETON_DETAIL_ROWS_WITH_DATE,
-  PRO_SKELETON_PHONE_ROW,
   PRO_STATUS_FILTERS,
 } from '../../../app/constants/pro'
 import enAccount from '../../../i18n/locales/en/account'
@@ -78,11 +74,7 @@ describe('status lists', () => {
 
 describe('PRO_SKELETON constants', () => {
   it('are positive integers', () => {
-    for (const value of [
-      PRO_SKELETON_DETAIL_ROWS,
-      PRO_SKELETON_DATE_ROWS,
-      PRO_SKELETON_COLLAPSED_ROWS,
-    ]) {
+    for (const value of [PRO_SKELETON_DETAIL_ROWS, PRO_SKELETON_DATE_ROWS]) {
       expect(Number.isInteger(value) && value > 0).toBe(true)
     }
   })
@@ -91,20 +83,5 @@ describe('PRO_SKELETON constants', () => {
     expect(PRO_SKELETON_DETAIL_ROWS_WITH_DATE).toBe(
       PRO_SKELETON_DETAIL_ROWS + PRO_SKELETON_DATE_ROWS,
     )
-  })
-
-  it('collapsed skeleton is the phone row plus the one visible row', () => {
-    expect(PRO_SKELETON_COLLAPSED_ROWS).toBe(PRO_SKELETON_PHONE_ROW + 1)
-  })
-
-  it('collapsed skeleton is shorter than the full one', () => {
-    expect(PRO_SKELETON_COLLAPSED_ROWS).toBeLessThan(PRO_SKELETON_DETAIL_ROWS)
-  })
-})
-
-describe('PRO_CARD_EXPANDED_QUERY', () => {
-  it('is the min-width media query of the breakpoint where the card is never collapsed', () => {
-    expect(PRO_CARD_EXPANDED_MIN_WIDTH).toBe(640)
-    expect(PRO_CARD_EXPANDED_QUERY).toBe('(min-width: 640px)')
   })
 })

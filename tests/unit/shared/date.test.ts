@@ -161,3 +161,20 @@ describe('businessToday', () => {
     expect(businessToday()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
   })
 })
+
+describe('parseIsoDate for early years', () => {
+  it.each([
+    ['0050-06-15', 50],
+    ['0099-12-31', 99],
+  ])('keeps the year of %s instead of shifting it to the 1900s', (isoDate, year) => {
+    const date = parseIsoDate(isoDate)
+    expect(date.getFullYear()).toBe(year)
+    expect(date.getMonth()).toBe(Number(isoDate.slice(5, 7)) - 1)
+    expect(date.getDate()).toBe(Number(isoDate.slice(8, 10)))
+  })
+
+  it('returns local midnight', () => {
+    const date = parseIsoDate('2026-10-19')
+    expect([date.getHours(), date.getMinutes()]).toEqual([0, 0])
+  })
+})

@@ -7,6 +7,8 @@ import {
 } from '../../../app/constants/pro'
 import { addDaysToIsoDate, businessToday } from '../../../app/utils/date'
 import {
+  dayAlertTitle,
+  dayMoveCount,
   dayStatus,
   dayStatusTitle,
   daySectorText,
@@ -284,5 +286,47 @@ describe('isRescheduleErrorCode', () => {
 
   it.each(['generic', 'invalidAddress', '', undefined, null, {}])('refuses %j', code => {
     expect(isRescheduleErrorCode(code)).toBe(false)
+  })
+})
+
+describe('dayMoveCount', () => {
+  it('counts every paid intervention of a closed day', () => {
+    expect(dayMoveCount(day(DATE, { isClosed: true, activeCount: 3, paidCount: 2 }))).toBe(2)
+  })
+
+  it('counts the bookings beyond the capacity of an open day', () => {
+    expect(dayMoveCount(day(DATE, { capacity: 2, activeCount: 4, paidCount: 4 }))).toBe(2)
+  })
+
+  it('is capped by the paid interventions still to do', () => {
+    expect(dayMoveCount(day(DATE, { capacity: 1, activeCount: 5, paidCount: 2 }))).toBe(2)
+  })
+
+  it('is 0 for a day within its capacity', () => {
+    expect(dayMoveCount(day(DATE, { capacity: 3, activeCount: 3, paidCount: 3 }))).toBe(0)
+  })
+
+  it('is 0 for a closed day without paid intervention', () => {
+    expect(dayMoveCount(day(DATE, { isClosed: true, activeCount: 0, paidCount: 0 }))).toBe(0)
+  })
+})
+
+describe('dayAlertTitle', () => {
+  it('titles the urgent number of interventions to move, plural on that number', () => {
+    const closed = day(DATE, { isClosed: true, activeCount: 2, paidCount: 2 })
+    expect(dayAlertTitle(closed, 'fr', recordTranslation)).toBe(
+      'pro.dayStatus.urgent.title|{"bookings":2}|2',
+    )
+  })
+
+  it('falls back to the status title when nothing has to be moved', () => {
+    const closed = day(DATE, { isClosed: true, activeCount: 0, paidCount: 0 })
+    expect(dayAlertTitle(closed, 'fr', recordTranslation)).toBe(
+      dayStatusTitle(closed, 'fr', recordTranslation),
+    )
+  })
+
+  it('is empty for a normal day', () => {
+    expect(dayAlertTitle(day(DATE), 'fr', recordTranslation)).toBe('')
   })
 })

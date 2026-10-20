@@ -7,7 +7,7 @@ import { createCustomer, seedAccountBooking, type AccountCustomer } from '../../
 import { removeE2eAdmins } from '../../support/admin'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { uniqueTestEmail } from '../../support/env'
-import { signInNewAdmin } from '../support/pro'
+import { signInAdmin } from '../support/pro'
 
 const DAY = '2041-10-07'
 
@@ -22,7 +22,11 @@ const menuButton = (page: Page): Locator => page.getByRole('button', { name: SIT
 const proMenuButton = (page: Page): Locator =>
   page.getByRole('button', { name: SITE_FR.nav.menu, exact: true, includeHidden: true })
 
-const details = (page: Page): Locator => page.locator(`#pro-intervention-details-${bookingId}`)
+const MORE_ACTIONS_PREFIX: string = frPro.card.moreName.split('{subject}')[0] ?? ''
+
+const MIN_TOUCH_TARGET = 44
+
+const MAX_ROW_HEIGHT = 160
 
 test.beforeAll(async () => {
   assertTestStripeKey()
@@ -44,48 +48,62 @@ test.afterAll(async () => {
   await removeE2eAdmins()
 })
 
-test.describe('collapsible intervention card', () => {
-  test('is collapsed below 640 px, expands with "Afficher plus" and collapses again', async ({
+test.describe('compact intervention row', () => {
+  test('is a single row at 375 px with the whole row as the link, and a 44 px menu button', async ({
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await signInNewAdmin(page, 'pro-card')
+    await signInAdmin(page)
     await page.goto(`/pro?date=${DAY}`)
-    await expect(page.getByRole('article')).toHaveCount(1)
-    const toggle = page.getByRole('button', { name: /^Afficher (plus|moins) pour Compte Ada$/ })
-    await expect(toggle).toHaveAccessibleName(
-      `${frPro.intervention.showMore} ${frPro.intervention.toggleContext.replace('{name}', 'Compte Ada')}`,
-    )
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(details(page)).toHaveAttribute('inert', '')
+    const rows = page.getByRole('article')
+    await expect(rows).toHaveCount(1)
+    const row = rows.first()
+    await expect(row).toContainText('Compte Ada')
+    await expect(row).toContainText(frPro.progress.todo)
+    await expect(row.getByRole('button', { name: frPro.intervention.reschedule })).toHaveCount(0)
 
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    await expect(toggle).toContainText(frPro.intervention.showLess)
-    await expect(details(page)).not.toHaveAttribute('inert', '')
-    await expect(details(page).getByText(frPro.intervention.household)).toBeVisible()
+    const link = row.getByRole('link', { name: new RegExp(`^${frPro.card.actions.view}`) })
+    await expect(link).toHaveAttribute('href', new RegExp(`/pro/interventions/${bookingId}`))
 
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(details(page)).toHaveAttribute('inert', '')
+    const more = row.getByRole('button', { name: new RegExp(`^${MORE_ACTIONS_PREFIX}`) })
+    const box = await more.boundingBox()
+    expect(box?.width).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET)
+    expect(box?.height).toBeGreaterThanOrEqual(MIN_TOUCH_TARGET)
+
+    const rowBox = await row.boundingBox()
+    expect(rowBox?.height).toBeLessThan(MAX_ROW_HEIGHT)
   })
 
-  test('is never inert from 640 px, also after a resize', async ({ page }) => {
+  test('opens the intervention page from the row and keeps the card hidden below 640 px', async ({
+    page,
+  }) => {
     await page.setViewportSize(MOBILE)
-    await signInNewAdmin(page, 'pro-resize')
+    await signInAdmin(page)
     await page.goto(`/pro?date=${DAY}`)
-    await expect(details(page)).toHaveAttribute('inert', '')
+    await expect(page.getByRole('article')).toHaveCount(1)
+    await page
+      .getByRole('article')
+      .getByRole('link', { name: new RegExp(`^${frPro.card.actions.view}`) })
+      .click()
+    await page.waitForURL(url => url.pathname === `/pro/interventions/${bookingId}`)
+  })
+
+  test('shows the card, not the row, from 640 px', async ({ page }) => {
     await page.setViewportSize(DESKTOP)
-    await expect(details(page)).not.toHaveAttribute('inert', '')
-    await expect(details(page).getByText(frPro.intervention.household)).toBeVisible()
-    await expect(page.getByRole('button', { name: /Afficher plus/ })).toBeHidden()
-    await page.setViewportSize(MOBILE)
-    await expect(details(page)).toHaveAttribute('inert', '')
+    await signInAdmin(page)
+    await page.goto(`/pro?date=${DAY}`)
+    await expect(page.getByRole('article')).toHaveCount(1)
+    await expect(
+      page
+        .getByRole('article')
+        .getByRole('link', { name: new RegExp(`^${frPro.card.actions.view}`) }),
+    ).toBeVisible()
+    await expect(page.getByText(frPro.intervention.household)).toHaveCount(0)
   })
 
   test('has no horizontal scroll at 375 px', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await signInNewAdmin(page, 'pro-scroll')
+    await signInAdmin(page)
     await page.goto(`/pro?date=${DAY}`)
     await expect(page.getByRole('article')).toHaveCount(1)
     const hasScroll = await page.evaluate(
@@ -100,7 +118,7 @@ test.describe('burger menus', () => {
     page,
   }) => {
     await page.setViewportSize(MOBILE)
-    await signInNewAdmin(page, 'pro-burger')
+    await signInAdmin(page)
     const button = proMenuButton(page)
     await expect(button).toHaveAttribute('aria-expanded', 'false')
     await button.click()
@@ -112,9 +130,28 @@ test.describe('burger menus', () => {
     await expect(page.getByRole('link', { name: frPro.nav.interventions })).toBeHidden()
   })
 
+  test('the open Pro menu has a single close cross, and closing it gives the focus back', async ({
+    page,
+  }) => {
+    await page.setViewportSize(MOBILE)
+    await signInAdmin(page)
+    const button = proMenuButton(page)
+    await button.click()
+    await expect(button).toHaveAttribute('aria-expanded', 'true')
+    const sheet = page.getByRole('dialog', { name: frPro.nav.brand })
+    await expect(sheet).toBeVisible()
+    const cross = page.getByRole('button', { name: frPro.nav.closeMenu })
+    await expect(cross).toHaveCount(1)
+    await expect(sheet.getByRole('button', { name: SITE_FR.nav.menu, exact: true })).toHaveCount(0)
+    await cross.click()
+    await expect(sheet).toBeHidden()
+    await expect(button).toHaveAttribute('aria-expanded', 'false')
+    await expect(button).toBeFocused()
+  })
+
   test('the Pro menu closes on a route change', async ({ page }) => {
     await page.setViewportSize(MOBILE)
-    await signInNewAdmin(page, 'pro-burger-nav')
+    await signInAdmin(page)
     await proMenuButton(page).click()
     await page.getByRole('link', { name: frPro.nav.interventions }).click()
     await page.waitForURL(url => url.pathname === '/pro/interventions')
@@ -125,7 +162,7 @@ test.describe('burger menus', () => {
     page,
   }) => {
     await page.setViewportSize(DESKTOP)
-    await signInNewAdmin(page, 'pro-burger-desktop')
+    await signInAdmin(page)
     await expect(proMenuButton(page)).toBeHidden()
     await expect(page.getByRole('link', { name: frPro.nav.interventions })).toBeVisible()
   })

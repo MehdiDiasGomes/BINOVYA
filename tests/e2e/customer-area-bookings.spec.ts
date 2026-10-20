@@ -126,7 +126,7 @@ test.describe('booking cards on /account', () => {
 })
 
 test.describe('booking page', () => {
-  test('opens from the card with the title focused, the summary, the placeholders and the invoice', async ({
+  test('opens from the card with the title focused, the summary, the placeholders and the receipt', async ({
     page,
   }) => {
     const area = await seedArea('detail')
@@ -146,9 +146,9 @@ test.describe('booking page', () => {
       page.getByRole('heading', { level: 2, name: FR.detail.photos.title }),
     ).toBeVisible()
     await expect(
-      page.getByRole('heading', { level: 2, name: FR.detail.invoice.title }),
+      page.getByRole('heading', { level: 2, name: FR.detail.receipt.title }),
     ).toBeVisible()
-    await expect(page.getByText(FR.detail.invoice.soon)).toBeVisible()
+    await expect(page.getByText(FR.detail.receipt.unavailable)).toBeVisible()
     await expect(page.getByRole('note', { name: FR.booking.reminder.title })).toBeVisible()
     await expect(page.getByRole('link', { name: FR.detail.rebook })).toHaveCount(0)
     await expect(page.getByRole('main').getByRole('alert')).toHaveCount(0)
@@ -199,7 +199,7 @@ test.describe('booking page', () => {
     await expect(page.getByText(FR.booking.refunded, { exact: true })).toBeVisible()
     await expect(page.getByText(FR.detail.photos.placeholder)).toHaveCount(0)
     await expect(page.getByRole('heading', { name: FR.detail.photos.title })).toHaveCount(0)
-    await expect(page.getByText(FR.detail.invoice.soon)).toBeVisible()
+    await expect(page.getByText(FR.detail.receipt.unavailable)).toBeVisible()
     await expect(page.getByRole('note')).toHaveCount(0)
     const rebook = page.getByRole('link', { name: FR.detail.rebook })
     await expect(rebook).toBeVisible()
@@ -215,7 +215,7 @@ test.describe('booking page', () => {
     await expect(
       detailHeading(page, `Ma réservation du ${formatFullDate('2026-09-01', 'fr')}`),
     ).toBeFocused()
-    await expect(page.getByText(FR.detail.photos.placeholder)).toHaveCount(2)
+    await expect(page.getByText(FR.detail.photos.placeholderNone)).toHaveCount(2)
     await expect(page.getByRole('note')).toHaveCount(0)
   })
 
@@ -377,7 +377,7 @@ test.describe('English variant', () => {
     const title = detailHeading(page, `My booking on ${date}`)
     await expect(title).toBeFocused()
     await expect(page.getByText(EN.detail.photos.placeholder)).toHaveCount(2)
-    await expect(page.getByText(EN.detail.invoice.soon)).toBeVisible()
+    await expect(page.getByText(EN.detail.receipt.unavailable)).toBeVisible()
 
     await page.getByRole('link', { name: EN.detail.back }).click()
     await page.waitForURL(url => url.pathname === '/en/account')

@@ -21,7 +21,7 @@ import {
   removeOverrides,
   saveOverride,
 } from '../../support/pro'
-import { delayRoute, pickCalendarDate, signInNewAdmin, waitForHydration } from '../support/pro'
+import { delayRoute, pickCalendarDate, signInAdmin, waitForHydration } from '../support/pro'
 
 import type { ProWeekdayRule } from '../../../app/types/proAvailability'
 
@@ -102,7 +102,7 @@ test.describe('exception form when the admin switches date during a request', ()
   test('announces a save under the date it was made for and keeps the drafts of the new date', async ({
     page,
   }) => {
-    await signInNewAdmin(page, 'pro-draft-save')
+    await signInAdmin(page)
     await openDay(page, SAVE_DAY)
     await capacityInput(page).fill('2')
     const delayed = await delayRoute(page, overrideUrl(SAVE_DAY))
@@ -122,7 +122,7 @@ test.describe('exception form when the admin switches date during a request', ()
   })
 
   test('names the original date when the save fails after the switch', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-draft-save-fail')
+    await signInAdmin(page)
     await openDay(page, SAVE_FAIL_DAY)
     await capacityInput(page).fill('2')
     const delayed = await delayRoute(page, overrideUrl(SAVE_FAIL_DAY), 'fail')
@@ -144,7 +144,7 @@ test.describe('exception form when the admin switches date during a request', ()
     page,
   }) => {
     await saveOverride(REMOVE_DAY, 2)
-    await signInNewAdmin(page, 'pro-draft-remove')
+    await signInAdmin(page)
     await openDay(page, REMOVE_DAY)
     const delayed = await delayRoute(page, overrideUrl(REMOVE_DAY))
     await page.getByRole('button', { name: AVAILABILITY.override.remove }).click()
@@ -163,7 +163,7 @@ test.describe('exception form when the admin switches date during a request', ()
 
   test('names the original date when the removal fails after the switch', async ({ page }) => {
     await saveOverride(REMOVE_FAIL_DAY, 2)
-    await signInNewAdmin(page, 'pro-draft-remove-fail')
+    await signInAdmin(page)
     await openDay(page, REMOVE_FAIL_DAY)
     const delayed = await delayRoute(page, overrideUrl(REMOVE_FAIL_DAY), 'fail')
     await page.getByRole('button', { name: AVAILABILITY.override.remove }).click()
@@ -188,7 +188,7 @@ test.describe('capacity field of the exception form', () => {
     page,
   }) => {
     await saveOverride(FOLLOW_DAY, 2)
-    await signInNewAdmin(page, 'pro-cap-follow')
+    await signInAdmin(page)
     await openDay(page, FOLLOW_DAY)
     await expect(capacityInput(page)).toHaveValue('2')
     await page.getByRole('button', { name: AVAILABILITY.capacityField.followRule }).click()
@@ -207,7 +207,7 @@ test.describe('capacity field of the exception form', () => {
   })
 
   test('has no placeholder on the weekday rule fields', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-cap-rules')
+    await signInAdmin(page)
     await page.goto('/pro/availability')
     await page.waitForLoadState('networkidle')
     for (const weekday of WEEKDAYS_MONDAY_FIRST) {
@@ -230,7 +230,7 @@ test.describe('capacity field of the exception form', () => {
     const date = WEEKDAYS_MONDAY_FIRST.map(offset => addDaysToIsoDate(EMPTY_DAY, offset)).find(
       candidate => parseIsoDate(candidate).getDay() === (openRule as ProWeekdayRule).weekday,
     ) as string
-    await signInNewAdmin(page, 'pro-cap-fallback')
+    await signInAdmin(page)
     await openDay(page, date)
     const input = capacityInput(page)
     const followRule = page.getByRole('button', { name: AVAILABILITY.capacityField.followRule })
@@ -271,7 +271,7 @@ test.describe('capacity field of the exception form', () => {
   test('removes the capacity of the exception when saved empty, and keeps its note', async ({
     page,
   }) => {
-    await signInNewAdmin(page, 'pro-cap-save-empty')
+    await signInAdmin(page)
     await openDay(page, SAVE_EMPTY_DAY)
     await capacityInput(page).fill('2')
     await noteField(page).fill('Garder la note')

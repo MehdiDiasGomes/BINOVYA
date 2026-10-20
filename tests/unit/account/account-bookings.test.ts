@@ -163,15 +163,17 @@ describe('loadAccountBooking', () => {
 
   it('returns the mapped booking when it exists', async () => {
     const { client } = makeClient({ bookings: [{ id: BOOKING_ID, status: 'cancelled' }] })
-    expect(await loadAccountBooking(client, CUSTOMER_ID, BOOKING_ID)).toEqual({
-      id: BOOKING_ID,
-      scheduledDate: '2026-11-01',
-      address: 'a',
-      plan: 'one_off',
-      smallBinCount: 1,
-      largeBinCount: 0,
-      amountTotalCents: 1990,
-      status: 'cancelled',
+    expect(await loadAccountBooking(client, CUSTOMER_ID, BOOKING_ID)).toMatchObject({
+      booking: {
+        id: BOOKING_ID,
+        scheduledDate: '2026-11-01',
+        address: 'a',
+        plan: 'one_off',
+        smallBinCount: 1,
+        largeBinCount: 0,
+        amountTotalCents: 1990,
+        status: 'cancelled',
+      },
     })
   })
 

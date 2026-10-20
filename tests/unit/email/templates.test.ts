@@ -56,7 +56,7 @@ const customerTemplates: [string, () => Rendered][] = [
     'photos',
     () =>
       generatePhotosAvailableEmail(
-        { ...HOSTILE, loginUrl: 'https://binovya.fr/x', siteUrl: 'https://binovya.fr' },
+        { ...HOSTILE, accountUrl: 'https://binovya.fr/login', siteUrl: 'https://binovya.fr' },
         escapeHtml,
       ),
   ],
@@ -156,22 +156,26 @@ describe('generateBookingAdminEmail', () => {
 describe('generatePhotosAvailableEmail', () => {
   const data = {
     ...BOOKING,
-    loginUrl: 'https://abc.supabase.co/auth/v1/verify?token=x&type=magiclink',
+    accountUrl: 'https://binovya.fr/login',
     siteUrl: 'https://binovya.fr',
   }
 
-  it('has the one-click button pointing to the login URL', () => {
+  it('has the button pointing to the customer area login page', () => {
     const { html } = generatePhotosAvailableEmail(data, escapeHtml)
     expect(html).toContain('class="button"')
     expect(html).toContain('Voir mes photos')
-    expect(html).toContain(
-      'href="https://abc.supabase.co/auth/v1/verify?token=x&amp;type=magiclink"',
-    )
+    expect(html).toContain('href="https://binovya.fr/login"')
   })
 
-  it('lists the four fallback steps with the customer email and the site link', () => {
+  it('omits the button without account URL', () => {
+    const { html } = generatePhotosAvailableEmail({ ...data, accountUrl: '' }, escapeHtml)
+    expect(html).not.toContain('class="button"')
+    expect(html).not.toContain('Voir mes photos')
+  })
+
+  it('lists the three steps with the customer email and the site link', () => {
     const { html } = generatePhotosAvailableEmail(data, escapeHtml)
-    expect(html.match(/<li>/g)).toHaveLength(4)
+    expect(html.match(/<li>/g)).toHaveLength(3)
     expect(html).toContain('<a href="https://binovya.fr">https://binovya.fr</a>')
     expect(html).toContain('<strong>ada@example.test</strong>')
     expect(html).toContain('Espace client')
@@ -179,7 +183,7 @@ describe('generatePhotosAvailableEmail', () => {
 
   it('falls back to a generic site mention without site URL', () => {
     const { html } = generatePhotosAvailableEmail({ ...data, siteUrl: '' }, escapeHtml)
-    expect(html).toContain('Rendez-vous sur notre site.')
+    expect(html).toContain('rendez-vous sur notre site puis')
   })
 
   it('has a fixed subject', () => {

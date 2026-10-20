@@ -17,7 +17,7 @@ import {
   restoreRules,
   saveOverride,
 } from '../../support/pro'
-import { messagePattern, pluralForm, signInNewAdmin } from '../support/pro'
+import { messagePattern, pluralForm, signInAdmin } from '../support/pro'
 
 import type { ProWeekdayRule } from '../../../app/types/proAvailability'
 
@@ -80,7 +80,7 @@ test.describe('availability page', () => {
     const open = originalRules.find(rule => rule.maxBookings > 0)
     expect(open).toBeDefined()
     const { weekday, maxBookings } = open as ProWeekdayRule
-    await signInNewAdmin(page, 'pro-avail-rules')
+    await signInAdmin(page)
     await page.goto('/pro/availability')
     await page.waitForLoadState('networkidle')
 
@@ -106,7 +106,7 @@ test.describe('availability page', () => {
   }) => {
     await saveOverride(BLOCKED_DAY, 3)
     await seedPaid(BLOCKED_DAY)
-    await signInNewAdmin(page, 'pro-avail-block')
+    await signInAdmin(page)
     await page.goto(`/pro/availability?date=${BLOCKED_DAY}`)
     await page.waitForLoadState('networkidle')
 
@@ -124,7 +124,7 @@ test.describe('availability page', () => {
     await expect(
       page.getByRole('heading', {
         level: 3,
-        name: messagePattern(pluralForm(frPro.dayStatus.title.closedWithBookings, 0)),
+        name: messagePattern(pluralForm(frPro.dayStatus.urgent.title, 0), { bookings: '1' }),
       }),
     ).toBeVisible()
     await expect(toMoveBadge(page)).toBeVisible()
@@ -147,13 +147,13 @@ test.describe('availability page', () => {
     expect(await readOverride(BLOCKED_DAY)).toBeNull()
   })
 
-  test('shrinks a day below its bookings: the panel warns about the capacity and no booking is flagged', async ({
+  test('shrinks a day below its bookings: the urgent panel counts the interventions to move and no booking is flagged closed', async ({
     page,
   }) => {
     await saveOverride(SHRUNK_DAY, 3)
     await seedPaid(SHRUNK_DAY)
     await seedPaid(SHRUNK_DAY)
-    await signInNewAdmin(page, 'pro-avail-shrink')
+    await signInAdmin(page)
     await page.goto(`/pro/availability?date=${SHRUNK_DAY}`)
     await page.waitForLoadState('networkidle')
     await setDayCapacity(page, '1')
@@ -164,16 +164,14 @@ test.describe('availability page', () => {
     await expect(
       page.getByRole('heading', {
         level: 3,
-        name: messagePattern(pluralForm(frPro.dayStatus.title.overCapacity, 0), {
-          bookings: '2',
-        }),
+        name: messagePattern(pluralForm(frPro.dayStatus.urgent.title, 0), { bookings: '1' }),
       }),
     ).toBeVisible()
     await expect(toMoveBadge(page)).toHaveCount(0)
   })
 
   test('imposes a French commune, then removes the stored sector', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-avail-fr')
+    await signInAdmin(page)
     await page.goto(`/pro/availability?date=${SECTOR_DAY}`)
     await page.waitForLoadState('networkidle')
 
@@ -198,7 +196,7 @@ test.describe('availability page', () => {
   })
 
   test('imposes a Luxembourg commune from the fixed list', async ({ page }) => {
-    await signInNewAdmin(page, 'pro-avail-lu')
+    await signInAdmin(page)
     await page.goto(`/pro/availability?date=${LUXEMBOURG_DAY}`)
     await page.waitForLoadState('networkidle')
 
