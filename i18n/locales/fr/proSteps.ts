@@ -50,7 +50,7 @@ export default {
     },
     stepNumber: 'Étape {number} :',
     next: {
-      before: 'Passer à la photo après',
+      before: 'Aller à la photo après',
       after: 'Voir le récap',
     },
     skip: 'Passer cette photo',
