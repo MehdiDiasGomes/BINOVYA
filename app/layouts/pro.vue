@@ -83,7 +83,7 @@
         class="flex flex-col items-start border-t border-white/10 px-4 py-1 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-3 sm:px-8"
       >
         <nav :aria-label="$t('pro.footer.navLabel')" class="sm:order-last">
-          <ul class="flex flex-wrap items-center gap-x-3">
+          <ul role="list" class="flex flex-wrap items-center gap-x-3">
             <li>
               <NuxtLink :to="localePath('/legal')" :class="FOOTER_LINK_CLASS">
                 {{ $t('footer.info.legal') }}

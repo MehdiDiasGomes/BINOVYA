@@ -3,7 +3,7 @@
     <p class="text-sm font-bold text-ink">
       {{ $t('pro.steps.counter', { current: props.currentStep, total: props.steps.length }) }}
     </p>
-    <ol class="mt-1 grid grid-cols-4 gap-1.5">
+    <ol role="list" class="mt-1 grid grid-cols-4 gap-1.5">
       <li v-for="step in props.steps" :key="step.id" :class="cn('min-w-0', PRO_STEP_SEGMENT_CLASS)">
         <span aria-hidden="true" :class="cn(PRO_STEP_BAR_CLASS, PRO_STEP_BAR_TONES[step.state])" />
         <span

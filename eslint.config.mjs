@@ -132,7 +132,7 @@ export default withNuxt(
       'vuejs-accessibility/no-autofocus': 'error',
       'vuejs-accessibility/no-distracting-elements': 'error',
       'vuejs-accessibility/no-onchange': 'error',
-      'vuejs-accessibility/no-redundant-roles': 'error',
+      'vuejs-accessibility/no-redundant-roles': ['error', { ul: ['list'], ol: ['list'] }],
       'vuejs-accessibility/role-has-required-aria-props': 'error',
       'vuejs-accessibility/tabindex-no-positive': 'error',
     },
