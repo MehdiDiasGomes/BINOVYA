@@ -120,6 +120,9 @@ Each one was caught by a review. Check your change against this list before repo
 - A `ul` / `ol` without bullets (Tailwind preflight, grid, flex) loses its list semantics in
   Safari / VoiceOver. Add `role="list"` (allowed by the ESLint config), not on `aria-hidden`
   skeletons.
+- A value clamped or reset by another control (radio, button) while focus stays there, signalled
+  only through `aria-describedby`: nothing is announced (WCAG 4.1.3). Announce it through an
+  always-present `role="status"` region (`useLiveAnnouncement`).
 - Prettier only on the files you changed, never on a folder.
 
 ## Checks (mandatory before reporting)
