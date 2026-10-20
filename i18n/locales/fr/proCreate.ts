@@ -22,6 +22,8 @@ export default {
       legend: 'Bacs à nettoyer',
       hint: 'Jusqu’à {max} bacs de chaque format. Au-delà, ou pour un petit et un grand bac ensemble, choisissez « Sur devis ».',
       quoteHint: 'Jusqu’à {max} bacs de chaque format, au prix du devis.',
+      clampedHint:
+        'Les quantités saisies sur devis ont été ramenées à {max} par format. Revenez sur « Sur devis » pour les retrouver.',
     },
     priceSource: {
       legend: 'Tarif',
@@ -115,6 +117,8 @@ export default {
       tooFar: 'Choisissez une date au plus tard le {date}.',
       paymentLinkFailed:
         'Le lien de paiement n’a pas pu être créé : l’intervention n’est pas enregistrée. Réessayez dans un instant.',
+      requestInProgress:
+        'Création en cours : l’intervention est en train d’être enregistrée. Rechargez la liste des interventions dans un instant.',
       generic: 'L’intervention n’a pas pu être créée. Réessayez dans un instant.',
       timeout:
         'La réponse tarde. L’intervention a peut-être été créée : vérifiez la liste des interventions avant de réessayer.',

@@ -1,4 +1,9 @@
-import { attachBookingCheckout, bookingPageUrl, expireUnpaidBooking } from './bookingCheckout'
+import {
+  attachBookingCheckout,
+  bookingPageUrl,
+  expireUnpaidBooking,
+  isCheckoutInProgress,
+} from './bookingCheckout'
 import { sendOfflineBookingConfirmation, sendPaymentLinkEmail } from './bookingPaymentLinkEmails'
 import { codedError } from './proErrors'
 import { FORCEABLE_REFUSAL_CODES } from './proReschedule'
@@ -18,6 +23,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 
 import {
   PRO_CHECKOUT_EXPIRY_MARGIN_SECONDS,
+  PRO_CREATE_TIMEOUT_MS,
   PRO_PAYMENT_LINK_HOLD_MINUTES,
 } from '@/constants/proCreate'
 import { paymentLinkDueAt } from '@/utils/proCreate'
@@ -40,6 +46,7 @@ type ReplayedBooking = Pick<
   | 'city'
   | 'postcode'
   | 'country_code'
+  | 'created_at'
 >
 
 type CreatedBooking = {
@@ -78,7 +85,9 @@ const MILLISECONDS_PER_SECOND: number = 1000
 const PAYMENT_LINK_CANCEL_PATH: string = '/payment-link'
 
 const REPLAYED_BOOKING_COLUMNS =
-  'status, payment_method, stripe_checkout_session_id, expires_at, plan, scheduled_date, address, city, postcode, country_code'
+  'status, payment_method, stripe_checkout_session_id, expires_at, plan, scheduled_date, address, city, postcode, country_code, created_at'
+
+const SETTLED_STATUSES: BookingRow['status'][] = ['paid', 'completed', 'cancelled']
 
 const REJECTIONS: Record<CreateRefusal, ProRejection<ProCreateErrorCode>> = {
   invalid_input: { statusCode: 400, statusMessage: 'Invalid booking', code: 'invalidInput' },
@@ -115,6 +124,12 @@ const PAYMENT_LINK_FAILED: ProRejection<ProCreateErrorCode> = {
   statusCode: 502,
   statusMessage: 'Payment link creation failed',
   code: 'paymentLinkFailed',
+}
+
+const REQUEST_IN_PROGRESS: ProRejection<ProCreateErrorCode> = {
+  statusCode: 409,
+  statusMessage: 'Request in progress',
+  code: 'requestInProgress',
 }
 
 /**
@@ -211,7 +226,10 @@ const sendNewPaymentLink = async (
     expiresAt,
     successUrl: bookingPageUrl('fr', 'success'),
     cancelUrl: localizedSiteUrl('fr', PAYMENT_LINK_CANCEL_PATH),
-  }).catch(async (): Promise<never> => {
+  }).catch(async (error: unknown): Promise<never> => {
+    if (isCheckoutInProgress(error)) {
+      throw codedError(REQUEST_IN_PROGRESS)
+    }
     await logReleaseOutcome(client, target.bookingId)
     throw codedError(PAYMENT_LINK_FAILED)
   })
@@ -278,7 +296,7 @@ const finishReplayedBooking = async (
       isEmailSent: true,
     }
   }
-  if (booking.status === 'paid' || booking.status === 'completed') {
+  if (SETTLED_STATUSES.includes(booking.status)) {
     return {
       mode: 'payment_link',
       scheduledDate: booking.scheduled_date,
@@ -290,6 +308,9 @@ const finishReplayedBooking = async (
     throw codedError(PAYMENT_LINK_FAILED)
   }
   if (!booking.stripe_checkout_session_id) {
+    if (Date.now() - Date.parse(booking.created_at) < PRO_CREATE_TIMEOUT_MS) {
+      throw codedError(REQUEST_IN_PROGRESS)
+    }
     return sendNewPaymentLink(client, command, {
       bookingId: created.bookingId,
       amountCents: created.totalCents,
@@ -315,13 +336,17 @@ const finishReplayedBooking = async (
 /**
  * Finishes a booking the admin just created: for a payment link, opens its Checkout session
  * (released when Stripe fails) and emails the link; for an offline payment, emails the
- * confirmation. A replayed request sends nothing again: it returns the booking already created,
- * and only opens and emails its payment link when the first request stopped before.
+ * confirmation. A replayed request sends nothing again: it returns the booking already created
+ * (paid, completed or cancelled included), and only opens and emails its payment link when the
+ * first request stopped before. While the first request may still be opening that link (booking
+ * younger than the client timeout, or Stripe still busy with the same idempotency key), the replay
+ * does nothing and answers 409 `requestInProgress`.
  * @param client - Supabase client using the secret key
  * @param command - Customer and validated request
  * @returns The created booking, as answered to BINOVYA Pro
- * @throws Same errors as `createAdminBooking`, and 502 `paymentLinkFailed` when the Checkout
- * session cannot be opened or a replayed payment link booking was released
+ * @throws Same errors as `createAdminBooking`, 502 `paymentLinkFailed` when the Checkout session
+ * cannot be opened or a replayed payment link booking was released, 409 `requestInProgress` when
+ * a concurrent request is still opening it
  */
 export const createAndNotifyAdminBooking = async (
   client: SupabaseClient<Database>,

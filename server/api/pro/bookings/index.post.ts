@@ -4,6 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ZodError } from 'zod'
 
 import { serverSupabaseServiceRole } from '#supabase/server'
+import { resolveAdminBookingCustomer } from '~~/server/utils/proCreateCustomer'
 
 const MAX_BODY_BYTES = 8 * 1024
 
@@ -31,6 +32,6 @@ export default defineEventHandler(async (event): Promise<ProCreateResponse> => {
   }
 
   const client: SupabaseClient<Database> = serverSupabaseServiceRole<Database>(event)
-  const customerId: string = await findOrCreateCustomer(client, body.data.contact)
+  const customerId: string = await resolveAdminBookingCustomer(client, body.data)
   return createAndNotifyAdminBooking(client, { customerId, request: body.data })
 })

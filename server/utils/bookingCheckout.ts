@@ -1,5 +1,5 @@
 import { bookingInvoiceCreation } from './bookingInvoice'
-import { type BillingAddress, ensureStripeCustomer } from './stripeCustomer'
+import { type BillingAddress, type BillingCustomer, ensureStripeCustomer } from './stripeCustomer'
 
 import type { BookingLocale, BookingPlan, CheckoutOutcome } from '@/types/booking'
 import type { Database } from '@/types/database.types'
@@ -11,6 +11,10 @@ import enBooking from '~~/i18n/locales/en/booking'
 import frBooking from '~~/i18n/locales/fr/booking'
 
 const CHECKOUT_LIFETIME_SECONDS = 31 * 60
+
+const IDEMPOTENCY_KEY_IN_USE: string = 'idempotency_key_in_use'
+
+const CHECKOUT_IN_PROGRESS_STATUS: number = 409
 
 type CheckoutMessages = Pick<typeof frBooking, 'plans' | 'checkout'>
 
@@ -35,8 +39,18 @@ export type BookingCheckoutInput = {
 }
 
 type CustomerCheckoutInput = BookingCheckoutInput & {
-  stripeCustomerId: string
+  customer: BillingCustomer
 }
+
+type AddressCollectionParams = Pick<
+  Stripe.Checkout.SessionCreateParams,
+  'billing_address_collection' | 'customer_update'
+>
+
+const addressCollection = (customer: BillingCustomer): AddressCollectionParams =>
+  customer.hasAddress
+    ? {}
+    : { billing_address_collection: 'required', customer_update: { address: 'auto' } }
 
 const lineDescription = (input: BookingCheckoutInput): string =>
   CHECKOUT_MESSAGES[input.locale].checkout.lineDescription
@@ -75,7 +89,9 @@ export const bookingPageUrl = (locale: BookingLocale, outcome: CheckoutOutcome):
 /**
  * Opens a Stripe Checkout session for a booking that holds its slot, billed to the Stripe customer
  * of its profile, with an invoice created once the payment succeeds. The intervention address is
- * in the line and invoice descriptions, so an invoice names the property it pays for. The session
+ * in the line and invoice descriptions, so an invoice names the property it pays for. A customer
+ * without a billing address types one, saved on the customer before its invoice; saved cards are
+ * neither offered for saving nor shown, since anyone may open a payment for a profile. The session
  * expires before the hold, so a payment can never complete on a slot that was already released:
  * after 31 minutes by default, or at `expiresAt` (Unix seconds, 30 minutes to 24 hours after
  * creation, see Stripe) for a longer hold. The customer returns to the booking page, or to
@@ -92,7 +108,12 @@ const createBookingCheckout = (
       mode: 'payment',
       allowed_payment_method_types: ['card'],
       client_reference_id: input.bookingId,
-      customer: input.stripeCustomerId,
+      customer: input.customer.customerId,
+      ...addressCollection(input.customer),
+      saved_payment_method_options: {
+        payment_method_save: 'disabled',
+        allow_redisplay_filters: ['always'],
+      },
       locale: input.locale,
       expires_at: input.expiresAt ?? Math.floor(Date.now() / 1000) + CHECKOUT_LIFETIME_SECONDS,
       line_items: [
@@ -121,13 +142,28 @@ const openCheckout = async (
   client: SupabaseClient<Database>,
   checkout: BookingCheckoutInput,
 ): Promise<Stripe.Checkout.Session> => {
-  const stripeCustomerId: string = await ensureStripeCustomer(client, {
+  const customer: BillingCustomer = await ensureStripeCustomer(client, {
     profileId: checkout.profileId,
-    address: checkout.address,
+    bookingId: checkout.bookingId,
     locale: checkout.locale,
   })
-  return createBookingCheckout({ ...checkout, stripeCustomerId })
+  return createBookingCheckout({ ...checkout, customer })
 }
+
+const isKeyInUse = (error: unknown): boolean =>
+  typeof error === 'object' &&
+  error !== null &&
+  'code' in error &&
+  error.code === IDEMPOTENCY_KEY_IN_USE
+
+/**
+ * Tells whether `attachBookingCheckout` refused because another request is still opening the
+ * Checkout session of the same booking, in which case the booking was left untouched.
+ * @param error - Error thrown by `attachBookingCheckout`
+ * @returns True when the session is being opened by a concurrent request
+ */
+export const isCheckoutInProgress = (error: unknown): boolean =>
+  isError(error) && error.statusCode === CHECKOUT_IN_PROGRESS_STATUS
 
 /**
  * Releases the slot of an unpaid booking. A paid booking is never touched.
@@ -152,22 +188,32 @@ export const expireUnpaidBooking = async (
  * Opens the Checkout session of a booking that holds its slot, billed to the Stripe customer of
  * its profile (created on the first payment, see `ensureStripeCustomer`), and stores it on the
  * booking. When the customer or the session cannot be created, or the session cannot be stored,
- * the session is expired and the slot released.
+ * the session is expired and the slot released, except when a concurrent request is still opening
+ * the session of the same booking (Stripe `idempotency_key_in_use`): that one finishes the job.
  * @param client - Supabase client using the secret key
  * @param checkout - Booking, profile, amount, plan, date, address and optional expiry and return
  * pages
  * @returns URL of the Checkout page
- * @throws 502 when Stripe refuses the customer or the session, 500 when it cannot be stored
+ * @throws 502 when Stripe refuses the customer or the session, 409 when a concurrent request is
+ * opening it (see `isCheckoutInProgress`), 500 when it cannot be stored
  */
 export const attachBookingCheckout = async (
   client: SupabaseClient<Database>,
   checkout: BookingCheckoutInput,
 ): Promise<string> => {
   const { bookingId } = checkout
-  const session: Stripe.Checkout.Session = await openCheckout(client, checkout).catch(async () => {
-    await expireUnpaidBooking(client, bookingId)
-    throw createError({ statusCode: 502, statusMessage: 'Checkout creation failed' })
-  })
+  const session: Stripe.Checkout.Session = await openCheckout(client, checkout).catch(
+    async (error: unknown): Promise<never> => {
+      if (isKeyInUse(error)) {
+        throw createError({
+          statusCode: CHECKOUT_IN_PROGRESS_STATUS,
+          statusMessage: 'Checkout creation in progress',
+        })
+      }
+      await expireUnpaidBooking(client, bookingId)
+      throw createError({ statusCode: 502, statusMessage: 'Checkout creation failed' })
+    },
+  )
 
   const { error } = await client
     .from('bookings')

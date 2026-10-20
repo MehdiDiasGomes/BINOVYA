@@ -21,6 +21,7 @@ export type ProCreateErrorCode =
   | 'pastDate'
   | 'tooFar'
   | 'paymentLinkFailed'
+  | 'requestInProgress'
 
 export type ProCreateContact = Omit<BookingContact, 'phoneCountryCode'>
 
@@ -51,6 +52,8 @@ export type ProCreateResponse = {
   isReplay: boolean
 }
 
+export type ProCreatePrefillStatus = 'none' | 'loading' | 'loaded' | 'error'
+
 export type ProCreatePrefill = {
   contact: ProCreateContact
   address: BookingAddress
@@ -75,6 +78,8 @@ export type ProPaymentLinkErrorCode =
 export type ProPaymentLinkResponse = {
   bookingId: string
 }
+
+export type ProBinCounts = Pick<ProCreateDraft, 'smallBinCount' | 'largeBinCount'>
 
 export type ProCreateDraft = {
   requestId: string

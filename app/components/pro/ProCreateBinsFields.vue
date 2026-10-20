@@ -77,7 +77,12 @@
 
 <script setup lang="ts">
 import type { BookingPlan, ServiceSlug } from '@/types/booking'
-import type { ProCreateDraft, ProPriceSource, ProRadioOption } from '@/types/proCreate'
+import type {
+  ProBinCounts,
+  ProCreateDraft,
+  ProPriceSource,
+  ProRadioOption,
+} from '@/types/proCreate'
 
 import { BOOKING_SERVICES } from '@/constants/booking'
 import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS } from '@/constants/form'
@@ -113,9 +118,24 @@ const maxBins: ComputedRef<number> = computed(() =>
   draft.value.priceSource === 'quote' ? PRO_QUOTE_MAX_BINS_PER_SERVICE : PRO_MAX_BINS_PER_SERVICE,
 )
 
+const quoteCounts: Ref<ProBinCounts | null> = ref(null)
+
 const clampCounts = (): void => {
-  draft.value.smallBinCount = Math.min(draft.value.smallBinCount, maxBins.value)
-  draft.value.largeBinCount = Math.min(draft.value.largeBinCount, maxBins.value)
+  const { smallBinCount, largeBinCount } = draft.value
+  if (smallBinCount <= maxBins.value && largeBinCount <= maxBins.value) {
+    return
+  }
+  quoteCounts.value = { smallBinCount, largeBinCount }
+  draft.value.smallBinCount = Math.min(smallBinCount, maxBins.value)
+  draft.value.largeBinCount = Math.min(largeBinCount, maxBins.value)
+}
+
+const restoreQuoteCounts = (): void => {
+  if (quoteCounts.value) {
+    draft.value.smallBinCount = quoteCounts.value.smallBinCount
+    draft.value.largeBinCount = quoteCounts.value.largeBinCount
+    quoteCounts.value = null
+  }
 }
 
 const isPriceSource = (value: string): value is ProPriceSource =>
@@ -126,7 +146,11 @@ const priceSource: WritableComputedRef<string> = computed({
   set: (value: string): void => {
     if (isPriceSource(value)) {
       draft.value.priceSource = value
-      clampCounts()
+      if (value === 'quote') {
+        restoreQuoteCounts()
+      } else {
+        clampCounts()
+      }
     }
   },
 })
@@ -141,11 +165,15 @@ const priceSourceOptions: ComputedRef<ProRadioOption[]> = computed(() =>
   ),
 )
 
-const binsHint: ComputedRef<string> = computed(() =>
-  t(draft.value.priceSource === 'quote' ? 'pro.create.bins.quoteHint' : 'pro.create.bins.hint', {
-    max: maxBins.value,
-  }),
-)
+const binsHint: ComputedRef<string> = computed(() => {
+  if (draft.value.priceSource === 'quote') {
+    return t('pro.create.bins.quoteHint', { max: maxBins.value })
+  }
+  const hint: string = t('pro.create.bins.hint', { max: maxBins.value })
+  return quoteCounts.value
+    ? `${hint} ${t('pro.create.bins.clampedHint', { max: maxBins.value })}`
+    : hint
+})
 
 const binsDescribedBy: ComputedRef<string | undefined> = computed(() =>
   describedByIds(PRO_CREATE_FIELD_IDS.bins, binsHint.value, props.binsError),
@@ -155,6 +183,7 @@ const countOf = (slug: ServiceSlug): number =>
   slug === 'small-bin' ? draft.value.smallBinCount : draft.value.largeBinCount
 
 const setCount = (slug: ServiceSlug, count: number): void => {
+  quoteCounts.value = null
   if (slug === 'small-bin') {
     draft.value.smallBinCount = count
   } else {

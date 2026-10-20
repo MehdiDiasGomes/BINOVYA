@@ -43,12 +43,13 @@ type InterventionRow = Pick<
   | 'created_by_admin'
   | 'expires_at'
   | 'price_source'
+  | 'stripe_checkout_session_id'
 >
 
 type CustomerRow = Pick<Tables['profiles']['Row'], 'id' | 'first_name' | 'last_name' | 'phone'>
 
 const INTERVENTION_COLUMNS =
-  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos, payment_method, created_by_admin, expires_at, price_source'
+  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos, payment_method, created_by_admin, expires_at, price_source, stripe_checkout_session_id'
 
 const CUSTOMER_COLUMNS = 'id, first_name, last_name, phone'
 
@@ -58,10 +59,20 @@ const unavailable = (): Error =>
 const isProStatus = (status: string): status is ProBookingStatus =>
   (PRO_LIST_STATUSES as string[]).includes(status)
 
-const ADMIN_ONLY_FILTER: string = `status.not.in.(${PRO_ADMIN_ONLY_STATUSES.join(',')}),created_by_admin.is.true`
+const ADMIN_ONLY_FILTER: string = [
+  `status.not.in.(${PRO_ADMIN_ONLY_STATUSES.join(',')})`,
+  'and(status.eq.pending_payment,created_by_admin.is.true)',
+  'and(status.eq.expired,created_by_admin.is.true,stripe_checkout_session_id.not.is.null)',
+].join(',')
 
-const isShownInPro = (row: InterventionRow): boolean =>
-  !(PRO_ADMIN_ONLY_STATUSES as string[]).includes(row.status) || row.created_by_admin
+const isShownInPro = (row: InterventionRow): boolean => {
+  if (!(PRO_ADMIN_ONLY_STATUSES as string[]).includes(row.status)) {
+    return true
+  }
+  return row.status === 'expired'
+    ? row.created_by_admin && row.stripe_checkout_session_id !== null
+    : row.created_by_admin
+}
 
 const toCustomer = (row: CustomerRow): ProCustomer => ({
   firstName: row.first_name,
@@ -168,8 +179,9 @@ export const loadDayInterventions = async (
 
 /**
  * Loads one intervention with its customer and photo flags: paid, completed, cancelled, awaiting
- * the payment of a link sent by BINOVYA, or whose link expired. A pending or expired online
- * booking, still in or abandoned in the customer's Checkout, is not shown. Relies on RLS: the
+ * the payment of a link sent by BINOVYA, or whose sent link expired. A pending or expired online
+ * booking, still in or abandoned in the customer's Checkout, and an admin booking released before
+ * its link could be opened, are not shown. Relies on RLS: the
  * client must carry an admin session. The internal note is not read here, see `loadAdminNote`.
  * @param client - Supabase client of the logged-in admin
  * @param bookingId - Identifier of the booking

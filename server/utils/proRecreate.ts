@@ -46,6 +46,7 @@ const loadExpiredAdminBooking = async (
     .eq('id', bookingId)
     .eq('status', 'expired')
     .eq('created_by_admin', true)
+    .not('stripe_checkout_session_id', 'is', null)
     .maybeSingle()
   if (error) {
     throw unavailable()
@@ -98,8 +99,8 @@ const toPrefill = (booking: RecreatedBooking, customer: RecreatedCustomer): ProC
 /**
  * Loads what BINOVYA Pro needs to create again an intervention whose payment link expired: its
  * customer, address (signed again, as if just chosen in the address search), bins, plan,
- * collection days, quote price and internal note. Only a booking created by the admin and
- * expired qualifies.
+ * collection days, quote price and internal note. Only a booking created by the admin whose
+ * payment link was sent and expired qualifies, like the ones BINOVYA Pro lists.
  * @param client - Supabase client using the secret key, after `requireAdmin`
  * @param bookingId - Identifier of the expired booking
  * @returns Prefill of the intervention form, or null when no such booking exists

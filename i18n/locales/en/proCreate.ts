@@ -22,6 +22,8 @@ export default {
       legend: 'Bins to clean',
       hint: 'Up to {max} bins of each size. Beyond that, or for a small and a large bin together, choose « Quote ».',
       quoteHint: 'Up to {max} bins of each size, at the quote price.',
+      clampedHint:
+        'The quantities entered for the quote were reduced to {max} per size. Switch back to « Quote » to get them back.',
     },
     priceSource: {
       legend: 'Pricing',
@@ -109,6 +111,8 @@ export default {
       tooFar: 'Choose a date no later than {date}.',
       paymentLinkFailed:
         'The payment link could not be created: the intervention was not saved. Try again in a moment.',
+      requestInProgress:
+        'Creation in progress: the intervention is being saved. Reload the list of interventions in a moment.',
       generic: 'The intervention could not be created. Try again in a moment.',
       timeout:
         'The answer is taking long. The intervention may have been created: check the list of interventions before trying again.',

@@ -16,8 +16,13 @@ export type BillingAddress = Pick<AddressDetails, 'label' | 'city' | 'postcode' 
 
 export type StripeCustomerRequest = {
   profileId: string
-  address: BillingAddress
+  bookingId: string
   locale: BookingLocale
+}
+
+export type BillingCustomer = {
+  customerId: string
+  hasAddress: boolean
 }
 
 const BILLING_PROFILE_COLUMNS = 'id, email, first_name, last_name, stripe_customer_id'
@@ -26,19 +31,6 @@ const RESOURCE_MISSING: string = 'resource_missing'
 
 const customerUnavailable = (): Error =>
   createError({ statusCode: 500, statusMessage: 'Billing customer unavailable' })
-
-const localitySuffix = (address: BillingAddress): string =>
-  address.countryCode === 'LU'
-    ? `, L-${address.postcode} ${address.city}`
-    : ` ${address.postcode} ${address.city}`
-
-const streetLine = (address: BillingAddress): string => {
-  const suffix: string = localitySuffix(address)
-  const street: string = address.label.endsWith(suffix)
-    ? address.label.slice(0, -suffix.length).trim()
-    : ''
-  return street || address.label
-}
 
 const loadBillingProfile = async (
   client: SupabaseClient<Database>,
@@ -76,6 +68,11 @@ const storeCustomerId = async (
   if (!stored) {
     throw customerUnavailable()
   }
+  if (stored !== customerId) {
+    await useStripe()
+      .customers.del(customerId)
+      .catch((): void => console.error(`Unused Stripe customer kept for profile ${profileId}`))
+  }
   return stored
 }
 
@@ -87,40 +84,50 @@ const createStripeCustomer = (
     {
       name: `${profile.first_name.trim()} ${profile.last_name.trim()}`,
       email: profile.email,
-      address: {
-        line1: streetLine(request.address),
-        postal_code: request.address.postcode,
-        city: request.address.city,
-        country: request.address.countryCode,
-      },
       preferred_locales: [request.locale],
       metadata: { profile_id: profile.id },
     },
-    { idempotencyKey: `profile-customer-${profile.id}` },
+    { idempotencyKey: `profile-customer-${profile.id}-${request.bookingId}` },
   )
+
+const hasBillingAddress = async (customerId: string): Promise<boolean> => {
+  const customer: Stripe.Customer | Stripe.DeletedCustomer | null = await useStripe()
+    .customers.retrieve(customerId)
+    .catch((): null => null)
+  return Boolean(customer && !customer.deleted && customer.address?.line1)
+}
 
 /**
  * Returns the Stripe customer billed for every booking of a BINOVYA customer, creating it on the
- * first payment with the name and email of the profile and the address of that booking. An
- * existing Stripe customer is never updated: an unauthenticated booking request must not rewrite
- * billing details, like the profile. The id is stored once (`stripe_customer_id` still empty);
- * when a concurrent request stored one first, that one is used.
+ * first payment with the name and email of the profile only. Its billing address is never taken
+ * from a booking request, which needs no authentication: the payer types it in Checkout, which
+ * saves it on the customer (see `hasAddress`). An existing Stripe customer is never updated here.
+ * The id is stored once (`stripe_customer_id` still empty); when a concurrent booking stored one
+ * first, that one is used and the customer just created is deleted.
  * @param client - Supabase client using the secret key
- * @param request - Profile, address of the booking and language of the invoices
- * @returns Stripe customer id (`cus_...`)
+ * @param request - Profile, booking opening the payment and language of the invoices
+ * @returns Stripe customer id (`cus_...`) and whether it already has a billing address (false
+ * when Stripe cannot tell)
  * @throws 500 when the profile cannot be read or the id cannot be stored, the Stripe error when
  * the customer cannot be created
  */
 export const ensureStripeCustomer = async (
   client: SupabaseClient<Database>,
   request: StripeCustomerRequest,
-): Promise<string> => {
+): Promise<BillingCustomer> => {
   const profile: BillingProfile = await loadBillingProfile(client, request.profileId)
   if (profile.stripe_customer_id) {
-    return profile.stripe_customer_id
+    return {
+      customerId: profile.stripe_customer_id,
+      hasAddress: await hasBillingAddress(profile.stripe_customer_id),
+    }
   }
   const customer: Stripe.Customer = await createStripeCustomer(profile, request)
-  return storeCustomerId(client, profile.id, customer.id)
+  const customerId: string = await storeCustomerId(client, profile.id, customer.id)
+  return {
+    customerId,
+    hasAddress: customerId === customer.id ? false : await hasBillingAddress(customerId),
+  }
 }
 
 const isMissingCustomer = (error: unknown): boolean =>

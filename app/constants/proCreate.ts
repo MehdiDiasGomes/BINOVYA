@@ -4,6 +4,7 @@ import type {
   ProCreateField,
   ProCreateSection,
   ProPaymentLinkErrorCode,
+  ProCreatePrefillStatus,
   ProPriceSource,
 } from '@/types/proCreate'
 
@@ -31,6 +32,14 @@ export const PRO_CHECKOUT_EXPIRY_MARGIN_SECONDS: number = 60
 
 export const PRO_RECREATE_QUERY: string = 'from'
 
+export const UUID_PATTERN: RegExp = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
+
+export const PRO_RECREATE_STATUS_KEYS: Record<Exclude<ProCreatePrefillStatus, 'none'>, string> = {
+  loading: 'pro.create.recreate.loading',
+  loaded: 'pro.create.recreate.loaded',
+  error: 'pro.create.recreate.loadError',
+}
+
 export const PRO_BOOKING_MODES: [ProBookingMode, ...ProBookingMode[]] = ['payment_link', 'offline']
 
 export const PRO_PRICE_SOURCES: [ProPriceSource, ...ProPriceSource[]] = ['grid', 'quote']
@@ -47,6 +56,7 @@ export const PRO_CREATE_ERROR_CODES: ProCreateErrorCode[] = [
   'pastDate',
   'tooFar',
   'paymentLinkFailed',
+  'requestInProgress',
 ]
 
 export const PRO_PAYMENT_LINK_ERROR_CODES: ProPaymentLinkErrorCode[] = [

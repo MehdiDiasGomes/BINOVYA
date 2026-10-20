@@ -1,15 +1,9 @@
-import type { ProCreatePrefill } from '@/types/proCreate'
-import type {
-  ProCreateFormState,
-  ProCreatePrefillState,
-  ProCreatePrefillStatus,
-} from '@/types/proCreateForm'
+import type { ProCreatePrefill, ProCreatePrefillStatus } from '@/types/proCreate'
+import type { ProCreateFormState, ProCreatePrefillState } from '@/types/proCreateForm'
 
 import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
-import { PRO_RECREATE_QUERY } from '@/constants/proCreate'
+import { PRO_RECREATE_QUERY, PRO_RECREATE_STATUS_KEYS, UUID_PATTERN } from '@/constants/proCreate'
 import { prefilledProCreateDraft } from '@/utils/proCreate'
-
-const UUID_PATTERN: RegExp = /^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i
 
 /**
  * Fills the BINOVYA Pro intervention form from an intervention whose payment link expired, when
@@ -31,7 +25,7 @@ export const useProCreatePrefill = (form: ProCreateFormState): ProCreatePrefillS
     if (status.value === 'none') {
       return ''
     }
-    return t(`pro.create.recreate.${status.value}`, { name: customerName.value })
+    return t(PRO_RECREATE_STATUS_KEYS[status.value], { name: customerName.value })
   })
 
   const load = async (bookingId: string): Promise<void> => {

@@ -1,6 +1,11 @@
 import type { BookingAddress, BookingPlan } from '@/types/booking'
 import type { FocusTarget } from '@/types/button'
-import type { ProCreateDraft, ProCreateErrors, ProCreateField } from '@/types/proCreate'
+import type {
+  ProCreateDraft,
+  ProCreateErrors,
+  ProCreateField,
+  ProCreatePrefillStatus,
+} from '@/types/proCreate'
 import type { ComputedRef, Ref } from 'vue'
 
 export type ProCreateFormState = {
@@ -36,8 +41,6 @@ export type ProCreatedNoticeState = {
     announce: (text: string) => Promise<void>,
   ) => void
 }
-
-export type ProCreatePrefillStatus = 'none' | 'loading' | 'loaded' | 'error'
 
 export type ProCreatePrefillState = {
   status: Readonly<Ref<ProCreatePrefillStatus>>
