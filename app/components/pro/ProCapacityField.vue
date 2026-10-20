@@ -1,77 +1,100 @@
 <template>
-  <div>
-    <NumberField
-      :id="props.id"
-      :aria-labelledby="labelId"
-      :model-value="props.modelValue"
-      :min="props.min"
-      :max="props.max"
-      :step="1"
-      :format-options="CAPACITY_FORMAT"
-      :locale="locale"
-      disable-wheel-change
-      @update:model-value="update"
-    >
-      <span :id="labelId" class="text-sm font-bold text-ink">{{ props.label }}</span>
-      <NumberFieldContent
-        @keydown.capture="handleKeydownCapture"
-        @pointerdown.capture="handlePointerdownCapture"
+  <div class="@container">
+    <div class="grid grid-cols-[minmax(0,1fr)_auto] gap-x-3">
+      <NumberField
+        :id="props.id"
+        :aria-labelledby="labelId"
+        :model-value="props.modelValue"
+        :min="props.min"
+        :max="props.max"
+        :step="1"
+        :format-options="CAPACITY_FORMAT"
+        :locale="locale"
+        class="contents"
+        disable-wheel-change
+        @update:model-value="update"
       >
-        <NumberFieldDecrement
-          :aria-label="
-            $t('pro.availability.capacityField.decrease', { context: props.contextLabel })
+        <span
+          :id="labelId"
+          :class="
+            cn(
+              'col-span-2 text-sm font-bold text-ink @[17rem]:col-span-1 @[17rem]:row-start-1',
+              props.isNullable && '@[17rem]:flex @[17rem]:min-h-11 @[17rem]:items-center',
+            )
           "
-          :class="CAPACITY_STEP_BUTTON_CLASS"
-        />
-        <NumberFieldInput
-          :aria-labelledby="labelId"
-          :aria-invalid="props.error ? 'true' : undefined"
-          :aria-describedby="describedBy"
-          :aria-roledescription="undefined"
-          :placeholder="rulePlaceholder"
-          :class="cn(FIELD_INPUT_CLASS, 'px-12 text-center tabular-nums')"
-          @input="commitTypedText"
-          @compositionend="commitTypedText"
-        />
-        <NumberFieldIncrement
-          :aria-label="
-            $t('pro.availability.capacityField.increase', { context: props.contextLabel })
-          "
-          :class="CAPACITY_STEP_BUTTON_CLASS"
-        />
-      </NumberFieldContent>
-    </NumberField>
-    <span v-if="hasHint" :id="`${props.id}-hint`" :class="cn(FIELD_HINT_CLASS, 'text-pretty')">
-      <span v-if="isClosed" class="block font-bold">
-        {{ $t('pro.availability.capacityField.closed') }}
-      </span>
-      <span v-if="props.hint" class="block">{{ props.hint }}</span>
-    </span>
-    <AnimatePresence :initial="false">
-      <Motion
-        v-if="canFollowRule"
-        key="follow-rule"
-        as="div"
-        :initial="{ opacity: 0, y: STEP_OFFSET / 2 }"
-        :animate="{ opacity: 1, y: 0 }"
-        :exit="{ opacity: 0 }"
-        :transition="STEP_TRANSITION"
-        class="mt-2"
-      >
-        <AppButton
-          variant="secondary"
-          size="sm"
-          class="w-full px-3 text-[13px] sm:w-auto"
-          @click="followRule"
         >
-          {{ $t('pro.availability.capacityField.followRule') }}
-        </AppButton>
-      </Motion>
-    </AnimatePresence>
-    <span v-if="props.error" :id="`${props.id}-error`" role="alert" :class="FIELD_ERROR_CLASS">
-      <Icon name="CircleAlert" :size="14" aria-hidden="true" />
-      {{ props.error }}
-    </span>
+          {{ props.label }}
+        </span>
+        <NumberFieldContent
+          class="col-span-2 mt-1.5 @[17rem]:row-start-2"
+          @keydown.capture="handleKeydownCapture"
+          @pointerdown.capture="handlePointerdownCapture"
+        >
+          <NumberFieldDecrement
+            :aria-label="
+              $t('pro.availability.capacityField.decrease', { context: props.contextLabel })
+            "
+            :class="CAPACITY_STEP_BUTTON_CLASS"
+          />
+          <NumberFieldInput
+            :aria-labelledby="labelId"
+            :aria-invalid="props.error ? 'true' : undefined"
+            :aria-describedby="describedBy"
+            :aria-roledescription="undefined"
+            :placeholder="rulePlaceholder"
+            :class="cn(FIELD_INPUT_CLASS, 'px-12 text-center tabular-nums')"
+            @input="commitTypedText"
+            @compositionend="commitTypedText"
+          />
+          <NumberFieldIncrement
+            :aria-label="
+              $t('pro.availability.capacityField.increase', { context: props.contextLabel })
+            "
+            :class="CAPACITY_STEP_BUTTON_CLASS"
+          />
+        </NumberFieldContent>
+      </NumberField>
+      <span
+        v-if="hasHint"
+        :id="`${props.id}-hint`"
+        :class="cn(FIELD_HINT_CLASS, 'col-span-2 text-pretty')"
+      >
+        <span v-if="isClosed" class="block font-bold">
+          {{ $t('pro.availability.capacityField.closed') }}
+        </span>
+        <span v-if="props.hint" class="block">{{ props.hint }}</span>
+      </span>
+      <AnimatePresence :initial="false">
+        <Motion
+          v-if="canFollowRule"
+          key="follow-rule"
+          as="div"
+          :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
+          :animate="{ opacity: 1, y: 0 }"
+          :exit="{ opacity: 0 }"
+          :transition="STEP_TRANSITION"
+          class="col-span-2 mt-2 @[17rem]:col-span-1 @[17rem]:col-start-2 @[17rem]:row-start-1 @[17rem]:mt-0 @[17rem]:self-center"
+        >
+          <AppButton
+            variant="secondary"
+            size="sm"
+            class="w-full px-3 text-[13px] @[17rem]:w-auto"
+            @click="followRule"
+          >
+            {{ $t('pro.availability.capacityField.followRule') }}
+          </AppButton>
+        </Motion>
+      </AnimatePresence>
+      <span
+        v-if="props.error"
+        :id="`${props.id}-error`"
+        role="alert"
+        :class="cn(FIELD_ERROR_CLASS, 'col-span-2')"
+      >
+        <Icon name="CircleAlert" :size="14" aria-hidden="true" />
+        {{ props.error }}
+      </span>
+    </div>
   </div>
 </template>
 
@@ -83,8 +106,8 @@ import {
   NumberFieldIncrement,
   NumberFieldInput,
 } from '@/components/ui/number-field'
-import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, FIELD_INPUT_CLASS } from '@/constants/booking'
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, FIELD_INPUT_CLASS } from '@/constants/form'
+import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { PRO_DAY_CAPACITY_MAX } from '@/constants/pro'
 import { cn } from '@/lib/utils'
 import { describedByIds } from '@/utils/field'

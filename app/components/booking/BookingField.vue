@@ -29,7 +29,7 @@
 <script setup lang="ts">
 import type { HTMLAttributes } from 'vue'
 
-import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, FIELD_INPUT_CLASS } from '@/constants/booking'
+import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, FIELD_INPUT_CLASS } from '@/constants/form'
 import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(

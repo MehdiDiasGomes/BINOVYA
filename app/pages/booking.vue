@@ -106,7 +106,12 @@
             <p
               v-if="visibleErrorKey"
               role="alert"
-              class="mt-6 flex items-start gap-2 text-sm font-bold leading-relaxed text-destructive"
+              :class="
+                cn(
+                  'mt-6 flex items-start gap-2 text-sm font-bold leading-relaxed',
+                  ERROR_TEXT_TONE_CLASS,
+                )
+              "
             >
               <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
               {{ $t(visibleErrorKey) }}
@@ -169,7 +174,9 @@ import {
   BOOKING_STEPS,
   BOOKING_SUBMIT_ERROR_KEYS,
 } from '@/constants/booking'
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { cn } from '@/lib/utils'
 
 definePageMeta({
   layout: 'default',

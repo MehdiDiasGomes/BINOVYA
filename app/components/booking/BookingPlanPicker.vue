@@ -43,7 +43,11 @@
       </label>
     </div>
 
-    <p v-if="hasGridError" role="alert" class="mt-3 text-sm font-bold text-destructive">
+    <p
+      v-if="hasGridError"
+      role="alert"
+      :class="cn('mt-3 text-sm font-bold', ERROR_TEXT_TONE_CLASS)"
+    >
       {{ $t('booking.plans.gridError') }}
     </p>
   </fieldset>
@@ -53,6 +57,8 @@
 import type { BookingPlan } from '@/types/booking'
 
 import { BOOKING_PLANS } from '@/constants/booking'
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
+import { cn } from '@/lib/utils'
 
 const { locale } = useI18n()
 const { draft } = useBookingDraft()

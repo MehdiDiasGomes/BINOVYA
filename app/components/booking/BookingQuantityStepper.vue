@@ -15,7 +15,7 @@
           :key="props.modelValue"
           as="span"
           aria-hidden="true"
-          :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
           :animate="{ opacity: 1, y: 0 }"
           :transition="STEP_TRANSITION"
           class="inline-block"
@@ -41,7 +41,7 @@
 </template>
 
 <script setup lang="ts">
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 const props = withDefaults(
   defineProps<{

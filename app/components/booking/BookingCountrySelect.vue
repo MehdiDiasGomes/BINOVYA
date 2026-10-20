@@ -44,13 +44,8 @@ import { SelectRoot } from 'reka-ui'
 
 import type { CountryCode } from '@/types/booking'
 
-import {
-  COUNTRY_CODES,
-  COUNTRY_DIAL_CODES,
-  COUNTRY_FLAG_SOURCES,
-  FLOATING_PANEL_CLASS,
-  SELECT_ITEM_CLASS,
-} from '@/constants/booking'
+import { COUNTRY_CODES, COUNTRY_DIAL_CODES, COUNTRY_FLAG_SOURCES } from '@/constants/booking'
+import { FLOATING_PANEL_CLASS, SELECT_ITEM_CLASS } from '@/constants/form'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(

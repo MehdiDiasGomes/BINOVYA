@@ -43,9 +43,9 @@
           v-if="isQuoteRequired"
           key="quote"
           role="status"
-          :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
           :animate="{ opacity: 1, y: 0 }"
-          :exit="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :exit="{ opacity: 0, y: -FEEDBACK_OFFSET }"
           :transition="STEP_TRANSITION"
           class="mt-4 flex items-start gap-3 rounded-xl border border-primary/30 bg-paper-2 p-4 text-sm text-ink"
         >
@@ -87,7 +87,7 @@
 
 <script setup lang="ts">
 import { BOOKING_SERVICES, MAX_QUANTITY_PER_SERVICE } from '@/constants/booking'
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
 
 const localePath = useLocalePath()

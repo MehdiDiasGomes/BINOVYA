@@ -23,11 +23,7 @@
       </label>
     </div>
 
-    <p
-      v-if="props.error"
-      :id="`${props.id}-error`"
-      class="mt-2 flex items-center gap-1.5 text-[13px] font-bold text-destructive"
-    >
+    <p v-if="props.error" :id="`${props.id}-error`" :class="cn(FIELD_ERROR_CLASS, 'mt-2')">
       <Icon name="CircleAlert" :size="14" aria-hidden="true" />
       {{ props.error }}
     </p>
@@ -37,7 +33,9 @@
 <script setup lang="ts">
 import type { QuoteEquipment } from '@/types/quote'
 
+import { FIELD_ERROR_CLASS } from '@/constants/form'
 import { QUOTE_EQUIPMENT } from '@/constants/quote'
+import { cn } from '@/lib/utils'
 
 const props = withDefaults(
   defineProps<{

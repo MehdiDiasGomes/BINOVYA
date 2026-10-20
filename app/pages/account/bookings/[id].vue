@@ -101,7 +101,7 @@
       </div>
 
       <div v-else role="alert" class="mt-6">
-        <p class="flex items-center gap-2 text-sm font-bold text-destructive">
+        <p :class="LOAD_ERROR_CLASS">
           <Icon name="CircleAlert" :size="16" aria-hidden="true" />
           {{ $t('account.detail.loadError') }}
         </p>
@@ -127,6 +127,7 @@ import type {
 import type { FocusTarget } from '@/types/button'
 
 import { BACK_LINK_CLASS } from '@/constants/buttons'
+import { LOAD_ERROR_CLASS } from '@/constants/feedback'
 import { DETAIL_ROW_CLASS } from '@/constants/mediaCard'
 import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION, REVEAL_STAGGER } from '@/constants/motion'
 import { bookingCardView, bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'

@@ -22,7 +22,7 @@
       />
     </label>
 
-    <p v-if="issue" role="alert" class="mt-2 text-[13px] font-bold text-destructive">
+    <p v-if="issue" role="alert" :class="cn('mt-2 text-[13px] font-bold', ERROR_TEXT_TONE_CLASS)">
       {{ $t(`quote.photos.issues.${issue}`, photoLimits) }}
     </p>
 
@@ -61,12 +61,14 @@
 <script setup lang="ts">
 import type { QuotePhotoIssue, QuotePhotoPreview } from '@/types/quote'
 
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import {
   QUOTE_MAX_PHOTO_BYTES,
   QUOTE_MAX_PHOTO_MEGABYTES,
   QUOTE_MAX_PHOTOS,
   QUOTE_PHOTO_MIME_TYPES,
 } from '@/constants/quote'
+import { cn } from '@/lib/utils'
 
 type PhotoLimits = {
   count: number

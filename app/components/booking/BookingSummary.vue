@@ -16,7 +16,7 @@
           <Motion
             :key="draft.address?.label ?? 'empty'"
             as="dd"
-            :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+            :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
             :animate="{ opacity: 1, y: 0 }"
             :transition="STEP_TRANSITION"
             class="mt-1 font-semibold text-ink"
@@ -38,7 +38,7 @@
                 v-for="service in selectedServices"
                 :key="service.slug"
                 as="li"
-                :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+                :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
                 :animate="{ opacity: 1, y: 0 }"
                 :transition="STEP_TRANSITION"
               >
@@ -62,7 +62,7 @@
           <Motion
             :key="draft.plan"
             as="dd"
-            :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+            :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
             :animate="{ opacity: 1, y: 0 }"
             :transition="STEP_TRANSITION"
             class="mt-1 font-semibold text-ink"
@@ -80,7 +80,7 @@
           <Motion
             :key="draft.date ?? 'empty'"
             as="dd"
-            :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+            :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
             :animate="{ opacity: 1, y: 0 }"
             :transition="STEP_TRANSITION"
             class="mt-1 font-semibold capitalize text-ink"
@@ -116,7 +116,7 @@
 import type { BookingService } from '@/types/booking'
 
 import { BOOKING_SERVICES } from '@/constants/booking'
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FEEDBACK_OFFSET, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 const { t, locale } = useI18n()
 const { draft } = useBookingDraft()

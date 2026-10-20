@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import type { CountryCode } from '@/types/booking'
 
-import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, INPUT_GROUP_FRAME_CLASS } from '@/constants/booking'
+import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, INPUT_GROUP_FRAME_CLASS } from '@/constants/form'
 import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(

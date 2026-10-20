@@ -19,12 +19,7 @@
           tabindex="-1"
           class="flex items-center gap-2 text-2xl font-black text-ink outline-none"
         >
-          <Icon
-            name="CircleAlert"
-            :size="26"
-            aria-hidden="true"
-            class="shrink-0 text-destructive"
-          />
+          <Icon name="CircleAlert" :size="26" aria-hidden="true" class="shrink-0 text-red-700" />
           {{ $t('account.confirm.failedTitle') }}
         </h1>
         <p class="mt-3 text-[15px] leading-relaxed text-ink/80">

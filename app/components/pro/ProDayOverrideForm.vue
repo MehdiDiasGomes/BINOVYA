@@ -37,7 +37,7 @@
             <Motion
               v-if="storedSectorText"
               key="stored-sector"
-              :initial="{ opacity: 0, y: STEP_OFFSET / 2 }"
+              :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
               :animate="{ opacity: 1, y: 0 }"
               :exit="{ opacity: 0 }"
               :transition="STEP_TRANSITION"
@@ -105,7 +105,7 @@
               v-if="hasOverride"
               key="remove-override"
               as="div"
-              :initial="{ opacity: 0, y: STEP_OFFSET / 2 }"
+              :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
               :animate="{ opacity: 1, y: 0 }"
               :exit="{ opacity: 0 }"
               :transition="STEP_TRANSITION"
@@ -134,8 +134,8 @@ import type { FocusTarget } from '@/types/button'
 import type { ProDayOverrideRequest, ProDayOverview, ProWeekdayRule } from '@/types/proAvailability'
 import type { z } from 'zod'
 
-import { FIELD_HINT_CLASS, FIELD_TEXTAREA_CLASS } from '@/constants/booking'
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FIELD_HINT_CLASS, FIELD_TEXTAREA_CLASS } from '@/constants/form'
+import { FEEDBACK_OFFSET, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import {
   PRO_AVAILABILITY_HORIZON_DAYS,
   PRO_DAY_CAPACITY_MAX,

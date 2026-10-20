@@ -80,11 +80,7 @@
         />
         <HoneypotField id="pro-login-website" v-model="website" />
 
-        <p
-          v-if="hasFailed"
-          role="alert"
-          class="flex items-center gap-2 text-sm font-bold text-destructive"
-        >
+        <p v-if="hasFailed" role="alert" :class="SUBMIT_ERROR_CLASS">
           <Icon name="CircleAlert" :size="16" aria-hidden="true" />
           {{ $t('pro.login.submitError') }}
         </p>
@@ -104,6 +100,7 @@ import {
   LOGIN_LINK_LIFETIME_HOURS,
   SESSION_EXPIRED_QUERY,
 } from '@/constants/account'
+import { SUBMIT_ERROR_CLASS } from '@/constants/feedback'
 import { HERO_ENTER_CLASS, POP_SPRING, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { PRO_ACCESS_DENIED_QUERY } from '@/constants/pro'
 
@@ -139,7 +136,7 @@ const activeNotice: ComputedRef<LoginNotice | null> = computed((): LoginNotice |
     }
   }
   if (route.query.access === PRO_ACCESS_DENIED_QUERY) {
-    return { icon: 'ShieldAlert', iconClass: 'text-destructive', text: t('pro.login.accessDenied') }
+    return { icon: 'ShieldAlert', iconClass: 'text-red-700', text: t('pro.login.accessDenied') }
   }
   return null
 })

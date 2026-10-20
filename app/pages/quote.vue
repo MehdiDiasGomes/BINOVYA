@@ -80,9 +80,9 @@
                 <Motion
                   v-if="hasBins"
                   key="bins"
-                  :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+                  :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
                   :animate="{ opacity: 1, y: 0 }"
-                  :exit="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+                  :exit="{ opacity: 0, y: -FEEDBACK_OFFSET }"
                   :transition="STEP_TRANSITION"
                   class="space-y-8"
                 >
@@ -125,11 +125,7 @@
               <Separator />
 
               <div class="space-y-4">
-                <p
-                  v-if="hasFailed"
-                  role="alert"
-                  class="flex items-center gap-2 text-sm font-bold text-destructive"
-                >
+                <p v-if="hasFailed" role="alert" :class="SUBMIT_ERROR_CLASS">
                   <Icon name="CircleAlert" :size="16" aria-hidden="true" />
                   {{ $t('quote.errors.submit') }}
                 </p>
@@ -163,8 +159,9 @@
 import type { BookingContact, ContactErrors } from '@/types/booking'
 import type { QuoteField } from '@/types/quote'
 
-import { FIELD_TEXTAREA_CLASS } from '@/constants/booking'
-import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { SUBMIT_ERROR_CLASS } from '@/constants/feedback'
+import { FIELD_TEXTAREA_CLASS } from '@/constants/form'
+import { FEEDBACK_OFFSET, HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { QUOTE_ADDRESS_INPUT_ID, QUOTE_COMMENT_MAX_LENGTH } from '@/constants/quote'
 import { cn } from '@/lib/utils'
 import { focusFirstElement } from '@/utils/focus'

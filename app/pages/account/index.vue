@@ -58,7 +58,7 @@
         </ul>
 
         <div v-else-if="error || !overview" role="alert" class="mt-4">
-          <p class="flex items-center gap-2 text-sm font-bold text-destructive">
+          <p :class="LOAD_ERROR_CLASS">
             <Icon name="CircleAlert" :size="16" aria-hidden="true" />
             {{ $t('account.dashboard.loadError') }}
           </p>
@@ -115,6 +115,7 @@ import {
   ACCOUNT_SKELETON_CARD_COUNT,
   ACCOUNT_SKELETON_MOBILE_CARD_COUNT,
 } from '@/constants/account'
+import { LOAD_ERROR_CLASS } from '@/constants/feedback'
 import {
   CONTENT_ENTER_OFFSET,
   CONTENT_ENTER_TRANSITION,

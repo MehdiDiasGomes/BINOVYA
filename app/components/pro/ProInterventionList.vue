@@ -49,7 +49,7 @@
     </ul>
 
     <div v-else-if="props.hasError" role="alert">
-      <p class="flex items-center gap-2 text-sm font-bold text-red-700">
+      <p :class="LOAD_ERROR_CLASS">
         <Icon name="CircleAlert" :size="16" aria-hidden="true" />
         {{ $t('pro.loadError') }}
       </p>
@@ -116,6 +116,7 @@ import {
   ACCOUNT_SKELETON_CARD_COUNT,
   ACCOUNT_SKELETON_MOBILE_CARD_COUNT,
 } from '@/constants/account'
+import { LOAD_ERROR_CLASS } from '@/constants/feedback'
 import { MEDIA_CARD_TONES } from '@/constants/mediaCard'
 import {
   CONTENT_ENTER_OFFSET,

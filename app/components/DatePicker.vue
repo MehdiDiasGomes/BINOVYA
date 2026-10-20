@@ -19,7 +19,7 @@
               cn(
                 FIELD_INPUT_CLASS,
                 'flex min-w-0 cursor-pointer items-center gap-2 text-left',
-                props.error ? 'border-destructive' : 'hover:border-primary',
+                props.error ? 'border-red-700' : 'hover:border-primary',
               )
             "
           >
@@ -156,6 +156,7 @@ import {
   CalendarPrevButton,
 } from '@/components/ui/calendar'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { CALENDAR_GRID_DAY_COUNT } from '@/constants/calendar'
 import {
   CALENDAR_CELL_CLASS,
   CALENDAR_CELL_WRAPPER_CLASS,
@@ -167,8 +168,7 @@ import {
   FIELD_ERROR_CLASS,
   FIELD_INPUT_CLASS,
   FLOATING_PANEL_CLASS,
-} from '@/constants/booking'
-import { CALENDAR_GRID_DAY_COUNT } from '@/constants/calendar'
+} from '@/constants/form'
 import { cn } from '@/lib/utils'
 import { calendarDayAttributes, mondayWeekStart } from '@/utils/calendar'
 import { formatMediumDate } from '@/utils/date'

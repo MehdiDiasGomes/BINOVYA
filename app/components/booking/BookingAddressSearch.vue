@@ -76,7 +76,7 @@
 
     <p class="text-sm text-ink/70" role="status">
       <span v-if="isLoading" class="mt-3 block">{{ $t('booking.address.loading') }}</span>
-      <span v-else-if="hasError" class="mt-3 block font-semibold text-destructive">
+      <span v-else-if="hasError" :class="cn('mt-3 block font-semibold', ERROR_TEXT_TONE_CLASS)">
         {{ $t('booking.address.error') }}
       </span>
       <span v-else-if="hasNoResult" class="mt-3 block">{{ $t(textKey('noResult')) }}</span>
@@ -93,12 +93,9 @@ import { useDebounceFn } from '@vueuse/core'
 import type { AddressKind, BookingAddress, CountryCode } from '@/types/booking'
 
 import { ADDRESS_SEARCH_MIN_LENGTH } from '@/constants/address'
-import {
-  BOOKING_ADDRESS_INPUT_ID,
-  FIELD_ERROR_CLASS,
-  FIELD_HINT_CLASS,
-  INPUT_GROUP_FRAME_CLASS,
-} from '@/constants/booking'
+import { BOOKING_ADDRESS_INPUT_ID } from '@/constants/booking'
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
+import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, INPUT_GROUP_FRAME_CLASS } from '@/constants/form'
 import { cn } from '@/lib/utils'
 import { describedByIds } from '@/utils/field'
 

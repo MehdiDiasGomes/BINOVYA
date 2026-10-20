@@ -21,12 +21,7 @@
       role="alert"
       class="flex items-start gap-3 rounded-xl border border-destructive/40 bg-red-50 p-4 text-sm text-ink"
     >
-      <Icon
-        name="CircleAlert"
-        :size="20"
-        aria-hidden="true"
-        class="mt-0.5 shrink-0 text-destructive"
-      />
+      <Icon name="CircleAlert" :size="20" aria-hidden="true" class="mt-0.5 shrink-0 text-red-700" />
       <div>
         <p class="font-bold">{{ $t('booking.address.checkError') }}</p>
         <button

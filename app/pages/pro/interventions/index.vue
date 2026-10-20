@@ -137,7 +137,7 @@ import { SelectRoot } from 'reka-ui'
 import type { ProInterventionsPage } from '@/types/pro'
 
 import { SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { FIELD_INPUT_CLASS, FLOATING_PANEL_CLASS, SELECT_ITEM_CLASS } from '@/constants/booking'
+import { FIELD_INPUT_CLASS, FLOATING_PANEL_CLASS, SELECT_ITEM_CLASS } from '@/constants/form'
 import { HERO_ENTER_CLASS } from '@/constants/motion'
 import { PRO_STATUS_FILTERS } from '@/constants/pro'
 import { cn } from '@/lib/utils'
