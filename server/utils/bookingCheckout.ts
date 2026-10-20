@@ -1,3 +1,9 @@
+import {
+  bookingInvoiceCreation,
+  createBookingCustomer,
+  type BookingBilling,
+} from './bookingInvoice'
+
 import type { BookingLocale, BookingPlan, CheckoutOutcome } from '@/types/booking'
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -23,9 +29,14 @@ export type BookingCheckoutInput = {
   amountCents: number
   plan: BookingPlan
   scheduledDate: string
-  email: string
+  billing: BookingBilling
   locale: BookingLocale
 }
+
+const invoiceDescription = (input: BookingCheckoutInput): string =>
+  CHECKOUT_MESSAGES[input.locale].checkout.invoiceDescription
+    .replace('{product}', productName(input.locale, input.plan))
+    .replace('{date}', formatLongDate(input.scheduledDate, input.locale))
 
 /**
  * Checks that the site URL needed for the Checkout return pages is configured, before anything is
@@ -51,20 +62,27 @@ export const bookingPageUrl = (locale: BookingLocale, outcome: CheckoutOutcome):
   localizedSiteUrl(locale, `/booking?checkout=${outcome}`)
 
 /**
- * Opens a Stripe Checkout session for a booking that holds its slot. The session expires before
- * the hold, so a payment can never complete on a slot that was already released.
- * @param input - Booking amount, plan, date and customer email
+ * Opens a Stripe Checkout session for a booking that holds its slot, billed to a Stripe customer
+ * carrying the booking's name and address, with an invoice created once the payment succeeds.
+ * The session expires before the hold, so a payment can never complete on a slot that was
+ * already released.
+ * @param input - Booking amount, plan, date and billing details
  * @returns Created Checkout session
  */
-export const createBookingCheckout = (
+export const createBookingCheckout = async (
   input: BookingCheckoutInput,
-): Promise<Stripe.Response<Stripe.Checkout.Session>> =>
-  useStripe().checkout.sessions.create(
+): Promise<Stripe.Response<Stripe.Checkout.Session>> => {
+  const customer: Stripe.Customer = await createBookingCustomer(
+    input.bookingId,
+    input.billing,
+    input.locale,
+  )
+  return useStripe().checkout.sessions.create(
     {
       mode: 'payment',
       allowed_payment_method_types: ['card'],
       client_reference_id: input.bookingId,
-      customer_email: input.email,
+      customer: customer.id,
       locale: input.locale,
       expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_LIFETIME_SECONDS,
       line_items: [
@@ -82,11 +100,13 @@ export const createBookingCheckout = (
       ],
       metadata: { booking_id: input.bookingId },
       payment_intent_data: { metadata: { booking_id: input.bookingId } },
+      invoice_creation: bookingInvoiceCreation(input.bookingId, invoiceDescription(input)),
       success_url: bookingPageUrl(input.locale, 'success'),
       cancel_url: bookingPageUrl(input.locale, 'cancelled'),
     },
     { idempotencyKey: `booking-checkout-${input.bookingId}` },
   )
+}
 
 /**
  * Releases the slot of an unpaid booking. A paid booking is never touched.

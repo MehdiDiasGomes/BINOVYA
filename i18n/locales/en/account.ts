@@ -137,6 +137,14 @@ export default {
       unavailable: 'Receipt unavailable for now.',
       hint: 'Receipt issued by Stripe, our payment provider. It also shows any refund.',
     },
+    invoice: {
+      title: 'Invoice',
+      download: 'Download the invoice',
+      open: 'View the invoice',
+      pdfNewTab: '(PDF, opens in a new tab)',
+      unavailable: 'Invoice unavailable for now.',
+      hint: 'Invoice issued through Stripe, our payment provider.',
+    },
     rebook: 'Book another date',
   },
   deletion: {

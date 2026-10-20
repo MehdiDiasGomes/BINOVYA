@@ -4,6 +4,7 @@ import type {
   AccountBookingDocuments,
   AccountBookingPhotos,
   AccountBookingRecord,
+  AccountInvoiceLink,
 } from '@/types/account'
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -24,6 +25,8 @@ type PhotoRow = Pick<
   'kind' | 'storage_path'
 >
 
+type PaymentDocuments = Pick<AccountBookingDocuments, 'receiptUrl' | 'invoice'>
+
 type SignedUrl = {
   path: string | null
   signedUrl: string | null
@@ -32,6 +35,11 @@ type SignedUrl = {
 const receiptCache: MemoryCache<string | null> = createMemoryCache<string | null>(
   PAYMENT_RECEIPT_CACHE_MAX_ENTRIES,
 )
+
+const invoiceCache: MemoryCache<AccountInvoiceLink | null> =
+  createMemoryCache<AccountInvoiceLink | null>(PAYMENT_RECEIPT_CACHE_MAX_ENTRIES)
+
+const NO_INVOICE_LINK: AccountInvoiceLink = { url: null, isPdf: false }
 
 const NO_PHOTOS: AccountBookingPhotos = { before: null, after: null }
 
@@ -82,7 +90,7 @@ const loadPhotoUrls = async (
   }
 }
 
-const isStripeReceiptUrl = (value: string): boolean => {
+const isStripeDocumentUrl = (value: string): boolean => {
   try {
     const url: URL = new URL(value)
     return url.protocol === 'https:' && url.hostname.endsWith(STRIPE_RECEIPT_HOST_SUFFIX)
@@ -95,12 +103,22 @@ const receiptUrlOf = (paymentIntent: Stripe.PaymentIntent): string | null => {
   const charge: string | Stripe.Charge | null = paymentIntent.latest_charge
   const receiptUrl: string | null =
     typeof charge === 'object' ? (charge?.receipt_url ?? null) : null
-  return receiptUrl && isStripeReceiptUrl(receiptUrl) ? receiptUrl : null
+  return receiptUrl && isStripeDocumentUrl(receiptUrl) ? receiptUrl : null
 }
 
-const cacheReceipt = (bookingId: string, url: string | null, now: number): void => {
-  const ttl: number = url ? PAYMENT_RECEIPT_CACHE_TTL_MS : PAYMENT_RECEIPT_MISS_CACHE_TTL_MS
-  receiptCache.write(bookingId, url, now + ttl)
+const readThroughCache = async <Value>(
+  cache: MemoryCache<Value | null>,
+  bookingId: string,
+  fetchValue: () => Promise<Value | null>,
+): Promise<Value | null> => {
+  const cached: Value | null | undefined = cache.read(bookingId, Date.now())
+  if (cached !== undefined) {
+    return cached
+  }
+  const value: Value | null = await fetchValue()
+  const ttl: number = value ? PAYMENT_RECEIPT_CACHE_TTL_MS : PAYMENT_RECEIPT_MISS_CACHE_TTL_MS
+  cache.write(bookingId, value, Date.now() + ttl)
+  return value
 }
 
 const fetchReceiptUrl = async (
@@ -120,6 +138,33 @@ const fetchReceiptUrl = async (
   }
 }
 
+const invoiceLinkOf = (invoice: Stripe.Invoice): AccountInvoiceLink | null => {
+  if (invoice.invoice_pdf && isStripeDocumentUrl(invoice.invoice_pdf)) {
+    return { url: invoice.invoice_pdf, isPdf: true }
+  }
+  if (invoice.hosted_invoice_url && isStripeDocumentUrl(invoice.hosted_invoice_url)) {
+    return { url: invoice.hosted_invoice_url, isPdf: false }
+  }
+  return null
+}
+
+const fetchInvoiceLink = async (
+  bookingId: string,
+  invoiceId: string,
+): Promise<AccountInvoiceLink | null> => {
+  try {
+    const invoice: Stripe.Invoice = await useStripe().invoices.retrieve(
+      invoiceId,
+      {},
+      { timeout: PAYMENT_RECEIPT_TIMEOUT_MS, maxNetworkRetries: 0 },
+    )
+    return invoiceLinkOf(invoice)
+  } catch {
+    console.error(`Invoice unavailable for booking ${bookingId}`)
+    return null
+  }
+}
+
 /**
  * Reads the Stripe receipt URL of a booking, kept in memory per booking for 5 minutes, or 30
  * seconds when Stripe gave none, so reloading a booking page neither spends the Stripe rate limit
@@ -129,37 +174,51 @@ const fetchReceiptUrl = async (
  * @returns The receipt URL, or null when unavailable
  */
 const loadReceiptUrl = async (record: AccountBookingRecord): Promise<string | null> => {
-  if (!record.paymentIntentId) {
+  const { paymentIntentId } = record
+  if (!paymentIntentId) {
     return null
   }
-  const bookingId: string = record.booking.id
-  const cached: string | null | undefined = receiptCache.read(bookingId, Date.now())
-  if (cached !== undefined) {
-    return cached
-  }
-  const url: string | null = await fetchReceiptUrl(bookingId, record.paymentIntentId)
-  cacheReceipt(bookingId, url, Date.now())
-  return url
+  return readThroughCache(receiptCache, record.booking.id, () =>
+    fetchReceiptUrl(record.booking.id, paymentIntentId),
+  )
 }
+
+/**
+ * Reads the Stripe invoice link of an invoiced booking, the PDF or else the hosted invoice page,
+ * cached like the receipt.
+ * @param bookingId - Booking of this customer
+ * @param invoiceId - Stripe invoice of the booking
+ * @returns The invoice link, its URL null when unavailable
+ */
+const loadInvoiceLink = async (bookingId: string, invoiceId: string): Promise<AccountInvoiceLink> =>
+  (await readThroughCache(invoiceCache, bookingId, () => fetchInvoiceLink(bookingId, invoiceId))) ??
+  NO_INVOICE_LINK
+
+const loadPaymentDocument = async (record: AccountBookingRecord): Promise<PaymentDocuments> =>
+  record.invoiceId
+    ? { receiptUrl: null, invoice: await loadInvoiceLink(record.booking.id, record.invoiceId) }
+    : { receiptUrl: await loadReceiptUrl(record), invoice: null }
 
 /**
  * Loads what the customer can open from a booking page: the before and after photos, through
  * signed URLs valid 10 minutes generated at each view, only once the intervention is completed,
- * and the Stripe payment receipt (`latest_charge.receipt_url` of the payment intent), which
- * reflects a refund. Relies on RLS: the client must carry the customer session, and the booking
- * must have been loaded for this customer first. Never throws: a missing photo, receipt or a
- * Stripe error only leaves the entry empty.
+ * and the payment document. An invoiced booking gets its Stripe invoice (PDF, else the hosted
+ * page); an older one keeps the Stripe payment receipt (`latest_charge.receipt_url` of the
+ * payment intent), which reflects a refund. Relies on RLS: the client must carry the customer
+ * session, and the booking must have been loaded for this customer first. Never throws: a missing
+ * photo, invoice, receipt or a Stripe error only leaves the entry empty.
  * @param client - Supabase client of the logged-in customer
- * @param record - Booking of this customer and its payment intent, see `loadAccountBooking`
- * @returns Signed photo URLs and the receipt URL, null when unavailable
+ * @param record - Booking of this customer, its payment intent and invoice, see
+ * `loadAccountBooking`
+ * @returns Signed photo URLs, the receipt URL and the invoice link, null when unavailable
  */
 export const loadAccountBookingDocuments = async (
   client: SupabaseClient<Database>,
   record: AccountBookingRecord,
 ): Promise<AccountBookingDocuments> => {
-  const [photos, receiptUrl]: [AccountBookingPhotos, string | null] = await Promise.all([
+  const [photos, payment]: [AccountBookingPhotos, PaymentDocuments] = await Promise.all([
     record.booking.status === 'completed' ? loadPhotoUrls(client, record.booking.id) : NO_PHOTOS,
-    loadReceiptUrl(record),
+    loadPaymentDocument(record),
   ])
-  return { photos, receiptUrl }
+  return { photos, ...payment }
 }

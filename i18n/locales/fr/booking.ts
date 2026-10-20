@@ -209,6 +209,7 @@ export default {
   },
   checkout: {
     productName: 'Nettoyage de bacs BINOVYA ({plan})',
+    invoiceDescription: '{product}, intervention du {date}',
   },
   summary: {
     title: 'Votre réservation',

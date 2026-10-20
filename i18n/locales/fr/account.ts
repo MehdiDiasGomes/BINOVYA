@@ -139,6 +139,14 @@ export default {
       unavailable: 'Reçu indisponible pour le moment.',
       hint: 'Reçu émis par Stripe, notre prestataire de paiement. Il indique aussi un éventuel remboursement.',
     },
+    invoice: {
+      title: 'Facture',
+      download: 'Télécharger la facture',
+      open: 'Voir la facture',
+      pdfNewTab: '(PDF, s’ouvre dans un nouvel onglet)',
+      unavailable: 'Facture indisponible pour le moment.',
+      hint: 'Facture émise via Stripe, notre prestataire de paiement.',
+    },
     rebook: 'Réserver une autre date',
   },
   deletion: {

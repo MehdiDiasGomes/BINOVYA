@@ -205,6 +205,7 @@ export default {
   },
   checkout: {
     productName: 'BINOVYA bin cleaning ({plan})',
+    invoiceDescription: '{product}, service on {date}',
   },
   summary: {
     title: 'Your booking',

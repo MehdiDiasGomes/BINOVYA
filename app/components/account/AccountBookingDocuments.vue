@@ -72,28 +72,28 @@
       </AnimatePresence>
     </section>
 
-    <section :aria-labelledby="receiptTitleId">
-      <h2 :id="receiptTitleId" class="text-[22px] font-black text-ink">
-        {{ $t('account.detail.receipt.title') }}
+    <section :aria-labelledby="paymentTitleId">
+      <h2 :id="paymentTitleId" class="text-[22px] font-black text-ink">
+        {{ $t(paymentDocument.titleKey) }}
       </h2>
       <div class="mt-4 rounded-3xl border border-border bg-white px-5 py-4 shadow-sm">
         <AppButton
-          v-if="props.documents.receiptUrl"
-          :href="props.documents.receiptUrl"
+          v-if="paymentDocument.url"
+          :href="paymentDocument.url"
           target="_blank"
           rel="noopener noreferrer"
-          variant="secondary"
-          icon="Receipt"
+          :variant="props.documents.invoice ? 'primary' : 'secondary'"
+          :icon="paymentDocument.icon"
           class="w-full sm:w-auto"
         >
-          {{ $t('account.detail.receipt.open') }}
-          <span class="sr-only">{{ $t('account.detail.newTab') }}</span>
+          {{ $t(paymentDocument.openKey) }}
+          <span class="sr-only">{{ $t(paymentDocument.newTabKey) }}</span>
         </AppButton>
         <p v-else class="flex min-h-12 items-center gap-2 text-sm font-bold text-ink/80">
-          <Icon name="Receipt" :size="18" aria-hidden="true" class="shrink-0" />
-          {{ $t('account.detail.receipt.unavailable') }}
+          <Icon :name="paymentDocument.icon" :size="18" aria-hidden="true" class="shrink-0" />
+          {{ $t(paymentDocument.unavailableKey) }}
         </p>
-        <p class="mt-3 text-sm text-ink/80">{{ $t('account.detail.receipt.hint') }}</p>
+        <p class="mt-3 text-sm text-ink/80">{{ $t(paymentDocument.hintKey) }}</p>
       </div>
     </section>
   </div>
@@ -103,6 +103,7 @@
 import type {
   AccountBookingDocuments,
   AccountLinksRefresh,
+  AccountPaymentDocumentView,
   AccountPhotoKind,
 } from '@/types/account'
 import type { FocusTarget } from '@/types/button'
@@ -124,13 +125,13 @@ const props = withDefaults(
   {
     showPhotos: true,
     isCompleted: false,
-    documents: () => ({ photos: { before: null, after: null }, receiptUrl: null }),
+    documents: () => ({ photos: { before: null, after: null }, receiptUrl: null, invoice: null }),
     refreshLinks: async (): Promise<AccountLinksRefresh> => 'failed',
   },
 )
 
 const photosTitleId: string = useId()
-const receiptTitleId: string = useId()
+const paymentTitleId: string = useId()
 
 const URL_MAX_AGE_MS: number =
   (ACCOUNT_PHOTO_URL_LIFETIME_SECONDS - ACCOUNT_PHOTO_URL_REFRESH_MARGIN_SECONDS) * 1000
@@ -153,6 +154,10 @@ let hasRequestedLinks: boolean = false
 let pendingNoticeKey: string | null = null
 
 let retryTrigger: Element | null = null
+
+const paymentDocument: ComputedRef<AccountPaymentDocumentView> = computed(() =>
+  paymentDocumentView(props.documents),
+)
 
 const hasPhoto: ComputedRef<boolean> = computed(() =>
   PHOTO_KINDS.some(kind => Boolean(props.documents.photos[kind])),

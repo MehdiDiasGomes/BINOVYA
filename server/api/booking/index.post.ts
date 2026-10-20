@@ -113,7 +113,12 @@ export default defineEventHandler(async (event): Promise<BookingResponse> => {
     amountCents: created.total_cents,
     plan: body.plan,
     scheduledDate: body.date,
-    email: body.contact.email.trim().toLowerCase(),
+    billing: {
+      firstName: body.contact.firstName,
+      lastName: body.contact.lastName,
+      email: body.contact.email.trim().toLowerCase(),
+      address: body.address,
+    },
     locale: body.locale,
   })
 

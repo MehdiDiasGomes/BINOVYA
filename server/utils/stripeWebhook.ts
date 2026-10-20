@@ -1,5 +1,7 @@
 import Stripe from 'stripe'
 
+import { issueRefundCreditNote, sessionInvoiceId, storeBookingInvoice } from './bookingInvoice'
+
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
@@ -11,16 +13,26 @@ const paymentIntentId = (session: Stripe.Checkout.Session): string | null =>
 const isAlreadyRefunded = (error: unknown): boolean =>
   error instanceof Stripe.errors.StripeError && error.code === 'charge_already_refunded'
 
-const refundBookingPayment = async (bookingId: string, paymentIntent: string): Promise<boolean> =>
+type PaidSession = {
+  sessionId: string
+  bookingId: string
+  paymentIntent: string
+  invoiceId: string | null
+  amountCents: number
+}
+
+const refundBookingPayment = async (
+  bookingId: string,
+  paymentIntent: string,
+): Promise<Stripe.Refund | null> =>
   useStripe()
     .refunds.create(
       { payment_intent: paymentIntent },
       { idempotencyKey: `booking-refund-${bookingId}` },
     )
-    .then(() => true)
     .catch((error: unknown) => {
       if (isAlreadyRefunded(error)) {
-        return false
+        return null
       }
       console.error(`Refund failed for booking ${bookingId}`)
       throw createError({ statusCode: 500, statusMessage: 'Refund failed' })
@@ -28,13 +40,24 @@ const refundBookingPayment = async (bookingId: string, paymentIntent: string): P
 
 const refundAndNotify = async (
   client: SupabaseClient<Database>,
-  bookingId: string,
-  paymentIntent: string,
+  paid: PaidSession,
 ): Promise<void> => {
-  const isNewRefund: boolean = await refundBookingPayment(bookingId, paymentIntent)
-  if (isNewRefund) {
-    await sendBookingRefundEmail(client, bookingId)
+  const refund: Stripe.Refund | null = await refundBookingPayment(
+    paid.bookingId,
+    paid.paymentIntent,
+  )
+  if (!refund) {
+    return
   }
+  if (paid.invoiceId) {
+    await issueRefundCreditNote({
+      bookingId: paid.bookingId,
+      invoiceId: paid.invoiceId,
+      refundId: refund.id,
+      amountCents: paid.amountCents,
+    })
+  }
+  await sendBookingRefundEmail(client, paid.bookingId)
 }
 
 const cancelExpiredBooking = async (
@@ -48,6 +71,27 @@ const cancelExpiredBooking = async (
     .eq('status', 'expired')
   if (error) {
     throw createError({ statusCode: 500, statusMessage: 'Booking cancellation failed' })
+  }
+}
+
+const applyPaymentResult = async (
+  client: SupabaseClient<Database>,
+  result: string,
+  paid: PaidSession,
+): Promise<void> => {
+  if (result === 'paid') {
+    await sendBookingPaidEmails(client, paid.bookingId)
+    await storeBookingInvoice(client, paid.bookingId, paid.invoiceId)
+  } else if (result === 'already_paid') {
+    await storeBookingInvoice(client, paid.bookingId, paid.invoiceId)
+  } else if (result === 'not_found') {
+    console.error(`Stripe session ${paid.sessionId} matched no booking`)
+  } else if (result === 'refund_required') {
+    await cancelExpiredBooking(client, paid.bookingId)
+    await refundAndNotify(client, paid)
+  } else if (result === 'not_payable') {
+    console.error(`Stripe session ${paid.sessionId} paid a cancelled booking, refunding`)
+    await refundAndNotify(client, paid)
   }
 }
 
@@ -75,17 +119,14 @@ const confirmBookingPayment = async (
     throw createError({ statusCode: 500, statusMessage: 'Booking payment update failed' })
   }
 
-  if (result === 'paid') {
-    await sendBookingPaidEmails(client, bookingId)
-  } else if (result === 'not_found') {
-    console.error(`Stripe session ${session.id} matched no booking`)
-  } else if (result === 'refund_required') {
-    await cancelExpiredBooking(client, bookingId)
-    await refundAndNotify(client, bookingId, paymentIntent)
-  } else if (result === 'not_payable') {
-    console.error(`Stripe session ${session.id} paid a cancelled booking, refunding`)
-    await refundAndNotify(client, bookingId, paymentIntent)
+  const paid: PaidSession = {
+    sessionId: session.id,
+    bookingId,
+    paymentIntent,
+    invoiceId: sessionInvoiceId(session),
+    amountCents: session.amount_total,
   }
+  await applyPaymentResult(client, result, paid)
 }
 
 const markBookingExpired = async (
@@ -106,8 +147,9 @@ const markBookingExpired = async (
  * Applies a verified Stripe event to the matching booking. Each update is conditioned on the
  * current status and each refund carries an idempotency key, so a redelivered event changes
  * nothing; a payment already refunded once is not refunded nor notified again. A payment that can
- * no longer hold its slot is refunded. Booking emails are sent after the database update and
- * never make the webhook fail.
+ * no longer hold its slot is refunded, with a credit note on its invoice. The invoice of a paid
+ * booking is linked after the paid emails, and again on a replay if that link failed. Booking
+ * emails are sent after the database update and never make the webhook fail.
  * @param client - Supabase client using the secret key
  * @param stripeEvent - Event whose signature was already verified
  */

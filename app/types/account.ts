@@ -12,6 +12,18 @@ export type AccountStatusIcon = 'CalendarDays' | 'CircleCheck' | 'CircleX'
 
 export type AccountNavIcon = 'CircleUser' | 'LayoutDashboard'
 
+export type AccountPaymentIcon = 'FileText' | 'Receipt'
+
+export type AccountPaymentDocumentView = {
+  titleKey: string
+  openKey: string
+  newTabKey: string
+  unavailableKey: string
+  hintKey: string
+  icon: AccountPaymentIcon
+  url: string | null
+}
+
 export type AccountBookingCardView = {
   tone: MediaCardTone
   icon: AccountStatusIcon
@@ -35,13 +47,20 @@ export type AccountBooking = {
 export type AccountBookingRecord = {
   booking: AccountBooking
   paymentIntentId: string | null
+  invoiceId: string | null
 }
 
 export type AccountBookingPhotos = Record<AccountPhotoKind, string | null>
 
+export type AccountInvoiceLink = {
+  url: string | null
+  isPdf: boolean
+}
+
 export type AccountBookingDocuments = {
   photos: AccountBookingPhotos
   receiptUrl: string | null
+  invoice: AccountInvoiceLink | null
 }
 
 export type AccountLinksRefresh = 'ok' | 'failed' | 'expired'
