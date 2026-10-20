@@ -48,3 +48,7 @@ export type MailTransportEnvironment = {
   isDev: boolean
   nodeEnv: string | undefined
 }
+
+export type MailRedirectEnvironment = MailTransportEnvironment & {
+  transport: MailTransport | null
+}
