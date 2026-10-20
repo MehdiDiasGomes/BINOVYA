@@ -1,19 +1,28 @@
 # SEO
 
-> Statut : audit fait le 2026-10-17, corrections à faire dans `chore/seo`, après la fusion de
-> l'étape 8 (« Espace BINOVYA Pro ») dans `dev`.
+> Statut : audit du 2026-10-17 (29 constats), recontrôlé dans le code le 2026-10-20. Corrections à
+> faire dans `chore/seo`, après la fusion de l'étape 8 (« Espace BINOVYA Pro ») dans `dev`.
 
 ## Objectif
 
 Rendre le site public indexable et lisible pour les moteurs (France et Luxembourg), garder les
-pages privées hors index et poser les données structurées locales. Source : audit de l'agent
-`seo-auditor` du 2026-10-17, verdict ⛔, 29 constats. Rien n'est corrigé à ce jour.
+pages privées hors index et poser les données structurées locales.
+
+## État actuel
+
+- Chaque page publique a `useSeoMeta` (titre, description, bases Open Graph traduits) et un seul
+  h1. Les clés `seo.*` sont identiques en FR et EN.
+- Pages privées en `robots: 'noindex, nofollow'` dans `useSeoMeta` : `/login`, `/pro/**`,
+  `/account/**`. Les deux pages `confirm` ajoutent `referrer: 'no-referrer'` (le jeton du lien
+  magique est dans l'URL). Rien côté HTTP (ni `routeRules`, ni `X-Robots-Tag`).
+- `public/robots.txt` : `User-Agent: *` et `Disallow:` vides. `nuxt.config.ts` n'a ni sitemap, ni
+  module SEO, ni `siteUrl` public.
 
 ## Questions pour le client (à régler avant les corrections)
 
 - Adresse officielle : Amnéville (57360), affichée sur `/contact` et `/legal`, ou Uckange
-  (57270), le dépôt ? Le site doit n'en afficher qu'une (voir #11).
-- Téléphone : `/legal` affiche « 00 00 00 00 00 » (voir #12).
+  (57270), le dépôt (texte de zone de `booking.ts`) ? Le site doit n'en afficher qu'une (#11).
+- Téléphone : `/legal` affiche « 00 00 00 00 00 » (#12).
 - Domaine : `binovya.fr` (l'adresse e-mail du footer) ou `binovya.com` (un lien du footer) ?
 - Les engagements affichés sont-ils réels : « devis gratuit », « réponse rapide garantie »,
   « véhicule 100 % électrique », « fabriqué en France » ?
@@ -24,51 +33,94 @@ pages privées hors index et poser les données structurées locales. Source : a
   - les profils sociaux et la fiche Google Business Profile ;
   - l'existence de CGV.
 
-## Constats
+## Constats ouverts
 
-Gravité : critique, haute, moyenne, basse.
+Numéros de l'audit. Gravité : haute, moyenne, basse.
 
-| #   | Gravité  | Fichiers                                           | Problème                                                                                                                                                                                                                                   | Correctif                                                                                                                                                                                                                     |
-| --- | -------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 1   | critique | `app/pages/login.vue:178-184`                      | `/login` est indexable et liée depuis la navbar                                                                                                                                                                                            | `robots: 'noindex, nofollow'` dans `useSeoMeta` et une règle de route                                                                                                                                                         |
-| 2   | haute    | `nuxt.config.ts`                                   | Aucun filet HTTP pour les pages privées                                                                                                                                                                                                    | `routeRules` avec `X-Robots-Tag: noindex, nofollow` sur `/login`, `/account/**`, `/pro/**` et leurs variantes `/en/` (ou `{ robots: false }` avec `@nuxtjs/robots`)                                                           |
-| 3   | haute    | `public/robots.txt`                                | Fichier statique, sans ligne `Sitemap:`, `/api/` non interdit                                                                                                                                                                              | `@nuxtjs/robots` (`disallow: ['/api/']`, sitemap) ou `server/routes/robots.txt.ts`. Ne jamais mettre en `Disallow` une page qui repose sur `noindex` (le robot ne verrait pas la balise)                                      |
-| 4   | haute    | `nuxt.config.ts`                                   | Pas de sitemap. `runtimeConfig.siteUrl` est serveur seulement : pas d'URL absolue côté client                                                                                                                                              | `runtimeConfig.public.siteUrl` (`NUXT_PUBLIC_SITE_URL`, même valeur que `NUXT_SITE_URL`, garder les deux), `site.url`, `i18n.baseUrl`, `@nuxtjs/sitemap` sans les routes privées                                              |
-| 5   | haute    | `app/app.vue`, pages                               | Ni `canonical`, ni `hreflang`, ni `lang` explicite sur `html` (pas de `useLocaleHead`), ni `ogUrl`, `ogLocale`, `ogImage`                                                                                                                  | `useLocaleHead({ seo: true })` dans `app.vue`, composable partagé `usePageSeo`                                                                                                                                                |
-| 6   | haute    | `nuxt.config.ts`                                   | `language: 'en-US'`                                                                                                                                                                                                                        | `en` ou `en-GB` (cible : Luxembourg et Moselle)                                                                                                                                                                               |
-| 7   | haute    | `/formulas`, `i18n/locales/`                       | La page affiche des clés i18n brutes (`formulas.*`, `clients.cta*` absentes), h1 = « formulas.sectionTitle », la description promet des offres absentes                                                                                    | Créer `i18n/locales/{fr,en}/formulas.ts` alignés sur les offres réelles, ou mettre la page en `noindex` / la retirer                                                                                                          |
-| 8   | haute    | navbar                                             | Aucun sélecteur de langue affiché. Celui qui existe utilise `setLocale`, que les robots ne suivent pas                                                                                                                                     | L'insérer dans la navbar avec `NuxtLink :to="switchLocalePath(code)"`                                                                                                                                                         |
-| 9   | haute    | navbar, footer, accueil                            | Pages orphelines : `/about`, `/faq`, `/solutions/*`                                                                                                                                                                                        | Les ajouter à la navbar ou au footer et à une section de l'accueil                                                                                                                                                            |
-| 10  | haute    | à créer : `useLocalBusinessSchema`                 | Aucun JSON-LD                                                                                                                                                                                                                              | `LocalBusiness`, `Service`, `FAQPage` (`/faq` seulement, générée depuis `tm('faq.questions')`), `BreadcrumbList` (`/solutions/*`, 2 niveaux). Données identiques au contenu visible, téléphone omis tant qu'il n'est pas réel |
-| 11  | haute    | `/contact`, `/legal`, footer                       | NAP incohérent : Amnéville sur `/contact` et `/legal`, Uckange pour le dépôt. Le footer n'affiche ni adresse ni téléphone                                                                                                                  | Source unique `contact.info.*` une fois le client répondu                                                                                                                                                                     |
-| 12  | haute    | `/legal`                                           | Téléphone factice « 00 00 00 00 00 »                                                                                                                                                                                                       | Le retirer tant qu'il n'est pas fourni                                                                                                                                                                                        |
-| 13  | haute    | solutions, `about`                                 | Clés i18n absentes rendues en `alt` et `aria-label` bruts : `*.hero.backgroundImageAlt` (solutions), `about.hero.imageAlt`, `about.expertise.services.*.ariaLabel`                                                                         | Ajouter les clés FR et EN                                                                                                                                                                                                     |
-| 14  | haute    | `public/images/`                                   | Images référencées mais absentes : `/images/about/hero-bg.webp`, `/images/rolling_bins/hero-bg.webp`, `/images/columns/hero-bg.webp`, `/images/bio_waste_shelters/hero-bg.webp`, `/images/illustrations/faq.svg`, icônes de `rolling_bins` | Ajouter les fichiers ou changer les références (404 sur 5 pages)                                                                                                                                                              |
-| 15  | moyenne  | `/booking`                                         | `/booking?service=…` crée des doublons                                                                                                                                                                                                     | `canonical` sans paramètre                                                                                                                                                                                                    |
-| 16  | moyenne  | `seo.*` des pages                                  | Aucun terme local (Uckange, Moselle, Luxembourg, Thionville, Metz) dans titres, descriptions, h1. Titres de 13 à 41 caractères au lieu de 50-60. Titre de la FAQ identique en FR et EN                                                     | Réécrire titres et descriptions après les réponses du client                                                                                                                                                                  |
-| 17  | moyenne  | pages                                              | Pas d'image OG 1200×630, `twitter:image` absent                                                                                                                                                                                            | Fournir l'image et l'ajouter dans `usePageSeo`                                                                                                                                                                                |
-| 18  | moyenne  | meta                                               | Promesses non confirmées (« Devis gratuit », « Réponse rapide garantie »), « eau chaude haute pression » alors que le reste du site parle de vapeur                                                                                        | Retirer ou confirmer avec le client                                                                                                                                                                                           |
-| 19  | moyenne  | `/faq`                                             | Réponses de l'accordéon probablement absentes du HTML rendu côté serveur                                                                                                                                                                   | `force-mount` ou `<details>`                                                                                                                                                                                                  |
-| 20  | moyenne  | `faq`, `about`, `privacy`                          | `$tm` sans `$rt`                                                                                                                                                                                                                           | Vérifier le HTML du build de production                                                                                                                                                                                       |
-| 21  | moyenne  | `NuxtImg`, `faq.vue:55`, `ServicesSection`         | Pas de `height`, `sizes`, `format`. Hero sans `preload`. `alt="FAQ illustration"` non traduit. `alt` redondant dans `ServicesSection`. Noms de fichiers peu descriptifs                                                                    | Compléter les attributs, traduire les `alt`, renommer les fichiers                                                                                                                                                            |
-| 22  | moyenne  | `SolutionHero`                                     | Image avec `alt` et `aria-hidden` à la fois, sans `sizes`                                                                                                                                                                                  | Choisir : décorative (`alt=""`) ou informative, ajouter `sizes`                                                                                                                                                               |
-| 23  | moyenne  | solutions, `faq`, `CtaFreeDemo`, logo de la navbar | Liens internes non localisés (`/contact`, `/`)                                                                                                                                                                                             | `localePath` ou `NuxtLinkLocale`                                                                                                                                                                                              |
-| 24  | moyenne  | `footer.vue`                                       | `mailto:contact@binovya.fr` en dur, lien vers `https://binovya.com`, « CGV » pointe vers `/formulas`, `h3` sans `h2`, pas de NAP                                                                                                           | Valeurs depuis la config et `contact.info.*`, vrai lien CGV (ou retrait) selon le client                                                                                                                                      |
-| 25  | basse    | révélation au scroll                               | `opacity: 0` sur le h1 et le premier bloc                                                                                                                                                                                                  | Ne pas masquer le contenu au-dessus de la ligne de flottaison                                                                                                                                                                 |
-| 26  | basse    | polices                                            | `display: 'swap'`                                                                                                                                                                                                                          | À réévaluer (affichage de secours proche de la police finale)                                                                                                                                                                 |
-| 27  | basse    | i18n                                               | `redirectOn: 'root'` acceptable. `x-default` à pointer vers `/`                                                                                                                                                                            | Laisser tel quel, ajouter `x-default` avec #5                                                                                                                                                                                 |
-| 28  | basse    | `/legal`, `/privacy`                               | Dates « Dernière mise à jour » écrites en dur                                                                                                                                                                                              | Les piloter par une donnée                                                                                                                                                                                                    |
-| 29  | basse    | accueil                                            | Ancre `/#services` seulement                                                                                                                                                                                                               | Couvert par #9                                                                                                                                                                                                                |
+### Haute
 
-Points déjà bons : chaque page publique a `useSeoMeta` avec titre, description et bases Open Graph
-traduits, un seul h1 par page, du texte rendu côté serveur, les clés `seo.*` identiques en FR et
-EN. `/account/**` et `/pro/**` sont déjà en `noindex`.
+- #2 `nuxt.config.ts` : pas de filet HTTP pour les pages privées. Ajouter `routeRules` avec
+  `X-Robots-Tag: noindex, nofollow` sur `/login`, `/account/**`, `/pro/**` et leurs variantes
+  `/en/`.
+- #3 `public/robots.txt` : statique, sans `Sitemap:`, `/api/` non interdit. Passer à
+  `@nuxtjs/robots` (`disallow: ['/api/']`, sitemap) ou à `server/routes/robots.txt.ts`. Ne jamais
+  mettre en `Disallow` une page qui repose sur `noindex` : le robot ne verrait pas la balise.
+- #4 Pas de sitemap, et `runtimeConfig.siteUrl` est serveur seulement. Ajouter
+  `runtimeConfig.public.siteUrl` (`NUXT_PUBLIC_SITE_URL`, même valeur que `NUXT_SITE_URL`, garder
+  les deux), `site.url`, `i18n.baseUrl`, `@nuxtjs/sitemap` sans les routes privées.
+- #5 `app/app.vue` : ni `canonical`, ni `hreflang` (avec `x-default` vers `/`), ni `lang` sur
+  `html` (WCAG 3.1.1), ni `ogUrl`, `ogLocale`, `ogImage`. `useLocaleHead({ seo: true })` dans
+  `app.vue` et un composable partagé `usePageSeo`. `redirectOn: 'root'` reste tel quel.
+- #6 `nuxt.config.ts` : `language: 'en-US'` pour l'anglais. Passer à `en` ou `en-GB` (cible :
+  Luxembourg et Moselle).
+- #7 `/formulas` : les clés `formulas.*` n'existent pas dans `i18n/locales/`, la page affiche
+  « formulas.sectionTitle » en h1, et la description `seo.formulas` promet des offres que la
+  V1 masque (trimestrielle, annuelle). Créer les clés FR et EN sur les offres réelles, ou mettre
+  la page en `noindex`. Le lien « CGV » du footer pointe dessus (#24).
+- #8 Aucun `LanguageSwitcher` n'est rendu (ni navbar, ni footer), et il utilise `setLocale`, que
+  les robots ne suivent pas. Le placer dans la navbar avec `NuxtLink :to="switchLocalePath(code)"`.
+- #9 Pages orphelines : `/about` et `/faq` ne sont liées de nulle part, `/solutions/*` seulement
+  depuis `/about`. Les ajouter à la navbar ou au footer et à l'accueil (couvre l'ancre `/#services`
+  seule).
+- #10 Aucun JSON-LD. Créer `useLocalBusinessSchema` : `LocalBusiness`, `Service`, `FAQPage`
+  (`/faq`, depuis `tm('faq.questions')`), `BreadcrumbList` (`/solutions/*`). Données identiques au
+  contenu visible, téléphone omis tant qu'il n'est pas réel.
+- #11 NAP incohérent : Amnéville sur `/contact` et `/legal`, Uckange pour le dépôt, rien dans le
+  footer. Source unique `contact.info.*` une fois le client répondu.
+- #12 `/legal` affiche le téléphone factice `contact.info.phone.display`. Le retirer tant qu'il
+  n'est pas fourni.
+- #13 Clés i18n absentes rendues brutes en `alt` et `aria-label` : `*.hero.backgroundImageAlt`
+  (3 pages solutions), `about.hero.imageAlt`, `about.expertise.services.*.ariaLabel`. Ajouter les
+  clés FR et EN.
+- #14 Images référencées mais absentes de `public/images/` (404) : `about/hero-bg.webp`,
+  `rolling_bins/hero-bg.webp`, `columns/hero-bg.webp`, `bio_waste_shelters/hero-bg.webp`,
+  `illustrations/faq.svg`, `rolling_bins/icons/*.webp`, `clients/task_0{1,2,3}.webp`. Ajouter les
+  fichiers ou changer les références.
+
+### Moyenne
+
+- #15 `/booking?service=…` crée des doublons : `canonical` sans paramètre (avec #5).
+- #16 Aucun terme local (Uckange, Moselle, Luxembourg, Thionville, Metz) dans titres,
+  descriptions et h1 ; titres de 13 à 41 caractères au lieu de 50-60 ; titre de la FAQ identique
+  en FR et EN. À réécrire après les réponses du client.
+- #17 Pas d'image OG 1200×630, `twitter:image` absent. Fournir l'image, l'ajouter dans
+  `usePageSeo`.
+- #18 Promesses non confirmées dans les meta (« Devis gratuit » dans `seo.solutions.rollingBins`,
+  « Réponse rapide garantie » dans `seo.contact`). Retirer ou confirmer avec le client.
+- #19 `/faq` : `AccordionContent` n'est pas forcé dans le DOM, les réponses sont probablement
+  absentes du HTML serveur. `force-mount` ou `<details>`.
+- #20 `faq`, `about`, `privacy` : `$tm` sans `$rt`. Vérifier le HTML du build de production.
+- #21 Images : `NuxtImg` sans `height`, `sizes`, `format` ; hero sans `preload` ;
+  `alt="FAQ illustration"` (`faq.vue:55`) non traduit ; `alt` redondant dans `ServicesSection` ;
+  noms de fichiers peu descriptifs.
+- #22 `SolutionHero` : l'image de fond a `alt` et `aria-hidden` à la fois, sans `sizes`. La
+  déclarer décorative (`alt=""`, donc retirer la clé `backgroundImageAlt` de #13) ou
+  informative.
+- #23 Liens internes non localisés : logo de la navbar (`to="/"`), `cta-link="/contact"` des 3
+  pages solutions, `CtaFreeDemo`, bouton de `faq.vue`. `localePath` ou `NuxtLinkLocale`.
+- #24 `app/layouts/footer.vue` : `mailto:contact@binovya.fr` et lien `https://binovya.com` en
+  dur, « CGV » pointe vers `/formulas`, `h3` sans `h2`, pas de NAP. Valeurs depuis la config et
+  `contact.info.*`, vrai lien CGV (ou retrait) selon le client.
+
+### Basse
+
+- #25 Révélation au scroll (`opacity: 0`) sur le h1 et le premier bloc de `/formulas` : ne pas
+  masquer le contenu au-dessus de la ligne de flottaison.
+- #28 `/legal` et `/privacy` : « Dernière mise à jour » écrite en dur (`04/01/2025`). Piloter par
+  une donnée.
+
+## Corrigé ou abandonné
+
+- #1 corrigé : `/login` est en `noindex, nofollow` (`app/pages/login.vue`).
+- #26 abandonné : `display: 'swap'` des polices n'est pas un défaut, rien à faire.
+- #27 intégré à #5 (`x-default`).
+- #29 intégré à #9.
 
 ## Hors périmètre
 
 À traiter ailleurs que dans `chore/seo` :
 
-- Accessibilité : `aria-label` qui masque le texte visible (`about.vue:110`, `services.ts:53-67`),
+- Accessibilité : `aria-label` qui masque le texte visible (`about.vue:110`, `services.ts`),
   libellés de `ButtonCta` qui ne reprennent pas le nom visible, `h3` du footer sans `h2`,
   navbar mobile en `<a href>` avec `click.prevent`.
 - Qualité du code : `footer.vue` non conforme à Prettier et ESLint (commentaires HTML, textes en

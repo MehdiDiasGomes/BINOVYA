@@ -44,16 +44,23 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
 
 ### SEO (branche `chore/seo`, après la fusion de l'étape 8 dans `dev`)
 
-Audit du 2026-10-17, 29 constats : voir `specs/seo.md`.
+Audit du 2026-10-17, 25 constats ouverts sur 29 (recontrôle du 2026-10-20) : voir
+`specs/seo.md`. `/login` est déjà en `noindex` (#1).
 
 - [ ] Répondre aux questions client de `specs/seo.md` (adresse, téléphone, domaine, engagements)
-- [ ] `<html lang>` absent sur tout le site (WCAG 3.1.1) : `useLocaleHead` dans `app.vue`
-- [ ] Autres pages privées hors index (en-têtes `X-Robots-Tag`)
-- [ ] Sitemap, robots, URL publique, canonical et hreflang
-- [ ] Données structurées (`LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList`)
-- [ ] Page `/formulas` (clés i18n brutes) et images manquantes
-- [ ] Maillage interne et sélecteur de langue
-- [ ] Titres, descriptions et images (OG, dimensions, `alt`)
+- [ ] `<html lang>` absent sur tout le site (WCAG 3.1.1), `canonical`, `hreflang` avec
+      `x-default`, langue `en` au lieu de `en-US` : `useLocaleHead` dans `app.vue` (#5, #6, #15)
+- [ ] Pages privées : en-têtes `X-Robots-Tag` via `routeRules` (#2)
+- [ ] Sitemap, robots, URL publique `NUXT_PUBLIC_SITE_URL` (#3, #4)
+- [ ] Données structurées : `LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList` (#10)
+- [ ] Page `/formulas` (clés i18n brutes, #7), clés `alt` et `aria-label` absentes (#13) et images
+      manquantes (#14)
+- [ ] Maillage interne, sélecteur de langue, liens localisés, footer (#8, #9, #23, #24)
+- [ ] Adresse et téléphone cohérents, après réponse du client (#11, #12)
+- [ ] Titres, descriptions, promesses des meta, images OG, dimensions, `alt` (#16, #17, #18, #21,
+      #22)
+- [ ] FAQ rendue côté serveur et `$tm` / `$rt` (#19, #20)
+- [ ] Révélation au scroll sur `/formulas` et dates « Dernière mise à jour » en dur (#25, #28)
 
 ### 10. Infrastructure
 

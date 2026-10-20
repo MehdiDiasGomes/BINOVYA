@@ -815,7 +815,7 @@ customerNotified }`. Refus : `notFound` 404, `alreadyCompleted` 409, `notPaid` 4
   n'acceptent que 3 étapes. L'ordre optimisé est V2.
 - Envoi des photos (`useProPhotoUpload`, `app/utils/photoResize.ts`) :
   - Un champ fichier `accept="image/*"` sans `capture` : le téléphone propose appareil ou galerie.
-    Pas de `getUserMedia`, donc pas de `camera=` nécessaire dans `Permissions-Policy`.
+    Pas de `getUserMedia`.
   - `preparePhotoForUpload` décode avec `<img>` (orientation EXIF appliquée), redessine dans un
     canvas : 2 000 px au plus, JPEG à 0,85 puis 0,7 et 0,55 tant que le fichier dépasse 5 Mo. Le
     canvas ne garde aucune métadonnée.
@@ -901,7 +901,6 @@ binovya.com {
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Permissions-Policy "camera=(), microphone=(), geolocation=()"
 		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://<ref>.supabase.co; img-src 'self' data: blob: https://<ref>.supabase.co; frame-ancestors 'none'"
 		-Server
 	}
@@ -1143,9 +1142,7 @@ privileges`, `references` et `trigger` sur `price_grid`, `booking_settings`, `qu
 | netcup VPS 1000 G12 | 4    | 8 Go DDR5 | 256 Go NVMe | Allemagne, Autriche | 10,37 € TTC                 | Le plus de disque                                   |
 | Hetzner Cloud CPX32 | 4    | 8 Go      | 160 Go      | Allemagne, Finlande | —                           | Plus commandable                                    |
 
-Recommandation : OVHcloud VPS-1 (données en France, prix proche du moins cher). La taille de 8 Go
-avait été retenue pour OSRM et la supervision (V2) ; V1 (Caddy + Nuxt, environ 1 Go) pourrait
-tenir sur une offre plus petite.
+Recommandation : OVHcloud VPS-1, 8 Go de RAM (données en France, prix proche du moins cher).
 
 ### Coûts mensuels fixes
 
