@@ -317,7 +317,8 @@ des liens de connexion client), `claim_admin_login_link` (idem pour les admins),
   - Étape 1 : la destination (adresse), le menu d'itinéraire, un bouton d'appel (icône) si le
     client a un téléphone, et « Je suis sur place ». Étapes photo : la ligne « À nettoyer »
     rappelle les bacs. « Passer cette photo » demande une confirmation sur place (sans les deux
-    photos, aucun mail photos ne part) ; une photo prise remplace ce choix par « Continuer ».
+    photos, aucun mail photos ne part) ; une photo prise remplace ce choix par « Aller à la photo
+    après » (étape 2) ou « Voir le récap » (étape 3).
   - « Plus d'infos », sous l'étape et fermé au départ : téléphone (numéro en groupes de chiffres,
     appelable), date, bacs, formule, jours de collecte et montant. Il n'y a pas de ligne de
     paiement.

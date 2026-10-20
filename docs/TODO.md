@@ -3,327 +3,145 @@
 Specs : [fonctionnelle](./specs/booking-system.md) · [technique](./specs/technical.md) ·
 [SEO](./specs/seo.md)
 
-## 0. Specs
+V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision du 2026-10-20).
 
-- [ ] Aligner la spec fonctionnelle sur le brief : rayon 20 km, grille tarifaire par formule,
-      deux jours de collecte, confirmation « bacs vides et accessibles », devis, pros sur la
-      même grille, Luxembourg
+## Étapes terminées
 
-## 1. Base de données
+- ✅ 1. Base de données : grille de prix, formules, jours de collecte, devis, `create_booking`,
+  voir `specs/technical.md`
+- ✅ 2. Parcours de réservation : 4 étapes, bascule vers le devis, validation FR + LU, voir
+  `specs/booking-system.md`
+- ✅ 3. Géocodage : `/api/address/search` (IGN, geoportail.lu) et sélecteur de pays, voir
+  `specs/technical.md`
+- ✅ 4. Devis : formulaire `/quote`, enregistrement, mail à BINOVYA et page `/contact`, voir
+  `specs/booking-system.md`
+- ✅ 5. Paiement : Stripe Checkout, webhook et expiration `pg_cron`, voir `specs/technical.md`
+- ✅ 6. Mails : confirmation, annulation, alerte admin, rappel, photos disponibles, habillage
+  commun, voir `specs/technical.md`
+- ✅ 7. Espace client : lien magique, cartes de réservation, suppression du compte, jeton
+  d'adresse signé, voir `specs/booking-system.md`
+- ✅ 8. Espace BINOVYA Pro : accès admin, planning, liste, disponibilités, déplacement, photos,
+  fin d'intervention, photos côté client, voir `specs/technical.md` et `specs/booking-system.md`
 
-- [x] Table de prix : formule × combinaison (1 petit, 2 petits, 1 grand, 2 grands)
-- [x] Formule sur la réservation (ponctuelle, trimestrielle, annuelle)
-- [x] Deux jours de collecte (ordures ménagères, emballages)
-- [x] Confirmation « bacs vides et accessibles » enregistrée sur la réservation
-- [x] Table des demandes de devis
-- [x] Seed : rayon 20 km, capacité de départ à 3 par jour
-- [x] `create_booking` : prix lu dans la grille, plus de tarif dégressif
-- [x] Mettre à jour `database.types.ts`
-- [x] Appliquer la migration sur le projet Supabase
+## V1
 
-## 2. Parcours de réservation
+### Reste des étapes 0 à 8
 
-- [x] Ordre des étapes : coordonnées et adresse → bacs et collecte → formule et date → paiement
-- [x] Visuels des bacs (120–240 L, 600–1 100 L)
-- [x] Choix de la formule avec prix mis à jour immédiatement
-- [x] Deux jours de collecte, option « Je ne sais pas »
-- [x] Case obligatoire « bacs vides et accessibles »
-- [x] Bascule vers le devis : 3 bacs ou plus, ou 1 petit + 1 grand
-- [x] Validation FR + LU (code postal, téléphone)
+- [ ] 0. Aligner `specs/booking-system.md` sur le brief (rayon 20 km, grille par formule, deux
+     jours de collecte, « bacs vides et accessibles », devis, pros, Luxembourg)
+- [ ] 7. Vérifier dans le dashboard Supabase : Auth Hook « Send Email » vers
+     `public.suppress_auth_emails`, OTP e-mail à 86 400 s, inscriptions désactivées
+- [ ] 8. Chore : migrer les boutons natifs de la réservation, du devis, de la page contact
+     (hors envoi, déjà fait) et de `AccountDeletionRequest.vue` vers `AppButton`
+- [ ] 8. Chore : WebKit perd la session Supabase sur `http://localhost` (cookie `Secure` par
+     défaut dans `@nuxtjs/supabase`, aucun `cookieOptions` dans `nuxt.config.ts`) : l'espace Pro
+     est inutilisable dans Safari de bureau en local. Poser `cookieOptions.secure` seulement en
+     production, puis rétablir le projet Playwright WebKit (étape 10)
+- [ ] 8. Chore e2e : test instable du détail de `customer-area-bookings` (squelette encore
+     affiché après 5 s sur un serveur de dev lent)
+- [ ] 8. Hors code : facture française réelle avec les mentions légales, à décider avec le
+     client (le reçu Stripe n'en tient pas lieu)
 
-## 3. Géocodage
+### SEO (branche `chore/seo`, après la fusion de l'étape 8 dans `dev`)
 
-- [x] Endpoint `/api/address/search` : Géoplateforme IGN (France) ou geoportail.lu (Luxembourg)
-- [x] Brancher `useAddressSearch` sur cet endpoint
-- [x] Sélecteur de pays sur l'adresse et sur le téléphone (indicatif automatique)
-
-## 4. Devis
-
-- [x] Formulaire `/quote` : coordonnées, adresse, types d'équipement (bacs, PAV, mobilier urbain,
-      signalétique), bacs demandés seulement si « bacs » est coché, fréquence, commentaire, photos
-      facultatives, page unique pour particuliers et professionnels
-- [x] Enregistrement en base et mail à BINOVYA
-- [x] Bandeau devis/contact à la place de `ProFormSection`
-- [x] Page `/contact` refaite, API contact validée et protégée
-- [ ] Renseigner `NUXT_RESEND_API_KEY` et `NUXT_CONTACT_EMAIL_TO` pour que les mails de devis et
-      de contact partent (le devis est enregistré sans eux, mais `/contact` répond 503)
-
-## 5. Paiement
-
-- [x] Stripe Checkout à la création de la réservation
-- [x] Webhook : `pending_payment` → `paid`
-- [x] `pg_cron` : `expire_stale_bookings`
-- [ ] Renseigner `NUXT_STRIPE_SECRET_KEY`, `NUXT_STRIPE_WEBHOOK_SECRET` et `NUXT_SITE_URL`. En
-      local : `stripe listen --forward-to localhost:3000/api/stripe/webhook`. En production :
-      créer le endpoint webhook dans le Dashboard Stripe (`checkout.session.completed`,
-      `checkout.session.expired`)
-
-## 6. Mails
-
-- [ ] Vérifier le domaine `binovya.com` sur Resend (à faire par l'utilisateur, après les
-      enregistrements DNS Cloudflare, étape 12)
-- [x] Expéditeur corrigé : `NUXT_MAIL_FROM`, repli sur `contact@dg-zenith.com`
-- [ ] Renseigner `NUXT_MAIL_FROM` en production (`BINOVYA <…@binovya.com>` une fois le domaine
-      vérifié, étape 12)
-- [x] Mail de confirmation de réservation
-- [x] Mail d'annulation et de remboursement (paiement tardif)
-- [x] Alerte admin à chaque réservation payée
-- [x] Mail de rappel avant le passage (tâche `booking:reminders`, J-1 à J-2)
-- [x] Habillage BINOVYA de tous les mails (mise en page commune, CSS inliné à l'envoi)
-- [x] Mail « vos photos avant/après sont disponibles » une fois l'intervention terminée, tutoriel
-      pas à pas en secours. Envoyé une seule fois, seulement si les deux photos existent : une fin
-      forcée sans photos n'envoie jamais ce mail, même si des photos sont ajoutées ensuite. Branché
-      sur `POST /api/pro/bookings/[id]/complete` (`sendPhotosAvailableEmail`). Le bouton « Voir mes
-      photos » mène à `/login` (option A) ; `isAllowedLoginUrl` est supprimée
-
-## 7. Espace client
-
-- [x] Fiche client créée à la réservation, espace ouvert uniquement par le lien demandé par le
-      client (option C), mention à la réservation et section confidentialité
-- [x] Connexion par lien magique (`/login`, `POST /api/auth/login`, `/account/confirm`)
-- [x] Cartes de réservation et page `/account/bookings/[id]`
-- [x] Demande de suppression du compte
-- [ ] Appliquer dans l'ordre les 4 migrations du 2026-10-16 (`20261016000000` à `20261016030000`)
-      et régler Supabase : Auth Hook « Send Email » vers `public.suppress_auth_emails`, Email OTP
-      Expiration à 86 400 s, inscriptions désactivées (voir `docs/specs/technical.md`)
-- [x] Rejouer les tests qui envoyaient de vrais mails : réglé autrement, plus aucun test
-      n'envoie de vrai mail (transport `outbox`). Suite complète au vert, 648 tests sur 648, le
-      2026-10-16
-
-- [x] Jeton d'adresse signé sur la recherche d'adresse, vérifié par réservation, devis et
-      disponibilités (voir `technical.md`)
-
-## 8. Espace BINOVYA Pro
-
-Les trois lots sont faits (accès, planning, liste, itinéraire ; disponibilités et déplacement
-d'une intervention ; photos, fin d'intervention et photos côté client), suivis d'une passe de
-désencombrement du mobile. Reste la passe de tests de fin d'étape, puis la fusion dans `dev`.
-
-- [x] Accès admin (`app_metadata.role`)
-- [x] Planning du jour, mobile
-- [x] Liste des interventions : client, date, adresse, bacs, formule, paiement, statut
-- [x] Bouton « Itinéraire Google Maps »
-- [x] Appliquer dans l'ordre les migrations `20261017000000_admin_login_link` et
-      `20261017010000_admin_session_rule` (SQL Editor, vérifiées en base : `claim_admin_login_link`,
-      `admin_login_links` et `oldest_link_sign_in_at` existent)
-- [x] Appliquer les migrations du lot 2 `20261017020000_pro_availability_admin` et
-      `20261017030000_pro_availability_hardening` (SQL Editor, vérifiées en base : `day_check`,
-      `admin_reschedule_booking`, `admin_day_overview` et `is_admin` existent)
-- [x] Lot 2 : migration qui écrit les appels `is_admin()` des policies en `(select
-public.is_admin())` (fonction plpgsql, évaluée par ligne) et ajoute `is_admin` à `Functions`
-      de `app/types/database.types.ts`
-- [x] Lot 2 : revérifier l'admin par `auth.getUser()` avant toute écriture (`requireAdminForWrite`,
-      un rôle retiré ne coupe l'accès qu'après 1 h au plus avec `getClaims`)
-- [x] Lot 3 : même revérification (`requireAdminForWrite`) sur les routes d'écriture des photos et
-      de la fin d'intervention
-- [x] Appliquer les migrations du lot 3 `20261019000000_pro_intervention_photos` et
-      `20261019010000_pro_photos_rules` (SQL Editor, vérifiées en base)
-- [ ] Chore : déplacer les constantes de classes de formulaire et de calendrier de
-      `app/constants/booking.ts` vers `app/constants/form.ts`
-- [x] Bloquer une journée, changer une date, imposer le secteur d'un jour (`/pro/availability`,
-      secteur par commune)
-- [x] Modifier la capacité par jour de semaine
-- [x] Déplacer une intervention depuis l'espace Pro (`ProRescheduleDialog`), avec « Forcer quand
-      même » pour les refus qui le permettent, et mail au client
-- [x] Navigation latérale Pro (`ProNavPanel`), bouton commun `AppButton`, panneau d'état du jour
-      et badge « À déplacer »
-- [ ] Chore : migrer la croix de fermeture de `ProRescheduleDialog` (bouton natif) vers
-      `AppButton` en icône seule, avec la migration des boutons de la réservation, du devis et
-      du contact vers `AppButton`
-- [ ] Chore : migrer les `STEP_OFFSET / 2` restants (réservation, devis, `ProCapacityField`,
-      `ProDayOverrideForm`, `ProFormFeedback`, `ProRescheduleDialog`) vers `FEEDBACK_OFFSET`, avec
-      une seule direction (aujourd'hui `y` négatif ou positif selon le fichier)
-- [ ] Chore : harmoniser le rouge des erreurs de chargement (`text-destructive` ou `text-red-700`
-      selon le fichier) avec une constante commune
-- [ ] Chore (facultatif) : déplacer « Suivre la règle » de `ProCapacityField` sur la ligne du
-      libellé
-- [ ] Chore e2e : une session admin partagée (`storageState` Playwright) à la place de la
-      connexion par lien magique de chaque test (43 connexions, `signInNewAdmin` instable, parfois
-      bloqué sur `/pro/confirm`)
-- [ ] Lancer `bun run test` une fois, à la fin de l'étape (après le lot 3), avant la fusion dans
-      `dev` : les tests des lots 1 et 2 sont écrits mais pas rejoués lot par lot, ceux du lot 3
-      (photos, fin d'intervention, page `/pro/interventions/[id]`, photos client) restent à écrire
-      et ceux de la liste et de la carte à adapter, ainsi que ceux de la ligne mobile, du
-      panneau urgent, des jours marqués et de `GET /api/pro/interventions/days`
-- [x] Photos avant/après depuis le téléphone (page `/pro/interventions/[id]` en 4 étapes,
-      redimensionnement dans le navigateur, `PUT /api/pro/bookings/[id]/photos/[kind]`)
-- [x] « Terminer l'intervention », disponible après l'ajout des photos ; l'admin peut forcer la
-      fin sans photos, après confirmation (`POST /api/pro/bookings/[id]/complete`)
-- [x] Désencombrer la fiche d'intervention : en-tête réduit, compteur et segments d'étapes,
-      destination et appel à l'étape 1, confirmation en ligne de « Passer cette photo »,
-      accordéon « Plus d'infos » fermé par défaut, une seule région live
-- [x] Lignes compactes sur téléphone pour les interventions (`ProInterventionRow`,
-      `ProRescheduleMenu`), carte à partir de `sm`
-- [x] Pied de page du layout Pro (mentions légales, confidentialité, retour au site)
-- [x] Jours marqués dans les sélecteurs de date de `/pro` et `/pro/interventions`
-      (`GET /api/pro/interventions/days`, `useProInterventionDays`)
-- [x] Alerte urgente « N interventions à déplacer d'urgence » dans le planning
-      (`ProDayStatusPanel`, `dayMoveCount`, `dayAlertTitle`)
-- [ ] Point ouvert : les points des filtres de `/pro/interventions` ne suivent pas le filtre de
-      statut (ils comptent `paid` et `completed`, jours passés compris)
-- [ ] Point ouvert, décision de l'utilisateur : `role="list"` sur les listes stylées bloqué par la
-      règle `vuejs-accessibility/no-redundant-roles`
-- [ ] Point ouvert, décision de l'utilisateur : libellés « Continuer » des étapes photo
-- [ ] Tests à adapter pour la passe de fin d'étape : `tests/e2e/pro/pro-availability.spec.ts`
-      (l. 124-129 et 164-171, nouveau titre urgent) ; 27 échecs unitaires déjà présents avant ce
-      travail, dans 7 fichiers (relevé du 19 octobre 2026) ; relancer le serveur de test du
-      port 3001 (auto-imports périmés)
-- [x] Photos avant/après et reçu de paiement dans l'espace client (`/account/bookings/[id]`, URL
-      signées de 10 minutes, reçu Stripe « Reçu de paiement »)
-- [ ] Facture française réelle avec les mentions légales : à décider avec le client (le reçu
-      Stripe n'en tient pas lieu)
-
-## 9. Tournées
-
-- [ ] Extraits Geofabrik Lorraine + Luxembourg, fusion `osmium`, prétraitement OSRM (`car.lua`, MLD)
-- [ ] Conteneurs OSRM et VROOM
-- [ ] Endpoint d'optimisation de la tournée du jour (départ et retour au dépôt)
-- [ ] Affichage de l'ordre optimisé dans le planning
-
-## 10. Infrastructure
-
-Tout se prépare et se teste en local, sans serveur. La mise en place sur le VPS est à l'étape 12.
-
-- [ ] Dockerfile Nuxt (preset `node-server`)
-- [ ] `docker-compose.yml` : Caddy, Nuxt, OSRM, VROOM, supervision, réseaux public et interne
-- [ ] `Caddyfile` : redirection `www`, en-têtes de sécurité, logs JSON (cible dans
-      `technical.md`, « Hébergement »)
-- [ ] `Caddyfile` : `Content-Security-Policy-Report-Only` rédigée et testée en local contre Nuxt
-      et Supabase (le passage en application est à l'étape 12). Le cookie de session est lisible
-      par le JavaScript, une XSS est donc le principal risque de vol de session
-- [ ] Tests : projet Playwright WebKit (Safari)
-- [ ] Logs JSON côté Nitro
-- [ ] Supervision : configuration de Prometheus, Loki, Alloy, Grafana, node-exporter, cAdvisor
-- [ ] Sauvegarde : script shell `pg_dump` de la base Supabase (planifié par cron à l'étape 12)
-- [ ] Sauvegarde : script de copie du bucket Storage `intervention-photos` (le dump ne contient
-      que les chemins, pas les fichiers)
-- [ ] Sauvegarde : chiffrement des dumps avant qu'ils quittent la machine (`age` ou `gpg`), ils
-      contiennent des données personnelles (RGPD)
-- [ ] Sauvegarde : envoi hors site vers un stockage objet compatible S3 en UE, chez un fournisseur
-      différent de celui du VPS (Backblaze B2, Scaleway, OVH). Jamais de sauvegarde uniquement sur
-      le VPS
-- [ ] Sauvegarde : politique de rétention (ex. 7 quotidiennes + 4 hebdomadaires + 12 mensuelles)
-      et alerte en cas d'échec
-- [ ] Sauvegarde : test de restauration mensuel automatisé, dans un conteneur Postgres jetable
-      (voir « Sauvegardes » dans `technical.md`), avec alerte si les comptages diffèrent
-
-## 11. CI/CD
-
-- [ ] Typecheck : `bunx nuxi typecheck` échoue sur cette machine (`npx` récupère vue-tsc 3.3.13
-      avec TypeScript 7) et le projet n'a ni script `typecheck` ni `vue-tsc` en devDependency.
-      Ajouter `vue-tsc` en devDependency et un script `typecheck`, puis corriger les 5 erreurs
-      existantes (`HeroSection.vue`, `ServicesSection.vue`, `TrustStripSection.vue`,
-      `LanguageSwitcherDesktop.vue`, `LanguageSwitcherMobile.vue`)
-- [ ] CI : lint, formatage, typecheck, tests, build
-- [ ] CI : lancer `bun scripts/test-run.ts unit integration` (autonome, sans e2e ni clé Resend)
-      sur une VM neuve : installer Bun et la CLI Stripe, avec le cache du fournisseur (clés
-      basées sur `bun.lock`)
-- [ ] CI : secrets `sk_test_` Stripe (`NUXT_STRIPE_SECRET_KEY` ou `STRIPE_API_KEY`) et clés
-      Supabase d'un projet de test DÉDIÉ, jamais celles de la production
-- [ ] Tests : refuser de tourner si l'URL Supabase n'est pas celle du projet de test (comme
-      `assertTestStripeKey` pour Stripe)
-- [ ] CI : réglage `concurrency` de GitHub Actions, pour qu'une seule exécution tourne à la fois
-      (base de test et compte Stripe de test partagés)
-- [ ] Supabase reproductible avec la CLI, sans Terraform : `supabase migration repair` sur le
-      projet de dev (plus de 10 migrations appliquées à la main), réglages Auth (hook Send Email
-      vers `public.suppress_auth_emails`, expiration de l'OTP e-mail à 86 400 s, inscriptions
-      désactivées) déplacés dans `supabase/config.toml` puis `supabase config push`, event
-      trigger `rls_auto_enable` transformé en migration (il n'existe que sur le projet de dev)
-- [ ] Script `bun run supabase:provision` (création du projet, `link`, `db push`, `config push`),
-      réutilisé pour la production et pour le projet de test dédié à la CI. Les clés restent
-      copiées à la main
-- [ ] Dernier job : image vers GHCR, tags SHA + `latest` sur `main`
-- [ ] CD : SSH, `IMAGE_TAG=<sha>`, `docker compose pull && up -d`
-- [ ] GitHub Action mensuelle de mise à jour des cartes OSRM
-
-## 12. Mise en production
-
-Applique sur le vrai serveur et les vrais comptes ce que l'étape 10 a préparé en local.
-
-- [ ] Commander le VPS
-- [ ] Sécurité du serveur : SSH par clé uniquement, root désactivé, `unattended-upgrades`
-- [ ] Horloge synchronisée par NTP (`timedatectl` doit afficher `System clock synchronized: yes`),
-      sinon toutes les signatures de webhook Stripe (tolérance de 5 min) sont rejetées
-- [ ] `ufw` : 22 ouvert, 80 et 443 limités aux plages d'IP publiées par Cloudflare
-- [ ] `fail2ban` pour SSH uniquement : derrière Cloudflare il ne voit que des IP Cloudflare sur 80
-      et 443, il ne doit pas surveiller ces ports sous peine de bannir Cloudflare
-- [ ] Cloudflare : compte (plan gratuit) et DNS de `binovya.com` hébergé chez Cloudflare
-- [ ] Cloudflare : enregistrements proxifiés (`A`, `AAAA` s'il y a une IPv6, `CNAME` `www`), et
-      Resend (SPF, DKIM, `MX send`) et `_dmarc` en « DNS only ». `CAA` facultatif
-- [ ] Cloudflare : règles de limite de débit par IP sur `/api/auth/login`, `/api/pro/auth/login`, `/api/booking`,
-      `/api/booking/release`, `/api/contact` et `/api/quote` (vérifier le nombre de règles du plan
-      gratuit)
-- [ ] Cloudflare : limite de débit sur `/api/address/search` et `/api/booking/availability`
-- [ ] Cloudflare : limite de débit sur `/api/account/*` et sur `/api/pro/bookings/*/photos/*`
-- [ ] CSP : ajouter `blob:` à `img-src` (aperçu des photos choisies, `URL.createObjectURL`, dans
-      l'espace Pro)
-- [ ] Définir `NUXT_ADDRESS_TOKEN_SECRET` (production et secrets CI, étape 11)
-- [ ] Cloudflare : évaluer Turnstile sur `/login`, `/booking`, `/contact` et `/quote`
-- [ ] Cloudflare : mode SSL « Full (strict) », certificat d'origine sur Caddy (Let's Encrypt ou
-      Origin CA ; défi HTTP-01 ou défi DNS avec le plugin Cloudflare, à trancher)
-- [ ] Caddy : `trusted_proxies` sur les plages Cloudflare, IP réelle lue dans `CF-Connecting-IP`
-- [ ] Caddy : volume `/data` persisté (certificats, limite Let's Encrypt de 5 certificats
-      identiques par semaine)
-- [ ] Resend : vérifier le domaine `binovya.com` une fois les enregistrements DNS posés, puis
-      renseigner `NUXT_MAIL_FROM` (deux items de l'étape 6)
-- [ ] Projet Supabase de production, dans l'organisation du client : suivre la check-list « Mise
-      en place du projet Supabase de production » de `technical.md`
-- [ ] Créer le compte admin de production SANS mot de passe (invitation, ou
-      `auth.admin.createUser` sans `password`), `app_metadata.role = 'admin'`, sur une adresse
-      dédiée non publiée ; la requête de contrôle de `technical.md` doit ne rien renvoyer
-- [ ] RLS automatique en production : activer l'option qui crée l'event trigger `ensure_rls` (absent
-      des migrations), ou l'ajouter par une migration dédiée (décision à prendre)
-- [ ] Discuter avec le client du plan Supabase Pro (25 $/mois), seule voie de sauvegardes
-      automatiques téléchargeables côté Supabase (et de « Time-box user sessions »)
-- [ ] Variables d'environnement de production dans le `.env` du VPS : `NUXT_SITE_URL` en https,
-      clés Stripe LIVE et endpoint webhook du Dashboard (voir l'étape 5), `NUXT_MAIL_FROM` (après
-      vérification du domaine), `NUXT_CONTACT_EMAIL_TO`, clés Supabase de production.
-      `NUXT_MAIL_TRANSPORT` doit rester absent : le serveur refuse `outbox` hors développement et
-      journalise une erreur au démarrage. Copie du `.env` dans un gestionnaire de mots de passe
-- [ ] Passage sur un vrai iPhone et avec un vrai lecteur d'écran avant le lancement
-- [ ] Premier déploiement
-- [ ] Sauvegardes : cron nocturne activé sur le VPS, puis premier test de restauration
-- [ ] `Content-Security-Policy` passée de Report-Only à l'application, après vérification des
-      rapports sur le site réel
-- [ ] Contrôle de disponibilité externe (gratuit, hors du VPS)
-
-## 13. Légal
-
-- [ ] Mentions légales (hébergeur VPS, Supabase)
-- [ ] CGV : annulation, report, remboursement
-- [ ] Politique de confidentialité : données client, photos, durées de conservation. La section
-      « Espace client » existe, mais la date de dernière mise à jour est écrite en dur dans la page
-      et la durée de conservation des données de réservation manque
-- [ ] Politique de confidentialité : lister Cloudflare comme sous-traitant (société américaine,
-      déchiffre le trafic) avec son DPA
-- [ ] Durée de conservation des logs dans Loki (étape 12) : ils contiennent les IP des visiteurs,
-      donnée personnelle au sens du RGPD. À fixer et à citer dans la politique de confidentialité
-- [ ] Décider du sort des réservations abandonnées et de leurs comptes (purge ou anonymisation)
-- [ ] Décider de la durée de conservation des photos avant/après (RGPD), à citer dans la politique
-      de confidentialité et à appliquer au bucket `intervention-photos` (étape 10 pour la purge)
-- [ ] Migration qui retire les droits par défaut de `anon` sur les autres tables du schéma `public`
-      (`revoke all … from anon`, `alter default privileges …`) : la RLS protège déjà, c'est un
-      durcissement
-- [ ] Avant le lancement, décider du sort des formules trimestrielle et annuelle : aujourd'hui
-      elles sont payées en une fois pour un seul passage, sans engagement enregistré. Les masquer
-      (devis uniquement) ou livrer l'étape 14 (abonnements) avant
-
-## SEO (branche `chore/seo`, après la fusion de l'étape 8 dans `dev`)
-
-Audit du 2026-10-17, 29 constats : voir `specs/seo.md`. Sans numéro, pour ne pas renuméroter.
+Audit du 2026-10-17, 29 constats : voir `specs/seo.md`.
 
 - [ ] Répondre aux questions client de `specs/seo.md` (adresse, téléphone, domaine, engagements)
-- [ ] `<html lang>` absent sur tout le site (WCAG 3.1.1) : le poser avec `useLocaleHead` dans
-      `app.vue`
-- [ ] Pages privées hors index (`/login` en `noindex`, en-têtes `X-Robots-Tag`)
+- [ ] `<html lang>` absent sur tout le site (WCAG 3.1.1) : `useLocaleHead` dans `app.vue`
+- [ ] Autres pages privées hors index (en-têtes `X-Robots-Tag`)
 - [ ] Sitemap, robots, URL publique, canonical et hreflang
 - [ ] Données structurées (`LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList`)
 - [ ] Page `/formulas` (clés i18n brutes) et images manquantes
 - [ ] Maillage interne et sélecteur de langue
 - [ ] Titres, descriptions et images (OG, dimensions, `alt`)
 
-## 14. Après le lancement
+### 10. Infrastructure
 
-- [ ] SMS Brevo (veille et jour J)
-- [ ] Abonnements récurrents (selon la décision du client, voir l'item des formules trimestrielle
-      et annuelle à l'étape 13)
+Tout se prépare et se teste en local. La mise en place sur le VPS est à l'étape 12.
+
+- [ ] Dockerfile Nuxt (preset `node-server`)
+- [ ] `docker-compose.yml` : Caddy et Nuxt seulement
+- [ ] `Caddyfile` : redirection `www`, en-têtes de sécurité, logs JSON
+- [ ] CSP simple, écrite une fois, testée en local sur la réservation et Stripe Checkout,
+      l'espace client et l'espace Pro (avec `blob:` dans `img-src` pour les aperçus de photos),
+      appliquée dès le lancement (pas de phase Report-Only)
+- [ ] Projet Playwright WebKit (voir le chore de l'étape 8)
+
+### 11. CI/CD
+
+- [ ] Ajouter `vue-tsc` en devDependency et un script `typecheck`, puis corriger les 5 erreurs
+      (`HeroSection`, `ServicesSection`, `TrustStripSection`, `LanguageSwitcherDesktop`,
+      `LanguageSwitcherMobile`)
+- [ ] CI : lint, formatage, typecheck, tests unitaires, build
+- [ ] CI : image vers GHCR (tags SHA + `latest` sur `main`)
+- [ ] CD : SSH, `docker compose pull && up -d`
+- Les tests d'intégration et e2e restent en local avant chaque fusion.
+
+### 12. Mise en production
+
+- [ ] Commander le VPS ; SSH par clé seulement, root désactivé, `unattended-upgrades`
+- [ ] Horloge NTP (`timedatectl` : `System clock synchronized: yes`), sinon les webhooks Stripe
+      sont rejetés (tolérance de 5 min)
+- [ ] `ufw` : 22 ouvert, 80 et 443 limités aux plages Cloudflare ; `fail2ban` pour SSH
+      seulement (il ne doit pas surveiller 80 et 443 : il bannirait Cloudflare)
+- [ ] Cloudflare plan gratuit : DNS de `binovya.com`, enregistrements proxifiés, SPF/DKIM/DMARC
+      Resend en « DNS only », SSL « Full (strict) »
+- [ ] Cloudflare : UNE règle de limite de débit pour les routes sensibles (`/api/auth/login`,
+      `/api/pro/auth/login`, `/api/booking*`, `/api/contact`, `/api/quote`,
+      `/api/address/search`), proposition 30 req / 10 s par IP, blocage 60 s ; vérifier le
+      nombre de règles du plan gratuit
+- [ ] Caddy : `trusted_proxies` sur les plages Cloudflare, IP réelle dans `CF-Connecting-IP`,
+      volume `/data` persisté (certificats, limite Let's Encrypt)
+- [ ] Resend : vérifier le domaine `binovya.com`, puis renseigner `NUXT_MAIL_FROM`
+- [ ] Supabase de production dans l'organisation du client : check-list de `technical.md`,
+      migrations par `supabase db push`
+- [ ] Compte admin de production SANS mot de passe, `app_metadata.role = 'admin'`, adresse
+      dédiée non publiée (la requête de contrôle de `technical.md` ne doit rien renvoyer)
+- [ ] RLS automatique (event trigger `ensure_rls`) en production : décider (option ou migration)
+- [ ] Plan Supabase Pro (25 $/mois) pour les sauvegardes automatiques : à convenir avec le
+      client (remplace les scripts de sauvegarde maison)
+- [ ] Variables de production dans le `.env` du VPS : `NUXT_SITE_URL` en https,
+      `NUXT_ADDRESS_TOKEN_SECRET`, clés Stripe LIVE et endpoint webhook du Dashboard
+      (`checkout.session.completed`, `checkout.session.expired`), `NUXT_MAIL_FROM`,
+      `NUXT_CONTACT_EMAIL_TO`, clés Supabase. `NUXT_MAIL_TRANSPORT` absent. Copie dans un
+      gestionnaire de mots de passe
+- [ ] Passage sur un vrai iPhone et avec un vrai lecteur d'écran
+- [ ] Premier déploiement
+- [ ] Contrôle de disponibilité externe gratuit
+
+### 13. Légal
+
+- [ ] Mentions légales (hébergeur VPS, Supabase)
+- [ ] CGV : annulation, report, remboursement
+- [ ] Politique de confidentialité : données client, photos, durées de conservation (la date de
+      mise à jour est écrite en dur, la durée de conservation des réservations manque)
+- [ ] Politique de confidentialité : Cloudflare comme sous-traitant (société américaine,
+      déchiffre le trafic), avec son DPA
+- [ ] Décider du sort des réservations abandonnées et de leurs comptes (purge ou anonymisation)
+- [ ] Décider de la durée de conservation des photos avant/après (RGPD), à citer dans la
+      politique de confidentialité et à appliquer au bucket `intervention-photos`
+- [ ] Masquer les formules trimestrielle et annuelle en V1 (devis uniquement)
+
+## V2 (après le lancement)
+
+- 9. Tournées : extraits Geofabrik Lorraine + Luxembourg, fusion `osmium`, prétraitement OSRM,
+     conteneurs OSRM et VROOM, endpoint d'optimisation, ordre optimisé dans le planning, GitHub
+     Action mensuelle des cartes OSRM. En V1 la tournée suit l'ordre de la liste via le lien
+     Google Maps existant
+- Supervision : Prometheus, Loki, Alloy, Grafana, node-exporter, cAdvisor ; logs JSON côté
+  Nitro ; durée de conservation des logs Loki (IP = donnée personnelle, à citer dans la
+  politique de confidentialité)
+- Sauvegardes maison (seulement si le client refuse Supabase Pro) : `pg_dump`, copie du bucket
+  `intervention-photos`, chiffrement `age`/`gpg`, envoi hors site S3 en UE, rétention et
+  alerte, test de restauration mensuel, cron nocturne sur le VPS
+- Supabase reproductible : script `supabase:provision`, `config.toml` + `config push`,
+  `migration repair`, `rls_auto_enable` en migration
+- Projet Supabase de test dédié à la CI : intégration et e2e en CI (secrets Stripe `sk_test_`),
+  refus de tourner hors de l'URL de test, `concurrency` GitHub Actions
+- Cloudflare Turnstile (`/login`, `/booking`, `/contact`, `/quote`) ; limites de débit par
+  route (`/api/account/*`, `/api/pro/bookings/*/photos/*`, `/api/booking/availability`…)
+- Durcissement des droits par défaut : `anon` sur les autres tables de `public`
+  (`revoke all … from anon`, `alter default privileges …`), `references` et `trigger` sur
+  `price_grid`, `booking_settings`, `quote_requests`
+- SMS Brevo (veille et jour J)
+- Abonnements récurrents (formules trimestrielle et annuelle)
