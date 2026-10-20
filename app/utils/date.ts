@@ -83,3 +83,20 @@ export const businessToday = (now: Date = new Date()): string =>
  */
 export const addDaysToIsoDate = (isoDate: string, days: number): string =>
   toIsoDate(addDays(parseIsoDate(isoDate), days))
+
+/**
+ * Formats an instant as a date and time in the business time zone, whatever the browser or server
+ * zone is.
+ * @param instant - ISO timestamp
+ * @param locale - BCP 47 locale
+ * @returns Date and time such as « mercredi 21 octobre à 14:35 »
+ */
+export const formatBusinessDateTime = (instant: string, locale: string): string =>
+  new Intl.DateTimeFormat(locale, {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: BUSINESS_TIME_ZONE,
+  }).format(new Date(instant))

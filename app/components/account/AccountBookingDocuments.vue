@@ -125,7 +125,12 @@ const props = withDefaults(
   {
     showPhotos: true,
     isCompleted: false,
-    documents: () => ({ photos: { before: null, after: null }, receiptUrl: null, invoice: null }),
+    documents: () => ({
+      photos: { before: null, after: null },
+      receiptUrl: null,
+      invoice: null,
+      isPaidOffline: false,
+    }),
     refreshLinks: async (): Promise<AccountLinksRefresh> => 'failed',
   },
 )

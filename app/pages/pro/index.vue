@@ -2,17 +2,22 @@
   <div class="min-h-[70vh]">
     <p class="sr-only" role="status" aria-live="polite">{{ liveStatus }}</p>
     <div class="mx-auto max-w-[1180px] space-y-8 px-4 pb-16 pt-8 sm:px-8 sm:pt-12">
-      <div :class="HERO_ENTER_CLASS">
-        <span class="mb-2 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary">
-          {{ $t('pro.planning.eyebrow') }}
-        </span>
-        <h1
-          ref="titleRef"
-          tabindex="-1"
-          class="text-[28px] font-black leading-tight text-ink outline-none sm:text-[32px]"
-        >
-          {{ $t('pro.planning.title', { date: dayLabel }) }}
-        </h1>
+      <div :class="cn(HERO_ENTER_CLASS, 'flex flex-wrap items-end justify-between gap-4')">
+        <div>
+          <span class="mb-2 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary">
+            {{ $t('pro.planning.eyebrow') }}
+          </span>
+          <h1
+            ref="titleRef"
+            tabindex="-1"
+            class="text-[28px] font-black leading-tight text-ink outline-none sm:text-[32px]"
+          >
+            {{ $t('pro.planning.title', { date: dayLabel }) }}
+          </h1>
+        </div>
+        <AppButton :to="localePath(PRO_CREATE_PATH)" icon="CirclePlus">
+          {{ $t('pro.planning.create') }}
+        </AppButton>
       </div>
 
       <div
@@ -163,7 +168,8 @@ import {
   CONTENT_ENTER_TRANSITION,
   HERO_ENTER_CLASS,
 } from '@/constants/motion'
-import { GOOGLE_MAPS_MAX_WAYPOINTS } from '@/constants/pro'
+import { GOOGLE_MAPS_MAX_WAYPOINTS, PRO_CREATE_PATH } from '@/constants/pro'
+import { cn } from '@/lib/utils'
 import { addDaysToIsoDate, formatFullDate } from '@/utils/date'
 import { isIsoDate } from '@/utils/dateValidation'
 import { roundDirectionsUrls } from '@/utils/googleMaps'
@@ -177,6 +183,7 @@ definePageMeta({
 const DATE_FIELD_ID: string = 'pro-planning-date'
 
 const { t, locale } = useI18n()
+const localePath = useLocalePath()
 const route = useRoute()
 const router = useRouter()
 

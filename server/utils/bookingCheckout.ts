@@ -31,6 +31,7 @@ export type BookingCheckoutInput = {
   scheduledDate: string
   billing: BookingBilling
   locale: BookingLocale
+  expiresAt?: number
 }
 
 const invoiceDescription = (input: BookingCheckoutInput): string =>
@@ -65,8 +66,9 @@ export const bookingPageUrl = (locale: BookingLocale, outcome: CheckoutOutcome):
  * Opens a Stripe Checkout session for a booking that holds its slot, billed to a Stripe customer
  * carrying the booking's name and address, with an invoice created once the payment succeeds.
  * The session expires before the hold, so a payment can never complete on a slot that was
- * already released.
- * @param input - Booking amount, plan, date and billing details
+ * already released: after 31 minutes by default, or at `expiresAt` (Unix seconds, 30 minutes to
+ * 24 hours after creation, see Stripe) for a longer hold.
+ * @param input - Booking amount, plan, date, billing details and optional expiry
  * @returns Created Checkout session
  */
 export const createBookingCheckout = async (
@@ -84,7 +86,7 @@ export const createBookingCheckout = async (
       client_reference_id: input.bookingId,
       customer: customer.id,
       locale: input.locale,
-      expires_at: Math.floor(Date.now() / 1000) + CHECKOUT_LIFETIME_SECONDS,
+      expires_at: input.expiresAt ?? Math.floor(Date.now() / 1000) + CHECKOUT_LIFETIME_SECONDS,
       line_items: [
         {
           quantity: 1,
@@ -125,4 +127,37 @@ export const expireUnpaidBooking = async (
   if (error) {
     throw createError({ statusCode: 500, statusMessage: 'Booking release failed' })
   }
+}
+
+/**
+ * Opens the Checkout session of a booking that holds its slot and stores it on the booking. When
+ * Stripe fails, or the session cannot be stored, the session is expired and the slot released.
+ * @param client - Supabase client using the secret key
+ * @param checkout - Booking amount, plan, date, billing details and optional expiry
+ * @returns URL of the Checkout page
+ * @throws 502 when Stripe refuses the session, 500 when it cannot be stored
+ */
+export const attachBookingCheckout = async (
+  client: SupabaseClient<Database>,
+  checkout: BookingCheckoutInput,
+): Promise<string> => {
+  const { bookingId } = checkout
+  const session: Stripe.Checkout.Session = await createBookingCheckout(checkout).catch(async () => {
+    await expireUnpaidBooking(client, bookingId)
+    throw createError({ statusCode: 502, statusMessage: 'Checkout creation failed' })
+  })
+
+  const { error } = await client
+    .from('bookings')
+    .update({ stripe_checkout_session_id: session.id })
+    .eq('id', bookingId)
+  if (error || !session.url) {
+    await useStripe()
+      .checkout.sessions.expire(session.id)
+      .catch(() => null)
+    await expireUnpaidBooking(client, bookingId)
+    throw createError({ statusCode: 500, statusMessage: 'Checkout attachment failed' })
+  }
+
+  return session.url
 }

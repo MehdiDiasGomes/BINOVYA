@@ -21,8 +21,14 @@ export type ProInterventionProgress =
   | 'completed'
   | 'completedWithoutPhotos'
   | 'cancelled'
+  | 'awaitingPayment'
 
-export type ProInterventionMode = 'steps' | 'completed' | 'upcoming' | 'cancelled'
+export type ProInterventionMode =
+  | 'steps'
+  | 'completed'
+  | 'upcoming'
+  | 'cancelled'
+  | 'awaitingPayment'
 
 export type ProCardAction = 'start' | 'continue' | 'view'
 
@@ -53,3 +59,8 @@ export type ProInterventionStepsState = {
 export type ProHistoryListener = Parameters<RouterHistory['listen']>[0]
 
 export type ProHistoryDirection = Parameters<ProHistoryListener>[2]['direction']
+
+export type ProInterventionBack = {
+  backRoute: ComputedRef<RouteLocationRaw>
+  backLabel: ComputedRef<string>
+}

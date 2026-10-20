@@ -25,7 +25,7 @@ type PhotoRow = Pick<
   'kind' | 'storage_path'
 >
 
-type PaymentDocuments = Pick<AccountBookingDocuments, 'receiptUrl' | 'invoice'>
+type PaymentDocuments = Pick<AccountBookingDocuments, 'receiptUrl' | 'invoice' | 'isPaidOffline'>
 
 type SignedUrl = {
   path: string | null
@@ -194,17 +194,28 @@ const loadInvoiceLink = async (bookingId: string, invoiceId: string): Promise<Ac
   (await readThroughCache(invoiceCache, bookingId, () => fetchInvoiceLink(bookingId, invoiceId))) ??
   NO_INVOICE_LINK
 
-const loadPaymentDocument = async (record: AccountBookingRecord): Promise<PaymentDocuments> =>
-  record.invoiceId
-    ? { receiptUrl: null, invoice: await loadInvoiceLink(record.booking.id, record.invoiceId) }
-    : { receiptUrl: await loadReceiptUrl(record), invoice: null }
+const OFFLINE_PAYMENT: PaymentDocuments = { receiptUrl: null, invoice: null, isPaidOffline: true }
+
+const loadPaymentDocument = async (record: AccountBookingRecord): Promise<PaymentDocuments> => {
+  if (record.isPaidOffline) {
+    return OFFLINE_PAYMENT
+  }
+  return record.invoiceId
+    ? {
+        receiptUrl: null,
+        invoice: await loadInvoiceLink(record.booking.id, record.invoiceId),
+        isPaidOffline: false,
+      }
+    : { receiptUrl: await loadReceiptUrl(record), invoice: null, isPaidOffline: false }
+}
 
 /**
  * Loads what the customer can open from a booking page: the before and after photos, through
  * signed URLs valid 10 minutes generated at each view, only once the intervention is completed,
  * and the payment document. An invoiced booking gets its Stripe invoice (PDF, else the hosted
  * page); an older one keeps the Stripe payment receipt (`latest_charge.receipt_url` of the
- * payment intent), which reflects a refund. Relies on RLS: the client must carry the customer
+ * payment intent), which reflects a refund. A booking paid outside the site (`payment_method`
+ * offline) has no Stripe document and is never looked up at Stripe. Relies on RLS: the client must carry the customer
  * session, and the booking must have been loaded for this customer first. Never throws: a missing
  * photo, invoice, receipt or a Stripe error only leaves the entry empty.
  * @param client - Supabase client of the logged-in customer

@@ -67,32 +67,37 @@ import { COLLECTION_LID_CLASSES, WEEKDAYS_MONDAY_FIRST } from '@/constants/booki
 const props = withDefaults(
   defineProps<{
     kind?: CollectionKind
+    modelValue?: CollectionAnswer
   }>(),
   {
     kind: 'household',
+    modelValue: () => ({ weekdays: [], isUnknown: false }),
   },
 )
 
-const { locale } = useI18n()
-const { draft } = useBookingDraft()
+const emit = defineEmits<{
+  'update:modelValue': [value: CollectionAnswer]
+}>()
 
-const answer: ComputedRef<CollectionAnswer> = computed(() => draft.value.collection[props.kind])
+const { locale } = useI18n()
+
+const answer: ComputedRef<CollectionAnswer> = computed(() => props.modelValue)
 
 const toggleWeekday = (weekday: number): void => {
   const selected: number[] = answer.value.weekdays
-  draft.value.collection[props.kind] = {
+  emit('update:modelValue', {
     weekdays: selected.includes(weekday)
       ? selected.filter(day => day !== weekday)
       : [...selected, weekday],
     isUnknown: false,
-  }
+  })
 }
 
 const toggleUnknown = (): void => {
   const isUnknown: boolean = !answer.value.isUnknown
-  draft.value.collection[props.kind] = {
+  emit('update:modelValue', {
     weekdays: isUnknown ? [] : answer.value.weekdays,
     isUnknown,
-  }
+  })
 }
 </script>

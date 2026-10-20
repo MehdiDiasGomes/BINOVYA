@@ -3,20 +3,37 @@ import type { ProCustomer, ProIntervention, ProInterventionView } from '@/types/
 
 import { ACCOUNT_STATUS_TONES } from '@/constants/account'
 import { WEEKDAYS_MONDAY_FIRST } from '@/constants/booking'
+import { PRO_PENDING_PAYMENT_TONE } from '@/constants/pro'
 import { formatWeekday } from '@/utils/date'
 
+const paymentKey = (intervention: ProIntervention): string => {
+  if (intervention.status === 'cancelled') {
+    return 'pro.intervention.payments.refunded'
+  }
+  if (intervention.status === 'pending_payment') {
+    return 'pro.intervention.payments.awaitingLink'
+  }
+  return intervention.paymentMethod === 'offline'
+    ? 'pro.intervention.payments.offline'
+    : 'pro.intervention.payments.paid'
+}
+
 /**
- * Maps an intervention to its card tone and payment label. A cancelled booking has been refunded,
- * the others are paid.
+ * Maps an intervention to its card tone and payment label: refunded once cancelled, awaiting the
+ * payment link BINOVYA sent, paid outside the site, or paid online. The payment is worth a line on
+ * the card only when it is not a plain online payment.
  * @param intervention - Intervention shown in the BINOVYA Pro area
  * @returns Presentation data of the intervention
  */
 export const proInterventionView = (intervention: ProIntervention): ProInterventionView => ({
-  tone: ACCOUNT_STATUS_TONES[intervention.status],
-  paymentKey:
-    intervention.status === 'cancelled'
-      ? 'pro.intervention.payments.refunded'
-      : 'pro.intervention.payments.paid',
+  tone:
+    intervention.status === 'pending_payment'
+      ? PRO_PENDING_PAYMENT_TONE
+      : ACCOUNT_STATUS_TONES[intervention.status],
+  paymentKey: paymentKey(intervention),
+  hasPaymentNote:
+    intervention.status === 'pending_payment' ||
+    (intervention.status !== 'cancelled' && intervention.paymentMethod === 'offline'),
 })
 
 /**

@@ -9,16 +9,30 @@ const RECEIPT_VIEW: Omit<AccountPaymentDocumentView, 'url'> = {
   icon: 'Receipt',
 }
 
+const OFFLINE_VIEW: AccountPaymentDocumentView = {
+  titleKey: 'account.detail.offline.title',
+  openKey: 'account.detail.offline.title',
+  newTabKey: 'account.detail.newTab',
+  unavailableKey: 'account.detail.offline.text',
+  hintKey: 'account.detail.offline.hint',
+  icon: 'HandCoins',
+  url: null,
+}
+
 /**
  * Maps the payment document of a booking to what its page displays: the Stripe invoice when the
- * booking has one, as a PDF download or else its hosted page, otherwise the payment receipt.
+ * booking has one, as a PDF download or else its hosted page, otherwise the payment receipt. A
+ * booking paid outside the site has no document: its section only says how it was paid.
  * @param documents - Documents of the booking, see `loadAccountBookingDocuments`
  * @returns Translation keys, icon and URL of the payment document, URL null when unavailable
  */
 export const paymentDocumentView = (
   documents: AccountBookingDocuments,
-): AccountPaymentDocumentView =>
-  documents.invoice
+): AccountPaymentDocumentView => {
+  if (documents.isPaidOffline) {
+    return OFFLINE_VIEW
+  }
+  return documents.invoice
     ? {
         titleKey: 'account.detail.invoice.title',
         openKey: documents.invoice.isPdf
@@ -33,3 +47,4 @@ export const paymentDocumentView = (
         url: documents.invoice.url,
       }
     : { ...RECEIPT_VIEW, url: documents.receiptUrl }
+}

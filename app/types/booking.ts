@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 
 export type ServiceSlug = 'small-bin' | 'large-bin'
 
@@ -78,6 +78,12 @@ export type PriceGridEntry = {
   smallBinCount: number
   largeBinCount: number
   priceCents: number
+}
+
+export type PriceGridState = {
+  grid: Ref<PriceGridEntry[]>
+  isGridReady: ComputedRef<boolean>
+  hasGridError: ComputedRef<boolean>
 }
 
 export type DayStatusEntry = {

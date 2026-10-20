@@ -15,6 +15,8 @@ export const PRO_INTERVENTIONS_PATH: string = '/pro/interventions'
 
 export const PRO_INTERVENTION_ROUTE_NAME: string = 'pro-interventions-id'
 
+export const PRO_CREATE_PATH: string = '/pro/interventions/new'
+
 export const PRO_AVAILABILITY_PATH: string = '/pro/availability'
 
 export const PRO_NAV_SHEET_ID: string = 'pro-mobile-menu'
@@ -29,7 +31,14 @@ export const PRO_PLANNING_STATUSES: ProBookingStatus[] = ['paid', 'completed']
 
 export const PRO_PHOTO_STATUSES: ProBookingStatus[] = PRO_PLANNING_STATUSES
 
-export const PRO_LIST_STATUSES: ProBookingStatus[] = ['paid', 'completed', 'cancelled']
+export const PRO_LIST_STATUSES: ProBookingStatus[] = [
+  'pending_payment',
+  'paid',
+  'completed',
+  'cancelled',
+]
+
+export const PRO_PENDING_PAYMENT_TONE: MediaCardTone = 'neutral'
 
 export const PRO_STATUS_FILTERS: [ProStatusFilter, ...ProStatusFilter[]] = [
   'all',
@@ -63,6 +72,7 @@ export const PRO_NAV_LINK_CLASS: string =
 export const PRO_NAV_ITEMS: ProNavItem[] = [
   { path: PRO_HOME_PATH, labelKey: 'pro.nav.planning', icon: 'CalendarDays' },
   { path: PRO_INTERVENTIONS_PATH, labelKey: 'pro.nav.interventions', icon: 'ClipboardList' },
+  { path: PRO_CREATE_PATH, labelKey: 'pro.nav.create', icon: 'CirclePlus' },
   { path: PRO_AVAILABILITY_PATH, labelKey: 'pro.nav.availability', icon: 'CalendarCog' },
 ]
 

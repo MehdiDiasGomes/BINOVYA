@@ -1,6 +1,12 @@
 import { z } from 'zod'
 
-import { signedMunicipalitySchema } from './bookingSchemas'
+import {
+  binCountSchema,
+  bookingPlanSchema,
+  signedAddressSchema,
+  signedMunicipalitySchema,
+  weekdaysSchema,
+} from './bookingSchemas'
 
 import { CALENDAR_GRID_DAY_COUNT } from '@/constants/calendar'
 import { PHOTO_KINDS } from '@/constants/photos'
@@ -9,6 +15,8 @@ import {
   PRO_INTERVENTIONS_MAX_PAGE,
   PRO_STATUS_FILTERS,
 } from '@/constants/pro'
+import { PRO_BOOKING_MODES } from '@/constants/proCreate'
+import { contactSchema } from '@/utils/bookingValidation'
 import { addDaysToIsoDate, businessToday } from '@/utils/date'
 import { isIsoDate, isoDateSchema } from '@/utils/dateValidation'
 import { dayCapacitySchema, dayNoteSchema, weekdaySchema } from '@/utils/proAvailabilityValidation'
@@ -81,3 +89,16 @@ export const proRescheduleSchema = z.object({
 export const proPhotoKindParamsSchema = z.object({ kind: z.enum(PHOTO_KINDS) })
 
 export const proCompleteSchema = z.object({ force: z.boolean().default(false) })
+
+export const proCreateBookingSchema = z.object({
+  contact: contactSchema,
+  address: signedAddressSchema,
+  plan: bookingPlanSchema,
+  smallBinCount: binCountSchema,
+  largeBinCount: binCountSchema,
+  householdCollectionWeekdays: weekdaysSchema,
+  recyclingCollectionWeekdays: weekdaysSchema,
+  date: proHorizonDateSchema,
+  mode: z.enum(PRO_BOOKING_MODES),
+  force: z.boolean().default(false),
+})

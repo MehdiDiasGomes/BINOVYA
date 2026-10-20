@@ -8,8 +8,10 @@ import { isoDateSchema } from '@/utils/dateValidation'
 const latitude = z.coerce.number().min(-90).max(90)
 const longitude = z.coerce.number().min(-180).max(180)
 const dayStatus = z.enum(['available', 'full', 'closed', 'outOfSector'])
-const binCount = z.number().int().min(0).max(10)
-const weekdays = z.array(z.number().int().min(0).max(6)).max(7)
+export const binCountSchema = z.number().int().min(0).max(10)
+
+export const weekdaysSchema = z.array(z.number().int().min(0).max(6)).max(7)
+
 const POSTCODE_PATTERNS: Record<'FR' | 'LU', RegExp> = { FR: /^\d{5}$/, LU: /^\d{4}$/ }
 
 const addressFieldsSchema = z.object({
@@ -54,10 +56,10 @@ export const bookingPlanSchema = z.enum(['one_off', 'quarterly', 'annual'])
 export const bookingRequestSchema = z.object({
   address: signedAddressSchema,
   plan: bookingPlanSchema,
-  smallBinCount: binCount,
-  largeBinCount: binCount,
-  householdCollectionWeekdays: weekdays,
-  recyclingCollectionWeekdays: weekdays,
+  smallBinCount: binCountSchema,
+  largeBinCount: binCountSchema,
+  householdCollectionWeekdays: weekdaysSchema,
+  recyclingCollectionWeekdays: weekdaysSchema,
   binsReadyConfirmed: z.literal(true),
   date: isoDateSchema,
   contact: contactSchema,

@@ -139,6 +139,11 @@ export default {
       unavailable: 'Reçu indisponible pour le moment.',
       hint: 'Reçu émis par Stripe, notre prestataire de paiement. Il indique aussi un éventuel remboursement.',
     },
+    offline: {
+      title: 'Paiement',
+      text: 'Paiement réglé directement auprès de BINOVYA.',
+      hint: 'Pour obtenir un justificatif, répondez simplement à votre mail de confirmation.',
+    },
     invoice: {
       title: 'Facture',
       download: 'Télécharger la facture',

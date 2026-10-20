@@ -147,6 +147,11 @@
               <p v-else class="text-[15px] text-ink/80">
                 {{ $t(`pro.steps.${displayMode}.text`, { date: dateLabel }) }}
               </p>
+              <ProPaymentLinkPanel
+                v-if="displayMode === 'awaitingPayment'"
+                :intervention="intervention"
+                @outdated="announceAndReload"
+              />
             </section>
           </template>
         </Motion>
@@ -181,9 +186,8 @@ import type { FocusTarget } from '@/types/button'
 import type { ProIntervention } from '@/types/pro'
 import type { ProCompletedEvent } from '@/types/proPhotos'
 import type { ProPhotoUploadState } from '@/types/proPhotoUpload'
-import type { ProInterventionMode, ProInterventionOrigin, ProProgressView } from '@/types/proSteps'
+import type { ProInterventionBack, ProInterventionMode, ProProgressView } from '@/types/proSteps'
 import type { ShallowRef } from 'vue'
-import type { RouteLocationRaw } from 'vue-router'
 
 import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
 import { BACK_LINK_CLASS } from '@/constants/buttons'
@@ -195,15 +199,10 @@ import {
   STEP_OFFSET,
   STEP_TRANSITION,
 } from '@/constants/motion'
-import { PRO_ORIGIN_QUERY, PRO_PROGRESS_VIEWS } from '@/constants/proSteps'
+import { PRO_PROGRESS_VIEWS } from '@/constants/proSteps'
 import { formatFullDate } from '@/utils/date'
 import { proCustomerName } from '@/utils/proIntervention'
-import {
-  interventionBackRoute,
-  interventionMode,
-  interventionProgressStatus,
-  parseOriginQuery,
-} from '@/utils/proSteps'
+import { interventionMode, interventionProgressStatus } from '@/utils/proSteps'
 
 definePageMeta({
   layout: 'pro',
@@ -277,6 +276,8 @@ const announceAndReload = async (notice: string): Promise<void> => {
   await reload()
 }
 
+useProCreatedNotice().announceOnLoad(isLoading, announce)
+
 const upload: ProPhotoUploadState = useProPhotoUpload({
   intervention: () => intervention.value ?? null,
   announce,
@@ -348,16 +349,8 @@ const dateLabel: ComputedRef<string> = computed(() =>
   intervention.value ? formatFullDate(intervention.value.scheduledDate, locale.value) : '',
 )
 
-const origin: ComputedRef<ProInterventionOrigin> = computed(() =>
-  parseOriginQuery(route.query[PRO_ORIGIN_QUERY]),
-)
-
-const backRoute: ComputedRef<RouteLocationRaw> = computed(() =>
-  interventionBackRoute(origin.value, intervention.value?.scheduledDate ?? '', route.query),
-)
-
-const backLabel: ComputedRef<string> = computed(() =>
-  origin.value === 'list' ? t('pro.steps.backList') : t('pro.steps.backPlanning'),
+const { backRoute, backLabel }: ProInterventionBack = useProInterventionBack(
+  (): string => intervention.value?.scheduledDate ?? '',
 )
 
 const liveStatus: ComputedRef<string> = computed(() => {

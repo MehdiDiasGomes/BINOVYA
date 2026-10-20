@@ -66,7 +66,7 @@ import { cn } from '@/lib/utils'
 import { bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'
 import { groupPhoneDigits, telHref } from '@/utils/phone'
 import { formatPrice } from '@/utils/pricing'
-import { collectionWeekdaysLabel } from '@/utils/proIntervention'
+import { collectionWeekdaysLabel, proInterventionView } from '@/utils/proIntervention'
 
 const props = defineProps<{
   intervention: ProIntervention
@@ -106,6 +106,10 @@ const rows: ComputedRef<AccountDetailRow[]> = computed(() => [
   {
     labelKey: 'pro.intervention.amount',
     value: formatPrice(props.intervention.amountTotalCents, locale.value),
+  },
+  {
+    labelKey: 'pro.intervention.payment',
+    value: t(proInterventionView(props.intervention).paymentKey),
   },
 ])
 

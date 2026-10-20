@@ -12,7 +12,7 @@ export type AccountStatusIcon = 'CalendarDays' | 'CircleCheck' | 'CircleX'
 
 export type AccountNavIcon = 'CircleUser' | 'LayoutDashboard'
 
-export type AccountPaymentIcon = 'FileText' | 'Receipt'
+export type AccountPaymentIcon = 'FileText' | 'Receipt' | 'HandCoins'
 
 export type AccountPaymentDocumentView = {
   titleKey: string
@@ -48,6 +48,7 @@ export type AccountBookingRecord = {
   booking: AccountBooking
   paymentIntentId: string | null
   invoiceId: string | null
+  isPaidOffline: boolean
 }
 
 export type AccountBookingPhotos = Record<AccountPhotoKind, string | null>
@@ -61,6 +62,7 @@ export type AccountBookingDocuments = {
   photos: AccountBookingPhotos
   receiptUrl: string | null
   invoice: AccountInvoiceLink | null
+  isPaidOffline: boolean
 }
 
 export type AccountLinksRefresh = 'ok' | 'failed' | 'expired'

@@ -76,12 +76,12 @@
         <Icon name="CalendarDays" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
         {{ $t('booking.collection.hint') }}
       </p>
-      <BookingCollectionField kind="household" />
+      <BookingCollectionField v-model="draft.collection.household" kind="household" />
     </div>
 
     <Separator />
 
-    <BookingCollectionField kind="recycling" />
+    <BookingCollectionField v-model="draft.collection.recycling" kind="recycling" />
   </div>
 </template>
 

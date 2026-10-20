@@ -19,13 +19,13 @@ type BookingRow = Pick<
 type BookingRecordRow = BookingRow &
   Pick<
     Database['public']['Tables']['bookings']['Row'],
-    'stripe_payment_intent_id' | 'stripe_invoice_id'
+    'stripe_payment_intent_id' | 'stripe_invoice_id' | 'payment_method'
   >
 
 const BOOKING_COLUMNS =
   'id, scheduled_date, address, plan, small_bin_count, large_bin_count, amount_total_cents, status'
 
-const BOOKING_RECORD_COLUMNS = `${BOOKING_COLUMNS}, stripe_payment_intent_id, stripe_invoice_id`
+const BOOKING_RECORD_COLUMNS = `${BOOKING_COLUMNS}, stripe_payment_intent_id, stripe_invoice_id, payment_method`
 
 const isAccountStatus = (status: string): status is AccountBooking['status'] =>
   (ACCOUNT_BOOKING_STATUSES as string[]).includes(status)
@@ -75,6 +75,7 @@ const toAccountBookingRecord = (row: BookingRecordRow): AccountBookingRecord | n
         booking,
         paymentIntentId: row.stripe_payment_intent_id,
         invoiceId: row.stripe_invoice_id,
+        isPaidOffline: row.payment_method === 'offline',
       }
     : null
 }
@@ -85,7 +86,8 @@ const toAccountBookingRecord = (row: BookingRecordRow): AccountBookingRecord | n
  * @param client - Supabase client of the logged-in customer
  * @param customerId - Identifier of the logged-in customer
  * @param bookingId - Identifier of the requested booking
- * @returns The booking with its Stripe payment intent and invoice, server only, or null when it
+ * @returns The booking with its Stripe payment intent and invoice and whether it was paid outside
+ * the site, server only, or null when it
  * does not exist or is not visible to this customer
  */
 export const loadAccountBooking = async (

@@ -37,12 +37,15 @@ type InterventionRow = Pick<
   | 'amount_total_cents'
   | 'status'
   | 'completed_without_photos'
+  | 'payment_method'
+  | 'created_by_admin'
+  | 'expires_at'
 >
 
 type CustomerRow = Pick<Tables['profiles']['Row'], 'id' | 'first_name' | 'last_name' | 'phone'>
 
 const INTERVENTION_COLUMNS =
-  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos'
+  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos, payment_method, created_by_admin, expires_at'
 
 const CUSTOMER_COLUMNS = 'id, first_name, last_name, phone'
 
@@ -51,6 +54,11 @@ const unavailable = (): Error =>
 
 const isProStatus = (status: string): status is ProBookingStatus =>
   (PRO_LIST_STATUSES as string[]).includes(status)
+
+const PENDING_FILTER: string = 'status.neq.pending_payment,created_by_admin.is.true'
+
+const isShownInPro = (row: InterventionRow): boolean =>
+  row.status !== 'pending_payment' || row.created_by_admin
 
 const toCustomer = (row: CustomerRow): ProCustomer => ({
   firstName: row.first_name,
@@ -84,7 +92,7 @@ const toIntervention = (
   row: InterventionRow,
   relations: InterventionRelations,
 ): ProIntervention | null =>
-  isProStatus(row.status)
+  isProStatus(row.status) && isShownInPro(row)
     ? {
         id: row.id,
         scheduledDate: row.scheduled_date,
@@ -102,6 +110,9 @@ const toIntervention = (
         isToMove: false,
         photos: relations.photos.get(row.id) ?? NO_PHOTOS,
         completedWithoutPhotos: row.completed_without_photos,
+        paymentMethod: row.payment_method,
+        createdByAdmin: row.created_by_admin,
+        paymentDueAt: row.status === 'pending_payment' ? row.expires_at : null,
       }
     : null
 
@@ -148,8 +159,9 @@ export const loadDayInterventions = async (
 }
 
 /**
- * Loads one paid, completed or cancelled intervention with its customer and photo flags. Relies on
- * RLS: the client must carry an admin session.
+ * Loads one intervention with its customer and photo flags: paid, completed, cancelled, or
+ * awaiting the payment of a link sent by BINOVYA. A pending online booking, still in the
+ * customer's Checkout, is not shown. Relies on RLS: the client must carry an admin session.
  * @param client - Supabase client of the logged-in admin
  * @param bookingId - Identifier of the booking
  * @returns The intervention, or null when no such booking is shown in BINOVYA Pro
@@ -181,13 +193,14 @@ type FilterableQuery<Query> = {
   in: (column: 'status', values: ProBookingStatus[]) => Query
   gte: (column: 'scheduled_date', value: string) => Query
   lte: (column: 'scheduled_date', value: string) => Query
+  or: (filters: string) => Query
 }
 
 const withFilters = <Query extends FilterableQuery<Query>>(
   query: Query,
   filters: ProInterventionsFilters,
 ): Query => {
-  const byStatus: Query = query.in('status', filters.statuses)
+  const byStatus: Query = query.in('status', filters.statuses).or(PENDING_FILTER)
   const fromDate: Query = filters.from ? byStatus.gte('scheduled_date', filters.from) : byStatus
   return filters.to ? fromDate.lte('scheduled_date', filters.to) : fromDate
 }

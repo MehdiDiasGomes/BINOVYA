@@ -28,8 +28,8 @@ const BEFORE_STEP: number = PRO_STEPS.indexOf('before') + 1
 const RECAP_STEP: number = PRO_STEPS.length
 
 /**
- * Tells how far an intervention went, the status chip of its card: photos taken while it is to
- * do, how it was finished, or cancelled.
+ * Tells how far an intervention went, the status chip of its card: awaiting its payment, photos
+ * taken while it is to do, how it was finished, or cancelled.
  * @param intervention - Intervention shown in BINOVYA Pro
  * @returns Progress of the intervention
  */
@@ -38,6 +38,9 @@ export const interventionProgressStatus = (
 ): ProInterventionProgress => {
   if (intervention.status === 'cancelled') {
     return 'cancelled'
+  }
+  if (intervention.status === 'pending_payment') {
+    return 'awaitingPayment'
   }
   if (intervention.status === 'completed') {
     return intervention.completedWithoutPhotos ? 'completedWithoutPhotos' : 'completed'
@@ -54,7 +57,8 @@ export const interventionProgressStatus = (
 
 /**
  * Tells how the intervention page opens: the step flow for a paid intervention whose day has
- * come, the recap once it is finished, a read-only notice before its day or once cancelled.
+ * come, the recap once it is finished, a read-only notice before its day, once cancelled or while
+ * its payment link is unpaid.
  * @param intervention - Intervention shown in BINOVYA Pro
  * @param today - Today's ISO date in Paris
  * @returns Mode of the intervention page
@@ -65,6 +69,9 @@ export const interventionMode = (
 ): ProInterventionMode => {
   if (intervention.status === 'completed' || intervention.status === 'cancelled') {
     return intervention.status
+  }
+  if (intervention.status === 'pending_payment') {
+    return 'awaitingPayment'
   }
   return canCompleteIntervention(intervention, today) ? 'steps' : 'upcoming'
 }

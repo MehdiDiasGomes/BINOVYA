@@ -3,10 +3,11 @@ import type { AccountBookingStatus, AccountPhotoKind } from '@/types/account'
 import type { BookingPlan, GeoPoint } from '@/types/booking'
 import type { MediaCardTone } from '@/types/mediaCard'
 import type { ProDayOverview } from '@/types/proAvailability'
+import type { ProPaymentMethod } from '@/types/proCreate'
 import type { ComputedRef } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
-export type ProBookingStatus = AccountBookingStatus
+export type ProBookingStatus = AccountBookingStatus | 'pending_payment'
 
 export type ProStatusFilter = 'all' | ProBookingStatus
 
@@ -37,6 +38,9 @@ export type ProIntervention = {
   isToMove: boolean
   photos: ProInterventionPhotos
   completedWithoutPhotos: boolean
+  paymentMethod: ProPaymentMethod
+  createdByAdmin: boolean
+  paymentDueAt: string | null
 }
 
 export type ProPlanning = {
@@ -69,6 +73,7 @@ export type ProInterventionsQuery = {
 export type ProInterventionView = {
   tone: MediaCardTone
   paymentKey: string
+  hasPaymentNote: boolean
 }
 
 export type MapsStop = GeoPoint & {

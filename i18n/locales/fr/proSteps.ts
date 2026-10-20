@@ -7,6 +7,7 @@ export default {
     completed: 'Terminée',
     completedWithoutPhotos: 'Terminée sans photos',
     cancelled: 'Annulée',
+    awaitingPayment: 'Paiement en attente',
   },
   card: {
     actions: {
@@ -89,6 +90,10 @@ export default {
     upcoming: {
       title: 'Intervention à venir',
       text: 'Les étapes s’ouvrent le jour de l’intervention, le {date}.',
+    },
+    awaitingPayment: {
+      title: 'Paiement en attente',
+      text: 'L’intervention du {date} sera confirmée dès que le client aura payé en ligne.',
     },
     cancelled: {
       title: 'Intervention annulée',

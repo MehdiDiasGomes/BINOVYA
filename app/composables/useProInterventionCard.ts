@@ -20,7 +20,7 @@ import {
  * Derives what an intervention card shows, shared by the mobile row and the card from `sm` up.
  * @param props - Reactive props of the card: intervention, date display, today and origin
  * @returns Tone, progress, action, page route, customer name, accessible subject, detail rows
- * and whether the date can be changed
+ * (with the payment when it is offline or awaited) and whether the date can be changed
  */
 export const useProInterventionCard = (
   props: Readonly<ProInterventionCardOptions>,
@@ -65,6 +65,9 @@ export const useProInterventionCard = (
       labelKey: 'pro.intervention.plan',
       value: t(`booking.plans.${props.intervention.plan}.title`),
     },
+    ...(view.value.hasPaymentNote
+      ? [{ labelKey: 'pro.intervention.payment', value: t(view.value.paymentKey) }]
+      : []),
   ])
 
   const isReschedulable: ComputedRef<boolean> = computed(() => props.intervention.status === 'paid')

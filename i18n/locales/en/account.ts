@@ -137,6 +137,11 @@ export default {
       unavailable: 'Receipt unavailable for now.',
       hint: 'Receipt issued by Stripe, our payment provider. It also shows any refund.',
     },
+    offline: {
+      title: 'Payment',
+      text: 'Paid directly to BINOVYA.',
+      hint: 'To get a proof of payment, simply reply to your confirmation email.',
+    },
     invoice: {
       title: 'Invoice',
       download: 'Download the invoice',

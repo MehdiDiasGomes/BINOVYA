@@ -1,3 +1,4 @@
+import proCreate from './proCreate'
 import proPhotos from './proPhotos'
 import proSteps from './proSteps'
 
@@ -7,6 +8,7 @@ export default {
     label: 'BINOVYA Pro navigation',
     planning: 'Schedule',
     interventions: 'Interventions',
+    create: 'New intervention',
     availability: 'Availability',
     signOut: 'Log out',
     signingOut: 'Logging out…',
@@ -68,6 +70,7 @@ export default {
     previousDay: 'Previous day',
     nextDay: 'Next day',
     today: 'Today',
+    create: 'New intervention',
     listTitle: 'Interventions of the day',
     loading: 'Loading the schedule…',
     count: 'No intervention on {date} | One intervention on {date} | {n} interventions on {date}',
@@ -135,6 +138,7 @@ export default {
       status: 'Status',
       statuses: {
         all: 'All statuses',
+        pending_payment: 'Payment pending',
         paid: 'To do',
         completed: 'Done',
         cancelled: 'Cancelled',
@@ -154,9 +158,12 @@ export default {
   intervention: {
     unknownCustomer: 'Unknown customer',
     payments: {
-      paid: 'Paid',
+      paid: 'Paid online',
       refunded: 'Refunded',
+      offline: 'Paid outside the site',
+      awaitingLink: 'Payment link sent, pending',
     },
+    payment: 'Payment',
     date: 'Date',
     phone: 'Phone',
     bins: 'Bins',
@@ -182,6 +189,7 @@ export default {
   },
   ...proPhotos,
   ...proSteps,
+  ...proCreate,
   reschedule: {
     title: 'Change the date of the intervention',
     description: '{name}, {address}. Current date: {date}.',

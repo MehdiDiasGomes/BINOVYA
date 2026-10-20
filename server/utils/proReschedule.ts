@@ -25,7 +25,8 @@ export type RescheduleCommand = {
   force: boolean
 }
 
-const FORCEABLE_CODES: Record<RescheduleOverridable, ProRescheduleForceableCode> = {
+/** Codes of the refusals the admin can override, by database reason. */
+export const FORCEABLE_REFUSAL_CODES: Record<RescheduleOverridable, ProRescheduleForceableCode> = {
   out_of_area: 'outOfArea',
   day_closed: 'dayClosed',
   day_full: 'dayFull',
@@ -86,6 +87,6 @@ export const rescheduleBooking = async (
     bookingId: command.bookingId,
     oldDate: row.old_date,
     newDate: row.new_date,
-    overriddenCodes: (row.overridden_reasons ?? []).map(reason => FORCEABLE_CODES[reason]),
+    overriddenCodes: (row.overridden_reasons ?? []).map(reason => FORCEABLE_REFUSAL_CODES[reason]),
   }
 }
