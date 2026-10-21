@@ -1,4 +1,4 @@
-import type { LucideIconName } from '@/constants/clients'
+import type { LucideIconName } from '@/types/icon'
 import type { ProInterventionPhotos, ProPhotoKind } from '@/types/pro'
 import type { ComputedRef, Ref } from 'vue'
 import type { RouteLocationRaw, RouterHistory } from 'vue-router'

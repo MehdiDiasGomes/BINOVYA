@@ -32,9 +32,11 @@
               <NuxtImg
                 v-if="service.image"
                 :src="service.image"
-                :alt="$t(service.titleKey)"
+                alt=""
                 class="h-full w-full object-cover transition-transform duration-400 group-hover:scale-105"
                 width="300"
+                :height="service.imageHeight"
+                sizes="sm:50vw lg:300px"
                 loading="lazy"
               />
               <Icon
@@ -60,13 +62,16 @@
 </template>
 
 <script setup lang="ts">
+import type { LucideIconName } from '@/types/icon'
+
 import { REVEAL_STAGGER } from '@/constants/motion'
 import { SERVICES_HEADING_ID } from '@/constants/navbar'
 
 type ServiceItem = {
   key: string
-  icon: string
+  icon: LucideIconName
   image?: string
+  imageHeight?: number
   titleKey: string
   descKey: string
 }
@@ -76,6 +81,7 @@ const serviceItems: ServiceItem[] = [
     key: 'bins',
     icon: 'Trash2',
     image: '/images/services/bins.png',
+    imageHeight: 200,
     titleKey: 'services.items.bins.title',
     descKey: 'services.items.bins.desc',
   },
@@ -83,6 +89,7 @@ const serviceItems: ServiceItem[] = [
     key: 'pav',
     icon: 'Package',
     image: '/images/services/pav.png',
+    imageHeight: 225,
     titleKey: 'services.items.pav.title',
     descKey: 'services.items.pav.desc',
   },
@@ -90,6 +97,7 @@ const serviceItems: ServiceItem[] = [
     key: 'urban',
     icon: 'Landmark',
     image: '/images/services/urban.png',
+    imageHeight: 200,
     titleKey: 'services.items.urban.title',
     descKey: 'services.items.urban.desc',
   },
@@ -97,6 +105,7 @@ const serviceItems: ServiceItem[] = [
     key: 'signage',
     icon: 'SignpostBig',
     image: '/images/services/signage.png',
+    imageHeight: 200,
     titleKey: 'services.items.signage.title',
     descKey: 'services.items.signage.desc',
   },

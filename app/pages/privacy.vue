@@ -6,7 +6,7 @@
           <h1 class="font-heading text-3xl text-foreground sm:text-4xl md:text-5xl">
             {{ $t('privacy.title') }}
           </h1>
-          <p class="text-sm text-ink/80">{{ $t('privacy.lastUpdate') }} {{ lastUpdateDate }}</p>
+          <LegalLastUpdate :label="$t('privacy.lastUpdate')" class="text-sm text-ink/80" />
         </div>
 
         <div class="space-y-8">
@@ -27,7 +27,7 @@
               {{ $t('privacy.dataCollected.intro') }}
             </p>
             <ul class="list-disc space-y-2 pl-6 text-ink/80">
-              <li v-for="(item, index) in $tm('privacy.dataCollected.items')" :key="index">
+              <li v-for="(item, index) in dataCollectedItems" :key="index">
                 {{ item }}
               </li>
             </ul>
@@ -41,7 +41,7 @@
               {{ $t('privacy.dataUsage.intro') }}
             </p>
             <ul class="list-disc space-y-2 pl-6 text-ink/80">
-              <li v-for="(item, index) in $tm('privacy.dataUsage.items')" :key="index">
+              <li v-for="(item, index) in dataUsageItems" :key="index">
                 {{ item }}
               </li>
             </ul>
@@ -131,12 +131,19 @@
 </template>
 
 <script setup lang="ts">
+import type { RawLocaleMessage } from '@/types/i18n'
+
 import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
 
-const { t } = useI18n()
+const { t, tm, rt } = useI18n()
 const { elementRef, isVisible } = useScrollAnimation(0.1)
 
-const lastUpdateDate = computed((): string => '04/01/2025')
+const dataCollectedItems = computed((): string[] =>
+  (tm('privacy.dataCollected.items') as RawLocaleMessage[]).map(item => rt(item)),
+)
+const dataUsageItems = computed((): string[] =>
+  (tm('privacy.dataUsage.items') as RawLocaleMessage[]).map(item => rt(item)),
+)
 
 definePageMeta({
   layout: 'default',

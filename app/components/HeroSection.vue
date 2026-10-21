@@ -71,6 +71,8 @@
             :alt="$t('hero.imageAlt')"
             class="block w-full rounded-[18px] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)]"
             width="600"
+            height="400"
+            sizes="sm:100vw lg:600px"
             loading="eager"
             fetchpriority="high"
           />
@@ -93,13 +95,15 @@
 </template>
 
 <script setup lang="ts">
+import type { LucideIconName } from '@/types/icon'
+
 import { HERO_ENTER_CLASS } from '@/constants/motion'
 
 const localePath = useLocalePath()
 
 type HeroBadge = {
   key: string
-  icon: string
+  icon: LucideIconName
   labelKey: string
 }
 

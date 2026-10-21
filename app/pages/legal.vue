@@ -6,9 +6,7 @@
           <h1 class="font-heading text-3xl text-foreground sm:text-4xl md:text-5xl">
             {{ $t('legal.title') }}
           </h1>
-          <p class="text-sm text-muted-foreground">
-            {{ $t('legal.lastUpdate') }} {{ lastUpdateDate }}
-          </p>
+          <LegalLastUpdate :label="$t('legal.lastUpdate')" class="text-sm text-muted-foreground" />
         </div>
 
         <div class="space-y-8">
@@ -98,8 +96,6 @@
 <script setup lang="ts">
 const { t } = useI18n()
 const { elementRef, isVisible } = useScrollAnimation(0.1)
-
-const lastUpdateDate = computed((): string => '04/01/2025')
 
 definePageMeta({
   layout: 'default',

@@ -34,8 +34,8 @@
 <script setup lang="ts">
 import { unrefElement } from '@vueuse/core'
 
-import type { LucideIconName } from '@/constants/clients'
 import type { ButtonSize, ButtonType, ButtonVariant } from '@/types/button'
+import type { LucideIconName } from '@/types/icon'
 import type { ClassValue } from 'clsx'
 import type { Component, ComponentPublicInstance } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'

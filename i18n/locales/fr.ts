@@ -1,13 +1,10 @@
-import about from './fr/about'
 import account from './fr/account'
 import booking from './fr/booking'
 import contact from './fr/contact'
-import faq from './fr/faq'
 import legal from './fr/legal'
 import privacy from './fr/privacy'
 import pro from './fr/pro'
 import quote from './fr/quote'
-import solutions from './fr/solutions'
 
 export default {
   nav: {
@@ -109,7 +106,8 @@ export default {
     imageAlt: 'Résultat avant/après nettoyage vapeur BINOVYA',
   },
   footer: {
-    copyright: 'Tous droits réservés.',
+    heading: 'Informations sur BINOVYA',
+    copyright: '© {year} BINOVYA — Tous droits réservés.',
     brand: {
       tagline: "L'hygiène urbaine nouvelle génération.",
     },
@@ -129,29 +127,25 @@ export default {
     },
     info: {
       title: 'Informations',
+      booking: 'Réserver une intervention',
+      quote: 'Demander un devis',
+      contact: 'Formulaire de contact',
       legal: 'Mentions légales',
-      cgv: 'CGV',
       privacy: 'Politique de confidentialité',
     },
   },
   privacy,
   legal,
-  faq,
   contact,
-  about,
   booking,
   account,
   pro,
   quote,
-  ...solutions,
   common: {
     honeypot: 'Ne pas remplir ce champ',
     logoAlt: 'Logo BINOVYA',
     backToHome: "Retour à la page d'accueil",
     language: 'Langue',
-    selectLanguage: 'Sélectionner la langue',
-    french: 'Français',
-    english: 'English',
     required: 'obligatoire',
     skipToContent: 'Aller au contenu principal',
     fieldValue: '{label} : {value}',
@@ -172,25 +166,10 @@ export default {
       description:
         "BINOVYA, spécialiste du nettoyage écologique de bacs roulants, abris biodéchets et conteneurs. Service professionnel, rapide et 100% respectueux de l'environnement.",
     },
-    about: {
-      title: 'Qui sommes-nous ? - BINOVYA',
-      description:
-        "Découvrez BINOVYA, votre partenaire pour le nettoyage et la désinfection écologique de bacs à déchets. Expertise, qualité et respect de l'environnement.",
-    },
     contact: {
       title: 'Contactez-nous - BINOVYA',
       description:
         "Besoin d'un devis ou d'informations ? Contactez BINOVYA pour le nettoyage professionnel de vos bacs à déchets. Réponse rapide garantie.",
-    },
-    faq: {
-      title: 'FAQ - BINOVYA',
-      description:
-        'Questions fréquentes sur nos services de nettoyage de bacs à déchets. Efficacité, écologie, fréquence, durée des interventions.',
-    },
-    formulas: {
-      title: 'Nos formules - BINOVYA',
-      description:
-        'Découvrez nos formules de nettoyage adaptées à tous les besoins : ponctuelle, mensuelle, trimestrielle, professionnels, collectivités et sur mesure.',
     },
     privacy: {
       title: 'Politique de confidentialité - BINOVYA',
@@ -201,23 +180,6 @@ export default {
       title: 'Mentions légales - BINOVYA',
       description:
         "Mentions légales de BINOVYA. Informations sur notre entreprise et nos conditions d'utilisation.",
-    },
-    solutions: {
-      rollingBins: {
-        title: 'Nettoyage de bacs roulants - BINOVYA',
-        description:
-          'Service de nettoyage professionnel pour bacs roulants. Intérieur et extérieur, haute performance, 100% écologique. Devis gratuit.',
-      },
-      bioWasteShelters: {
-        title: "Nettoyage d'abris biodéchets - BINOVYA",
-        description:
-          "Nettoyage et désinfection d'abris à biodéchets. Procédé efficace et respectueux de l'environnement pour une hygiène parfaite.",
-      },
-      columns: {
-        title: 'Nettoyage de colonnes à déchets - BINOVYA',
-        description:
-          'Service de nettoyage professionnel pour colonnes et conteneurs collectifs. Eau chaude haute pression, écologique et efficace.',
-      },
     },
   },
 }

@@ -1,5 +1,5 @@
-import type { LucideIconName } from '@/constants/clients'
 import type { LoginEndpoint } from '@/types/account'
+import type { LucideIconName } from '@/types/icon'
 import type { ComputedRef, Ref } from 'vue'
 
 export type LoginLinkConfirmOptions = {
