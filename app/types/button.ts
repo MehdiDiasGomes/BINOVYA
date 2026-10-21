@@ -2,6 +2,7 @@ export type ButtonVariant =
   | 'primary'
   | 'secondary'
   | 'destructive'
+  | 'destructiveSolid'
   | 'warning'
   | 'onDark'
   | 'onDarkWarning'

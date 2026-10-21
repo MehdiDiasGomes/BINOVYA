@@ -51,13 +51,9 @@
       >
         {{ $t('booking.confirmation.home') }}
       </NuxtLink>
-      <button
-        type="button"
-        class="flex h-12 items-center justify-center rounded-lg border border-ink/50 px-6 text-sm font-bold text-ink transition-all duration-150 hover:border-primary hover:bg-paper-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
-        @click="emit('restart')"
-      >
+      <AppButton variant="secondary" @click="emit('restart')">
         {{ $t('booking.confirmation.newBooking') }}
-      </button>
+      </AppButton>
     </div>
   </section>
 </template>

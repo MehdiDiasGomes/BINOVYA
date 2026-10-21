@@ -117,24 +117,18 @@
           <div
             class="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between"
           >
-            <button
-              v-if="currentIndex > 0"
-              type="button"
-              class="flex h-12 items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:active:scale-100"
-              @click="goBack"
-            >
-              <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
+            <AppButton v-if="currentIndex > 0" variant="secondary" icon="ArrowLeft" @click="goBack">
               {{ $t('booking.actions.back') }}
-            </button>
+            </AppButton>
             <span v-else />
-            <button
+            <AppButton
               type="submit"
-              :aria-disabled="isSubmitting"
+              :is-loading="isSubmitting"
               :aria-busy="isSubmitting"
-              class="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:translate-y-0 aria-disabled:active:scale-100 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+              :trailing-icon="isSubmitting || isLastStep ? undefined : 'ArrowRight'"
+              class="shadow-md shadow-primary/30"
             >
               <template v-if="isSubmitting">
-                <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
                 {{ $t('booking.actions.submitting') }}
               </template>
               <template v-else-if="isLastStep">
@@ -142,9 +136,8 @@
               </template>
               <template v-else>
                 {{ $t('booking.actions.continue') }}
-                <Icon name="ArrowRight" :size="16" aria-hidden="true" />
               </template>
-            </button>
+            </AppButton>
           </div>
         </form>
 
