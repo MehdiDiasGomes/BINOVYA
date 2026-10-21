@@ -13,12 +13,19 @@ import { formatPrice } from '@/utils/pricing'
 const EMAIL_LOCALE = 'fr-FR'
 
 /**
+ * Formats a calendar date in French, with the weekday and the year.
+ * @param isoDate - ISO calendar date
+ * @returns Date such as « lundi 19 octobre 2026 »
+ */
+export const emailDateLabel = (isoDate: string): string => formatFullDate(isoDate, EMAIL_LOCALE)
+
+/**
  * Formats the intervention date of a booking in French, with the weekday and the year.
  * @param booking - Booking described in the email
  * @returns Date such as « lundi 19 octobre 2026 »
  */
 export const bookingDateLabel = (booking: BookingEmailData): string =>
-  formatFullDate(booking.scheduledDate, EMAIL_LOCALE)
+  emailDateLabel(booking.scheduledDate)
 
 /**
  * Formats the amount paid for a booking in euros, French style.

@@ -1,4 +1,4 @@
-export type MediaCardTone = 'success' | 'info' | 'neutral'
+export type MediaCardTone = 'success' | 'info' | 'warning' | 'neutral'
 
 export type MediaCardTitleTag = 'h2' | 'h3' | 'h4'
 

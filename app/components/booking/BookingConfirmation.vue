@@ -87,6 +87,7 @@ const { draft } = useBookingDraft()
 const titleRef: Ref<HTMLElement | null> = ref(null)
 
 onMounted(() => {
-  titleRef.value?.focus()
+  titleRef.value?.focus({ preventScroll: true })
+  window.scrollTo({ top: 0, behavior: 'instant' })
 })
 </script>

@@ -63,7 +63,7 @@ export default {
     terms: 'Vous devez accepter les conditions pour continuer.',
     dayTaken: "Ce jour vient d'être réservé par quelqu'un d'autre. Choisissez-en un autre.",
     pendingPayment:
-      'Un paiement est déjà en cours pour cette adresse email. Terminez-le ou réessayez dans quelques minutes.',
+      'Un paiement est déjà en attente pour cette adresse email : terminez-le depuis le lien reçu par mail, ou réessayez plus tard.',
     invalidAddress:
       "Votre adresse n'a pas pu être vérifiée ou sa sélection a expiré. Choisissez-la à nouveau dans la liste.",
     submit: "La réservation n'a pas pu être enregistrée. Réessayez dans un instant.",
@@ -79,8 +79,9 @@ export default {
       FR: '12 rue de la Gare, Thionville',
       LU: '24 Grand-Rue, Rumelange',
     },
-    hint: 'Saisissez au moins 3 caractères, puis choisissez une adresse dans la liste.',
+    hint: 'Saisissez au moins {min} caractères, puis choisissez une adresse dans la liste.',
     listLabel: 'Adresses proposées',
+    count: 'Une adresse proposée | {n} adresses proposées',
     loading: 'Recherche en cours…',
     noResult: 'Aucune adresse trouvée. Vérifiez la saisie.',
     error: 'La recherche est indisponible pour le moment. Réessayez dans un instant.',
@@ -91,6 +92,18 @@ export default {
     outOfArea:
       "Nous n'intervenons pas encore à {city}. Notre zone couvre {radius} km autour d'Uckange.",
     outOfAreaCta: 'Nous contacter pour une demande particulière',
+  },
+  municipality: {
+    label: 'Commune',
+    country: 'Pays de la commune',
+    placeholder: {
+      FR: 'Thionville',
+      LU: 'Dudelange',
+    },
+    hint: 'Saisissez au moins {min} caractères, puis choisissez une commune dans la liste.',
+    listLabel: 'Communes proposées',
+    count: 'Une commune proposée | {n} communes proposées',
+    noResult: 'Aucune commune trouvée. Vérifiez la saisie.',
   },
   bins: {
     small: {
@@ -143,9 +156,7 @@ export default {
   },
   date: {
     calendarLabel: 'Choix du jour de passage',
-    previousMonth: 'Mois précédent',
-    nextMonth: 'Mois suivant',
-    recommendedSuffix: ', jour recommandé',
+    recommendedDay: '{date}, jour recommandé',
     nextRecommended: 'Prochaine date recommandée',
     nextAvailable: 'Prochaine date disponible',
     pickSuggested: 'Choisir cette date',
@@ -198,6 +209,8 @@ export default {
   },
   checkout: {
     productName: 'Nettoyage de bacs BINOVYA ({plan})',
+    lineDescription: '{date}, {address}',
+    invoiceDescription: '{product}, intervention du {date}, {address}',
   },
   summary: {
     title: 'Votre réservation',
@@ -223,5 +236,17 @@ export default {
     },
     home: "Retour à l'accueil",
     newBooking: 'Nouvelle réservation',
+  },
+  paymentLink: {
+    seo: {
+      title: 'Paiement non finalisé - BINOVYA',
+    },
+    eyebrow: 'Lien de paiement',
+    title: 'Paiement non finalisé',
+    text: 'Aucune somme n’a été débitée. Votre intervention reste réservée jusqu’à l’échéance indiquée dans le mail de BINOVYA contenant votre lien de paiement.',
+    reopen:
+      'Pour la régler, rouvrez ce lien depuis le mail. Vous ne le retrouvez plus ? Écrivez-nous, nous vous le renvoyons.',
+    contact: 'Je ne retrouve plus le mail',
+    home: "Retour à l'accueil",
   },
 }

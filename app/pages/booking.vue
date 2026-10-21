@@ -34,121 +34,122 @@
     </section>
 
     <div class="mx-auto max-w-[1180px] px-4 py-10 sm:px-8">
-      <AnimatePresence :initial="false">
-        <Motion
-          v-if="isConfirmed"
-          key="confirmed"
-          :initial="{ opacity: 0, y: STEP_OFFSET }"
-          :animate="{ opacity: 1, y: 0 }"
-          :transition="STEP_TRANSITION"
-        >
-          <BookingConfirmation @restart="restart" />
-        </Motion>
+      <Motion
+        v-if="isConfirmed"
+        :initial="{ opacity: 0, y: STEP_OFFSET }"
+        :animate="{ opacity: 1, y: 0 }"
+        :transition="STEP_TRANSITION"
+      >
+        <BookingConfirmation @restart="restart" />
+      </Motion>
 
-        <Motion
-          v-else
-          key="booking"
-          :initial="{ opacity: 0 }"
-          :animate="{ opacity: 1 }"
-          :transition="STEP_TRANSITION"
-          class="grid gap-8 lg:grid-cols-[1fr_340px]"
+      <Motion
+        v-else
+        :initial="hasRestarted ? { opacity: 0 } : false"
+        :animate="{ opacity: 1 }"
+        :transition="STEP_TRANSITION"
+        class="grid gap-8 lg:grid-cols-[1fr_340px]"
+      >
+        <form
+          novalidate
+          aria-labelledby="booking-step-title"
+          :class="HERO_ENTER_CLASS"
+          class="delay-200 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8"
+          @submit.prevent="goNext"
         >
-          <form
-            novalidate
-            aria-labelledby="booking-step-title"
-            :class="HERO_ENTER_CLASS"
-            class="delay-200 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8"
-            @submit.prevent="goNext"
+          <h2
+            id="booking-step-title"
+            ref="stepTitleRef"
+            tabindex="-1"
+            class="text-[22px] font-black text-ink outline-none"
           >
-            <h2
-              id="booking-step-title"
-              ref="stepTitleRef"
-              tabindex="-1"
-              class="text-[22px] font-black text-ink outline-none"
+            {{ $t(`booking.headings.${currentStep}.title`) }}
+          </h2>
+          <p class="mb-7 mt-1.5 text-[15px] leading-relaxed text-ink/70">
+            {{ $t(`booking.headings.${currentStep}.description`) }}
+            <NuxtLink
+              v-if="currentStep === 'contact'"
+              :to="localePath('/privacy')"
+              class="rounded-sm font-bold text-ink underline underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
             >
-              {{ $t(`booking.headings.${currentStep}.title`) }}
-            </h2>
-            <p class="mb-7 mt-1.5 text-[15px] leading-relaxed text-ink/70">
-              {{ $t(`booking.headings.${currentStep}.description`) }}
-              <NuxtLink
-                v-if="currentStep === 'contact'"
-                :to="localePath('/privacy')"
-                class="rounded-sm font-bold text-ink underline underline-offset-4 hover:text-primary focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
-              >
-                {{ $t('booking.headings.contact.privacyLink') }}
-              </NuxtLink>
-            </p>
+              {{ $t('booking.headings.contact.privacyLink') }}
+            </NuxtLink>
+          </p>
 
-            <AnimatePresence mode="wait" :initial="false" @exit-complete="handleStepExit">
-              <Motion
-                :key="currentStep"
-                :initial="{ opacity: 0, x: STEP_OFFSET }"
-                :animate="{ opacity: 1, x: 0 }"
-                :exit="{ opacity: 0, x: -STEP_OFFSET }"
-                :transition="STEP_TRANSITION"
-              >
-                <div v-if="currentStep === 'contact'" class="space-y-8">
-                  <BookingContactStep :show-errors="hasAttempted" />
-                  <Separator />
-                  <BookingAddressStep />
-                </div>
-                <BookingBinsStep v-else-if="currentStep === 'bins'" />
-                <div v-else-if="currentStep === 'schedule'" class="space-y-8">
-                  <BookingPlanPicker />
-                  <Separator />
-                  <BookingDateStep />
-                </div>
-                <BookingPaymentStep v-else />
-              </Motion>
-            </AnimatePresence>
-            <HoneypotField id="booking-website" v-model="website" />
-
-            <p
-              v-if="visibleErrorKey"
-              role="alert"
-              class="mt-6 flex items-start gap-2 text-sm font-bold leading-relaxed text-destructive"
+          <AnimatePresence mode="wait" :initial="false" @exit-complete="handleStepExit">
+            <Motion
+              :key="currentStep"
+              :initial="{ opacity: 0, x: STEP_OFFSET }"
+              :animate="{ opacity: 1, x: 0 }"
+              :exit="{ opacity: 0, x: -STEP_OFFSET }"
+              :transition="STEP_TRANSITION"
             >
-              <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
-              {{ $t(visibleErrorKey) }}
-            </p>
+              <div v-if="currentStep === 'contact'" class="space-y-8">
+                <BookingContactStep :show-errors="hasAttempted" />
+                <Separator />
+                <BookingAddressStep />
+              </div>
+              <BookingBinsStep v-else-if="currentStep === 'bins'" />
+              <div v-else-if="currentStep === 'schedule'" class="space-y-8">
+                <BookingPlanPicker />
+                <Separator />
+                <BookingDateStep />
+              </div>
+              <BookingPaymentStep v-else />
+            </Motion>
+          </AnimatePresence>
+          <HoneypotField id="booking-website" v-model="website" />
 
-            <div
-              class="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between"
+          <p
+            v-if="visibleErrorKey"
+            role="alert"
+            :class="
+              cn(
+                'mt-6 flex items-start gap-2 text-sm font-bold leading-relaxed',
+                ERROR_TEXT_TONE_CLASS,
+              )
+            "
+          >
+            <Icon name="CircleAlert" :size="16" aria-hidden="true" class="mt-0.5 shrink-0" />
+            {{ $t(visibleErrorKey) }}
+          </p>
+
+          <div
+            class="mt-8 flex flex-col-reverse gap-3 border-t border-border pt-6 sm:flex-row sm:justify-between"
+          >
+            <button
+              v-if="currentIndex > 0"
+              type="button"
+              class="flex h-12 items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:active:scale-100"
+              @click="goBack"
             >
-              <button
-                v-if="currentIndex > 0"
-                type="button"
-                class="flex h-12 items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:active:scale-100"
-                @click="goBack"
-              >
-                <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
-                {{ $t('booking.actions.back') }}
-              </button>
-              <span v-else />
-              <button
-                type="submit"
-                :aria-disabled="isSubmitting"
-                :aria-busy="isSubmitting"
-                class="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:translate-y-0 aria-disabled:active:scale-100 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
-              >
-                <template v-if="isSubmitting">
-                  <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
-                  {{ $t('booking.actions.submitting') }}
-                </template>
-                <template v-else-if="isLastStep">
-                  {{ $t('booking.actions.pay', { amount: formatPrice(priceCents ?? 0, locale) }) }}
-                </template>
-                <template v-else>
-                  {{ $t('booking.actions.continue') }}
-                  <Icon name="ArrowRight" :size="16" aria-hidden="true" />
-                </template>
-              </button>
-            </div>
-          </form>
+              <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
+              {{ $t('booking.actions.back') }}
+            </button>
+            <span v-else />
+            <button
+              type="submit"
+              :aria-disabled="isSubmitting"
+              :aria-busy="isSubmitting"
+              class="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 aria-disabled:hover:translate-y-0 aria-disabled:active:scale-100 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100"
+            >
+              <template v-if="isSubmitting">
+                <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
+                {{ $t('booking.actions.submitting') }}
+              </template>
+              <template v-else-if="isLastStep">
+                {{ $t('booking.actions.pay', { amount: formatPrice(priceCents ?? 0, locale) }) }}
+              </template>
+              <template v-else>
+                {{ $t('booking.actions.continue') }}
+                <Icon name="ArrowRight" :size="16" aria-hidden="true" />
+              </template>
+            </button>
+          </div>
+        </form>
 
-          <BookingSummary :class="HERO_ENTER_CLASS" class="delay-300" />
-        </Motion>
-      </AnimatePresence>
+        <BookingSummary :class="HERO_ENTER_CLASS" class="delay-300" />
+      </Motion>
     </div>
   </div>
 </template>
@@ -169,7 +170,9 @@ import {
   BOOKING_STEPS,
   BOOKING_SUBMIT_ERROR_KEYS,
 } from '@/constants/booking'
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import { HERO_ENTER_CLASS, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { cn } from '@/lib/utils'
 
 definePageMeta({
   layout: 'default',
@@ -208,6 +211,7 @@ const submitErrorKey: Ref<string | null> = ref(null)
 const website: Ref<string> = ref('')
 const stepTitleRef: Ref<HTMLElement | null> = ref(null)
 const isAddressFocusPending: Ref<boolean> = ref(false)
+const hasRestarted: Ref<boolean> = ref(false)
 
 const currentIndex: ComputedRef<number> = computed(() => BOOKING_STEPS.indexOf(currentStep.value))
 const isLastStep: ComputedRef<boolean> = computed(
@@ -333,6 +337,7 @@ const restart = async (): Promise<void> => {
   resetDraft()
   resetAvailability()
   clearAddressError()
+  hasRestarted.value = true
   isConfirmed.value = false
   await showStep('contact')
 }

@@ -25,7 +25,7 @@
         name="CircleAlert"
         :size="20"
         aria-hidden="true"
-        class="mt-0.5 shrink-0 text-destructive"
+        :class="cn('mt-0.5 shrink-0', ERROR_TEXT_TONE_CLASS)"
       />
       <div>
         <p class="font-bold">{{ $t('booking.address.checkError') }}</p>
@@ -82,6 +82,7 @@
 import type { BookingAddress } from '@/types/booking'
 
 import { BOOKING_ADDRESS_INPUT_ID } from '@/constants/booking'
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import { cn } from '@/lib/utils'
 
 const localePath = useLocalePath()

@@ -3,7 +3,7 @@ import { expect } from 'vitest'
 
 import { signedAddress, THIONVILLE_ADDRESS } from './address'
 import { findBookings, type BookingRow } from './db'
-import { BASE_URL, readEnv, uniqueTestEmail } from './env'
+import { BASE_URL, ORIGIN, readEnv, uniqueTestEmail } from './env'
 
 import type { AddressDetails } from '../../app/types/booking'
 
@@ -48,6 +48,46 @@ export const bookingBody = (overrides: BookingOverrides = {}): Record<string, un
   website: overrides.website ?? '',
 })
 
+const parseBody = (raw: string): ApiResult['body'] => {
+  try {
+    return JSON.parse(raw) as ApiResult['body']
+  } catch {
+    return {}
+  }
+}
+
+export type SendOptions = {
+  cookie?: string
+  body?: unknown
+  origin?: string | null
+}
+
+/**
+ * Sends a state-changing request to the test server, with the site `Origin` by default.
+ * @param method - HTTP method
+ * @param path - Path with its query string
+ * @param options - Session cookie, JSON body, and `Origin` (null to send none)
+ * @returns Status, parsed JSON body and raw body
+ */
+export const sendApi = async (
+  method: 'POST' | 'PUT' | 'DELETE',
+  path: string,
+  options: SendOptions = {},
+): Promise<ApiResult> => {
+  const origin: string | null = options.origin === undefined ? ORIGIN : options.origin
+  const response: Response = await fetch(`${BASE_URL}${path}`, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(options.cookie ? { Cookie: options.cookie } : {}),
+      ...(origin ? { Origin: origin } : {}),
+    },
+    body: options.body === undefined ? undefined : JSON.stringify(options.body),
+  })
+  const raw: string = await response.text()
+  return { status: response.status, body: parseBody(raw), raw }
+}
+
 export const postJson = async (
   path: string,
   body: unknown,
@@ -59,13 +99,23 @@ export const postJson = async (
     body: typeof body === 'string' ? body : JSON.stringify(body),
   })
   const raw: string = await response.text()
-  let parsed: ApiResult['body'] = {}
-  try {
-    parsed = JSON.parse(raw) as ApiResult['body']
-  } catch {
-    parsed = {}
-  }
-  return { status: response.status, body: parsed, raw }
+  return { status: response.status, body: parseBody(raw), raw }
+}
+
+export type GetResult = ApiResult & { headers: Headers }
+
+/**
+ * Sends a GET request to the test server.
+ * @param path - Path with its query string
+ * @param cookie - Optional `Cookie` header carrying a session
+ * @returns Status, parsed JSON body, raw body and response headers
+ */
+export const getApi = async (path: string, cookie?: string): Promise<GetResult> => {
+  const response: Response = await fetch(`${BASE_URL}${path}`, {
+    headers: cookie ? { Cookie: cookie } : {},
+  })
+  const raw: string = await response.text()
+  return { status: response.status, body: parseBody(raw), raw, headers: response.headers }
 }
 
 export const createBooking = (overrides: BookingOverrides = {}): Promise<ApiResult> =>
@@ -81,6 +131,7 @@ type SessionOverrides = Partial<{
   paymentIntent: string | null
   paymentStatus: string
   currency: string
+  invoice: string | null
 }>
 
 export const sessionEvent = (
@@ -108,6 +159,7 @@ export const sessionEvent = (
           overrides.paymentIntent === undefined
             ? `pi_test_${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`
             : overrides.paymentIntent,
+        invoice: overrides.invoice ?? null,
       },
     },
   })
@@ -203,4 +255,34 @@ export const payInStripeTestMode = async (booking: PendingBooking): Promise<stri
   })
   expect(paymentIntent.status).toBe('succeeded')
   return paymentIntent.id
+}
+
+export type PaidInvoice = { invoiceId: string; paymentIntentId: string }
+
+/**
+ * Creates a Stripe test-mode invoice already paid by card, the way Checkout `invoice_creation`
+ * leaves one after a payment.
+ * @param amountCents - Invoice total in cents
+ * @returns Invoice id and the payment intent that paid it
+ */
+export const createPaidInvoice = async (amountCents: number): Promise<PaidInvoice> => {
+  const stripe: Stripe = stripeClient()
+  const customer = await stripe.customers.create({ email: uniqueTestEmail('invoice-customer') })
+  const method = await stripe.paymentMethods.create({ type: 'card', card: { token: 'tok_visa' } })
+  await stripe.paymentMethods.attach(method.id, { customer: customer.id })
+  await stripe.customers.update(customer.id, {
+    invoice_settings: { default_payment_method: method.id },
+  })
+  await stripe.invoiceItems.create({ customer: customer.id, amount: amountCents, currency: 'eur' })
+  const draft = await stripe.invoices.create({
+    customer: customer.id,
+    auto_advance: false,
+    pending_invoice_items_behavior: 'include',
+  })
+  const paid = await stripe.invoices.pay((await stripe.invoices.finalizeInvoice(draft.id)).id)
+  const [payment] = (await stripe.invoicePayments.list({ invoice: paid.id })).data
+  const paymentIntentId: string | undefined = payment?.payment.payment_intent as string | undefined
+  expect(paid.status).toBe('paid')
+  expect(paymentIntentId).toMatch(/^pi_/)
+  return { invoiceId: paid.id, paymentIntentId: paymentIntentId ?? '' }
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { isValidPhone, toInternationalPhone } from '../../../app/utils/phone'
+import { groupPhoneDigits, isValidPhone, toInternationalPhone } from '../../../app/utils/phone'
 
 describe('toInternationalPhone', () => {
   it('drops the leading zero of a French number', () => {
@@ -31,4 +31,21 @@ describe('isValidPhone', () => {
       expect(isValidPhone(phone)).toBe(false)
     },
   )
+})
+
+describe('groupPhoneDigits', () => {
+  it.each([
+    ['+33612345678', '+33 6 12 34 56 78'],
+    ['+33 6.12.34.56.78', '+33 6 12 34 56 78'],
+    ['0612345678', '06 12 34 56 78'],
+    ['+35226123456', '+352 26 12 34 56'],
+    ['+352621123456', '+352 621 123 456'],
+    ['+3521234567', '+352 123 45 67'],
+  ])('groups %s into %s', (phone, expected) => {
+    expect(groupPhoneDigits(phone)).toBe(expected)
+  })
+
+  it.each(['abc', '', '+4412345', '12345'])('returns "%s" unchanged', phone => {
+    expect(groupPhoneDigits(phone)).toBe(phone)
+  })
 })

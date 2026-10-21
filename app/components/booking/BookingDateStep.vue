@@ -100,7 +100,7 @@
           v-if="draft.date"
           key="selected"
           as="p"
-          :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
           :animate="{ opacity: 1, y: 0 }"
           :exit="{ opacity: 0 }"
           :transition="STEP_TRANSITION"
@@ -111,7 +111,7 @@
         <Motion
           v-if="isSelectionOffCollection"
           key="off-collection"
-          :initial="{ opacity: 0, y: -STEP_OFFSET / 2 }"
+          :initial="{ opacity: 0, y: -FEEDBACK_OFFSET }"
           :animate="{ opacity: 1, y: 0 }"
           :exit="{ opacity: 0 }"
           :transition="STEP_TRANSITION"
@@ -131,7 +131,7 @@
 </template>
 
 <script setup lang="ts">
-import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { FEEDBACK_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 
 const { locale } = useI18n()
 const localePath = useLocalePath()

@@ -1,5 +1,7 @@
 import { FetchError } from 'ofetch'
 
+import { FORBIDDEN_ORIGIN_CODE } from '@/constants/account'
+
 const readNested = (value: unknown, key: string): unknown =>
   typeof value === 'object' && value !== null && key in value
     ? (value as Record<string, unknown>)[key]
@@ -20,3 +22,24 @@ export const readFetchErrorCode = (error: unknown): unknown =>
  */
 export const isInvalidAddressError = (error: unknown): boolean =>
   readFetchErrorCode(error) === 'invalidAddress'
+
+/**
+ * Tells whether the server refused a state-changing request because of its `Origin` header, a 403
+ * that does not mean the session lost its rights.
+ * @param error - Error thrown by `$fetch`
+ * @returns True when the response carries the code `forbiddenOrigin`
+ */
+export const isForbiddenOriginError = (error: unknown): boolean =>
+  readFetchErrorCode(error) === FORBIDDEN_ORIGIN_CODE
+
+/**
+ * Tells whether `$fetch` gave up because its `timeout` option elapsed before the server answered,
+ * in which case the server may still have applied the request.
+ * @param error - Error thrown by `$fetch`
+ * @returns True when no response arrived and the cause is ofetch's `TimeoutError`
+ */
+export const isFetchTimeoutError = (error: unknown): boolean =>
+  error instanceof FetchError &&
+  !error.response &&
+  error.cause instanceof Error &&
+  error.cause.name === 'TimeoutError'

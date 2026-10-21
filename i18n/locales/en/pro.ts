@@ -1,0 +1,316 @@
+import proCreate from './proCreate'
+import proPhotos from './proPhotos'
+import proSteps from './proSteps'
+
+export default {
+  nav: {
+    brand: 'BINOVYA Pro',
+    label: 'BINOVYA Pro navigation',
+    planning: 'Schedule',
+    interventions: 'Interventions',
+    create: 'New intervention',
+    availability: 'Availability',
+    signOut: 'Log out',
+    signingOut: 'Logging out…',
+    signedInAs: 'Signed in as',
+    closeMenu: 'Close the menu',
+  },
+  footer: {
+    navLabel: 'BINOVYA website links',
+    copyright: '© {year} BINOVYA',
+    backToSite: 'Back to the website',
+  },
+  loadError: 'The interventions could not be loaded.',
+  retry: 'Try again',
+  newTab: '(opens in a new tab)',
+  login: {
+    seo: {
+      title: 'Log in - BINOVYA Pro',
+    },
+    eyebrow: 'BINOVYA Pro',
+    title: 'Log in to BINOVYA Pro',
+    subtitle:
+      'For the BINOVYA team only. Enter the email address of your account and we will send you a login link.',
+    accessDenied:
+      'This account has no access to BINOVYA Pro. Log in with the address of a team account.',
+    sessionExpired:
+      'Your BINOVYA Pro session is no longer valid. Request a new login link. A session lasts {days} days at most.',
+    formLabel: 'BINOVYA Pro login link request',
+    email: 'Email address',
+    emailPlaceholder: "name{'@'}binovya.com",
+    submit: 'Send me a login link',
+    submitting: 'Sending…',
+    submittingStatus: 'Requesting a login link…',
+    submitError: 'The request could not be sent. Please try again in a moment.',
+    sent: {
+      title: 'Check your inbox',
+      text: 'If this address belongs to a BINOVYA Pro account, a login link has just been sent. It is valid for {hours} hours and works only once.',
+      retry: 'Use another address',
+    },
+  },
+  confirm: {
+    seo: {
+      title: 'Verifying the login link - BINOVYA Pro',
+    },
+    heading: 'Verifying the BINOVYA Pro login link',
+    verifying: 'Logging in to BINOVYA Pro…',
+    failedTitle: 'This login link no longer works',
+    failedText:
+      'It may have expired ({hours} hours) or already been used. Request a new one from the login page.',
+    loginCta: 'Get a new link',
+  },
+  planning: {
+    seo: {
+      title: 'Daily schedule - BINOVYA Pro',
+    },
+    eyebrow: 'Daily schedule',
+    title: 'Schedule for {date}',
+    dateGroup: 'Day selection',
+    dateLabel: 'Day shown',
+    previousDay: 'Previous day',
+    nextDay: 'Next day',
+    today: 'Today',
+    create: 'New intervention',
+    listTitle: 'Interventions of the day',
+    loading: 'Loading the schedule…',
+    count: 'No intervention on {date} | One intervention on {date} | {n} interventions on {date}',
+    empty: 'No intervention planned that day.',
+    loadedStatus: '{count}. {status}.',
+    round: {
+      title: 'Route of the day',
+      text: 'Starts and ends at the depot, through the interventions still to do in the order of the list. Beyond {max} stops, the round is split into several parts.',
+      link: 'Open the round in Google Maps',
+      part: 'Round, part {part} of {total}',
+      empty: 'No intervention to carry out on this day.',
+    },
+  },
+  dayStatus: {
+    title: {
+      closedWithBookings:
+        '{weekday} is closed: one intervention to move | {weekday} is closed: {bookings} interventions to move',
+      closed: '{weekday} is closed',
+      overCapacity:
+        'Over capacity: {bookings} bookings for one slot | Over capacity: {bookings} bookings for {capacity} slots',
+    },
+    reason: {
+      closedRule: 'The {weekday} rule closes this day: customers cannot book it.',
+      closedOverride: 'An exception closes this day: customers cannot book it.',
+      overCapacityRule:
+        '{n} bookings are planned for a capacity of {capacity} ({weekday} rule): customers can no longer book this day.',
+      overCapacityOverride:
+        '{n} bookings are planned for a capacity of {capacity} (exception): customers can no longer book this day.',
+    },
+    advice: {
+      closedWithBookings:
+        'The intervention already paid is still planned on this day: change its date, the customer is told by email. | The {n} interventions already paid are still planned on this day: change their date, each customer is told by email.',
+      overCapacity:
+        'Move at least one of them or increase the capacity of this day. | Move at least {n} of them or increase the capacity of this day.',
+      overCapacityNoMove: 'Increase the capacity of this day.',
+    },
+    note: 'Note: {note}',
+    urgent: {
+      title: '{bookings} intervention to move urgently | {bookings} interventions to move urgently',
+      instruction: {
+        closedWithBookings:
+          'On each intervention marked "@:{\'pro.intervention.toMove\'}", open the ⋯ menu (More actions) then choose "@:{\'pro.intervention.reschedule\'}".',
+        overCapacity:
+          'To move an intervention, open its ⋯ menu (More actions) then choose "@:{\'pro.intervention.reschedule\'}".',
+      },
+    },
+    reopen: 'Reopen this day',
+    increase: 'Increase the capacity of this day',
+  },
+  list: {
+    seo: {
+      title: 'Interventions - BINOVYA Pro',
+    },
+    eyebrow: 'BINOVYA Pro',
+    title: 'Interventions list',
+    resultsTitle: 'Results',
+    loading: 'Loading the interventions…',
+    count: 'No intervention | One intervention | {n} interventions',
+    countPage: '{n} interventions, page {page} of {total}',
+    toMoveCount: 'including one to move | including {n} to move',
+    toMoveCountPage: 'including one to move on this page | including {n} to move on this page',
+    empty: 'No intervention matches these filters.',
+    filters: {
+      label: 'Intervention filters',
+      status: 'Status',
+      statuses: {
+        all: 'All statuses',
+        pending_payment: 'Payment pending',
+        paid: 'To do',
+        completed: 'Done',
+        cancelled: 'Cancelled',
+        expired: 'Expired links',
+      },
+      from: 'From',
+      to: 'To',
+      rangeError: 'The end date cannot be before the start date.',
+      reset: 'Reset',
+    },
+    pagination: {
+      label: 'Interventions pagination',
+      previous: 'Previous page',
+      next: 'Next page',
+      page: 'Page {page} of {total}',
+    },
+  },
+  intervention: {
+    unknownCustomer: 'Unknown customer',
+    payments: {
+      paid: 'Paid online',
+      refunded: 'Refunded',
+      offline: 'Paid outside the site',
+      awaitingLink: 'Payment link sent, pending',
+      linkExpired: 'Payment link expired, unpaid',
+    },
+    priceSource: 'Pricing',
+    priceSources: {
+      grid: 'Price grid',
+      quote: 'Quote price',
+    },
+    adminNote: 'Internal note',
+    payment: 'Payment',
+    date: 'Date',
+    phone: 'Phone',
+    bins: 'Bins',
+    plan: 'Plan',
+    household: 'General waste collection',
+    recycling: 'Recycling collection',
+    unknownDays: 'Not provided',
+    amount: 'Amount',
+    forName: 'for {name}',
+    reschedule: 'Change the date',
+    toMove: 'To move',
+    toMoveReason: '(closed day)',
+  },
+  directions: {
+    action: 'Directions',
+    menuLabel: 'Open with',
+    apps: {
+      appleMaps: 'Apple Maps',
+      googleMaps: 'Google Maps',
+      waze: 'Waze',
+      other: 'Other app…',
+    },
+  },
+  ...proPhotos,
+  ...proSteps,
+  ...proCreate,
+  reschedule: {
+    title: 'Change the date of the intervention',
+    description: '{name}, {address}. Current date: {date}.',
+    close: 'Close',
+    dateLabel: 'New date',
+    cancel: 'Cancel',
+    submit: 'Move the intervention',
+    submitting: 'Moving…',
+    submittingStatus: 'Moving the intervention…',
+    force: 'Force anyway',
+    success: 'Intervention for {name} moved to {date}. The customer is notified by email.',
+    forced: 'Checks forced: {reasons}.',
+    overridden: {
+      outOfArea: 'address outside the service area',
+      dayClosed: 'closed day',
+      dayFull: 'full day',
+      outOfSector: 'day set for another sector',
+    },
+    errors: {
+      dateRequired: 'Choose the new date.',
+      outOfArea: 'This address is outside the service area. You can force the move.',
+      dayClosed: 'This day is closed. You can force the move.',
+      dayFull: 'This day is full. You can force the move.',
+      outOfSector:
+        'This day is set for another sector, too far from this address. You can force the move.',
+      notFound: 'This intervention no longer exists. Reload the page.',
+      notPaid: 'Only an intervention still to do can change date.',
+      invalidDate: 'This date is not valid.',
+      sameDate: 'The intervention is already planned on this day. Choose another date.',
+      pastDate: 'An intervention cannot be moved to the past.',
+      tooFar: 'Choose a date no later than {date}.',
+      tooFrequent:
+        'This intervention has already been moved several times in the last hour. Please try again later.',
+      generic: 'The move could not be saved. Please try again in a moment.',
+      timeout:
+        'The server is slow to answer. The move may have been saved: the list will refresh when you close this window, check the date before trying again.',
+    },
+  },
+  availability: {
+    seo: {
+      title: 'Availability - BINOVYA Pro',
+    },
+    eyebrow: 'BINOVYA Pro',
+    title: 'Availability',
+    intro:
+      'Set how many interventions each day can take, close a day or set its sector. Customer bookings follow these settings.',
+    loading: 'Loading availability…',
+    savingStatus: 'Saving…',
+    loadError: 'Availability could not be loaded.',
+    sectorValue: 'latitude {latitude}, longitude {longitude}',
+    errors: {
+      capacity: 'Enter a whole number between 0 and {max}.',
+      sector: 'This municipality has expired. Search for it again, then choose it in the list.',
+    },
+    capacityField: {
+      closed: 'Closed day',
+      increase: 'Increase the capacity {context}',
+      decrease: 'Decrease the capacity {context}',
+      followRule: 'Follow the rule',
+      rulePlaceholder: '{count} (rule)',
+    },
+    rules: {
+      title: 'Capacity per weekday',
+      legend: 'Number of interventions per weekday',
+      hint: 'Number of interventions each day can take, from 0 to {max}. 0 closes the day.',
+      context: 'for {day}',
+      save: 'Save the capacities',
+      saving: 'Saving…',
+      saved: 'Capacities per weekday saved.',
+      saveError: 'The capacities could not be saved. Please try again in a moment.',
+      invalid: 'Some capacities are not valid. Fix the flagged fields.',
+    },
+    override: {
+      title: 'Exceptions by date',
+      intro:
+        'For a given day: close it (capacity 0), reinforce it, set a sector or add a note. Interventions already paid stay on the day: change their date from the schedule.',
+      date: 'Day to change',
+      rule: '{weekday} rule: closed day. | {weekday} rule: one intervention. | {weekday} rule: {n} interventions.',
+      capacity: 'Capacity of this day',
+      capacityContext: 'for this day',
+      capacityHint: 'Leave empty to follow the rule. From 0 to {max}, 0 closes the day.',
+      sector: 'Set a sector (municipality)',
+      removeSector: 'Remove the set sector',
+      note: 'Note (optional)',
+      noteHint: '{max} characters at most. Only visible in BINOVYA Pro.',
+      save: 'Save the exception',
+      saving: 'Saving…',
+      saved: 'Exception for {date} saved.',
+      saveError: 'The exception could not be saved. Please try again in a moment.',
+      saveErrorFor: 'The exception for {date} could not be saved. Please try again in a moment.',
+      invalid: 'The exception is not valid. Fix the flagged fields.',
+      remove: 'Remove the exception',
+      removed: 'Exception for {date} removed: the day follows the {weekday} rule again.',
+      removeError: 'The exception could not be removed. Please try again in a moment.',
+      removeErrorFor:
+        'The exception for {date} could not be removed. Please try again in a moment.',
+    },
+    days: {
+      title: 'Exceptions and days to watch',
+      empty: 'No exception and no day to watch until {date}.',
+      capacity: 'Capacity',
+      capacityOverride:
+        'Closed day (exception) | One intervention (exception) | {n} interventions (exception)',
+      capacityRule:
+        'Closed day ({weekday} rule) | One intervention ({weekday} rule) | {n} interventions ({weekday} rule)',
+      sector: 'Set sector',
+      note: 'Note',
+      bookings: 'Bookings',
+      bookingsValue: 'No booking | One booking, {paid} to do | {n} bookings, {paid} to do',
+      planning: 'See the schedule',
+      edit: 'Edit',
+      ofDay: 'for {date}',
+      editOfDay: 'for {date}',
+    },
+  },
+}

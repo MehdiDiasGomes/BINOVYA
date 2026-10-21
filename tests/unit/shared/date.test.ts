@@ -3,8 +3,10 @@ import { describe, expect, it } from 'vitest'
 import {
   addDays,
   addDaysToIsoDate,
+  businessToday,
   formatFullDate,
   formatLongDate,
+  formatMediumDate,
   formatWeekday,
   isoDateInTimeZone,
   parseIsoDate,
@@ -133,5 +135,46 @@ describe('addDaysToIsoDate', () => {
 
   it('subtracts days', () => {
     expect(addDaysToIsoDate('2026-01-01', -1)).toBe('2025-12-31')
+  })
+})
+
+describe('formatMediumDate', () => {
+  it('abbreviates the month in French', () => {
+    expect(formatMediumDate('2026-10-16', 'fr')).toBe('16 oct. 2026')
+  })
+
+  it('follows the English order', () => {
+    expect(formatMediumDate('2026-10-16', 'en')).toBe('Oct 16, 2026')
+  })
+})
+
+describe('businessToday', () => {
+  it('gives the next Paris day at 22:30 UTC in summer time', () => {
+    expect(businessToday(new Date('2026-10-16T22:30:00Z'))).toBe('2026-10-17')
+  })
+
+  it('keeps the same Paris day at 22:30 UTC in winter time', () => {
+    expect(businessToday(new Date('2026-12-10T22:30:00Z'))).toBe('2026-12-10')
+  })
+
+  it('defaults to the current instant', () => {
+    expect(businessToday()).toMatch(/^\d{4}-\d{2}-\d{2}$/)
+  })
+})
+
+describe('parseIsoDate for early years', () => {
+  it.each([
+    ['0050-06-15', 50],
+    ['0099-12-31', 99],
+  ])('keeps the year of %s instead of shifting it to the 1900s', (isoDate, year) => {
+    const date = parseIsoDate(isoDate)
+    expect(date.getFullYear()).toBe(year)
+    expect(date.getMonth()).toBe(Number(isoDate.slice(5, 7)) - 1)
+    expect(date.getDate()).toBe(Number(isoDate.slice(8, 10)))
+  })
+
+  it('returns local midnight', () => {
+    const date = parseIsoDate('2026-10-19')
+    expect([date.getHours(), date.getMinutes()]).toEqual([0, 0])
   })
 })

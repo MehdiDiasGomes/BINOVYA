@@ -1,0 +1,378 @@
+import type { GeoPoint } from '@/types/booking'
+import type { Database } from '@/types/database.types'
+import type {
+  ProBookingStatus,
+  ProCustomer,
+  ProIntervention,
+  ProInterventionPhotos,
+  ProInterventionsFilters,
+  ProInterventionsPage,
+} from '@/types/pro'
+import type { ProDayOverview } from '@/types/proAvailability'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import type { H3Event } from 'h3'
+
+import { serverSupabaseServiceRole } from '#supabase/server'
+import {
+  PRO_ADMIN_ONLY_STATUSES,
+  PRO_INTERVENTIONS_PAGE_SIZE,
+  PRO_LIST_STATUSES,
+  PRO_PLANNING_STATUSES,
+} from '@/constants/pro'
+import { paymentLinkDueAt } from '@/utils/proCreate'
+
+type Tables = Database['public']['Tables']
+
+type InterventionRow = Pick<
+  Tables['bookings']['Row'],
+  | 'id'
+  | 'customer_id'
+  | 'scheduled_date'
+  | 'address'
+  | 'latitude'
+  | 'longitude'
+  | 'plan'
+  | 'small_bin_count'
+  | 'large_bin_count'
+  | 'household_collection_weekdays'
+  | 'recycling_collection_weekdays'
+  | 'amount_total_cents'
+  | 'status'
+  | 'completed_without_photos'
+  | 'payment_method'
+  | 'created_by_admin'
+  | 'expires_at'
+  | 'price_source'
+  | 'stripe_checkout_session_id'
+>
+
+type CustomerRow = Pick<Tables['profiles']['Row'], 'id' | 'first_name' | 'last_name' | 'phone'>
+
+const INTERVENTION_COLUMNS =
+  'id, customer_id, scheduled_date, address, latitude, longitude, plan, small_bin_count, large_bin_count, household_collection_weekdays, recycling_collection_weekdays, amount_total_cents, status, completed_without_photos, payment_method, created_by_admin, expires_at, price_source, stripe_checkout_session_id'
+
+const CUSTOMER_COLUMNS = 'id, first_name, last_name, phone'
+
+const unavailable = (): Error =>
+  createError({ statusCode: 500, statusMessage: 'Interventions unavailable' })
+
+const isProStatus = (status: string): status is ProBookingStatus =>
+  (PRO_LIST_STATUSES as string[]).includes(status)
+
+const ADMIN_ONLY_FILTER: string = [
+  `status.not.in.(${PRO_ADMIN_ONLY_STATUSES.join(',')})`,
+  'and(status.eq.pending_payment,created_by_admin.is.true)',
+  'and(status.eq.expired,created_by_admin.is.true,stripe_checkout_session_id.not.is.null)',
+].join(',')
+
+const isShownInPro = (row: InterventionRow): boolean => {
+  if (!(PRO_ADMIN_ONLY_STATUSES as string[]).includes(row.status)) {
+    return true
+  }
+  return row.status === 'expired'
+    ? row.created_by_admin && row.stripe_checkout_session_id !== null
+    : row.created_by_admin
+}
+
+const toCustomer = (row: CustomerRow): ProCustomer => ({
+  firstName: row.first_name,
+  lastName: row.last_name,
+  phone: row.phone,
+})
+
+const loadCustomers = async (
+  client: SupabaseClient<Database>,
+  rows: InterventionRow[],
+): Promise<Map<string, ProCustomer>> => {
+  const ids: string[] = [...new Set(rows.map(row => row.customer_id))]
+  if (ids.length === 0) {
+    return new Map()
+  }
+  const { data, error } = await client.from('profiles').select(CUSTOMER_COLUMNS).in('id', ids)
+  if (error) {
+    throw unavailable()
+  }
+  return new Map(data.map(row => [row.id, toCustomer(row)]))
+}
+
+const NO_PHOTOS: ProInterventionPhotos = { before: false, after: false }
+
+type InterventionRelations = {
+  customers: Map<string, ProCustomer>
+  photos: Map<string, ProInterventionPhotos>
+}
+
+const toIntervention = (
+  row: InterventionRow,
+  relations: InterventionRelations,
+): ProIntervention | null =>
+  isProStatus(row.status) && isShownInPro(row)
+    ? {
+        id: row.id,
+        scheduledDate: row.scheduled_date,
+        customer: relations.customers.get(row.customer_id) ?? null,
+        address: row.address,
+        latitude: row.latitude,
+        longitude: row.longitude,
+        plan: row.plan,
+        smallBinCount: row.small_bin_count,
+        largeBinCount: row.large_bin_count,
+        householdCollectionWeekdays: row.household_collection_weekdays,
+        recyclingCollectionWeekdays: row.recycling_collection_weekdays,
+        amountTotalCents: row.amount_total_cents,
+        status: row.status,
+        isToMove: false,
+        photos: relations.photos.get(row.id) ?? NO_PHOTOS,
+        completedWithoutPhotos: row.completed_without_photos,
+        paymentMethod: row.payment_method,
+        createdByAdmin: row.created_by_admin,
+        paymentDueAt:
+          row.status === 'pending_payment' && row.expires_at
+            ? paymentLinkDueAt(row.expires_at)
+            : null,
+        priceSource: row.price_source,
+        adminNote: null,
+      }
+    : null
+
+const withRelations = async (
+  client: SupabaseClient<Database>,
+  rows: InterventionRow[],
+): Promise<ProIntervention[]> => {
+  const [customers, photos]: [Map<string, ProCustomer>, Map<string, ProInterventionPhotos>] =
+    await Promise.all([
+      loadCustomers(client, rows),
+      loadInterventionPhotoFlags(
+        client,
+        rows.map(row => row.id),
+      ),
+    ])
+  return rows
+    .map(row => toIntervention(row, { customers, photos }))
+    .filter((intervention): intervention is ProIntervention => intervention !== null)
+}
+
+/**
+ * Loads the paid and completed interventions of one day, grouped by postcode then address until
+ * the round is optimised. Relies on RLS: the client must carry an admin session.
+ * @param client - Supabase client of the logged-in admin
+ * @param date - ISO calendar date of the day
+ * @returns Interventions of the day with their customer
+ * @throws 500 when the database cannot be read
+ */
+export const loadDayInterventions = async (
+  client: SupabaseClient<Database>,
+  date: string,
+): Promise<ProIntervention[]> => {
+  const { data, error } = await client
+    .from('bookings')
+    .select(INTERVENTION_COLUMNS)
+    .eq('scheduled_date', date)
+    .in('status', PRO_PLANNING_STATUSES)
+    .order('postcode', { ascending: true })
+    .order('address', { ascending: true })
+  if (error) {
+    throw unavailable()
+  }
+  return withRelations(client, data)
+}
+
+/**
+ * Loads one intervention with its customer and photo flags: paid, completed, cancelled, awaiting
+ * the payment of a link sent by BINOVYA, or whose sent link expired. A pending or expired online
+ * booking, still in or abandoned in the customer's Checkout, and an admin booking released before
+ * its link could be opened, are not shown. Relies on RLS: the
+ * client must carry an admin session. The internal note is not read here, see `loadAdminNote`.
+ * @param client - Supabase client of the logged-in admin
+ * @param bookingId - Identifier of the booking
+ * @returns The intervention, or null when no such booking is shown in BINOVYA Pro
+ * @throws 500 when the database cannot be read
+ */
+export const loadIntervention = async (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+): Promise<ProIntervention | null> => {
+  const { data, error } = await client
+    .from('bookings')
+    .select(INTERVENTION_COLUMNS)
+    .eq('id', bookingId)
+    .in('status', PRO_LIST_STATUSES)
+    .maybeSingle()
+  if (error) {
+    throw unavailable()
+  }
+  if (!data) {
+    return null
+  }
+  const [intervention]: ProIntervention[] = await withRelations(client, [data])
+  return intervention ?? null
+}
+
+/**
+ * Reads the internal note of an intervention, a column the authenticated role cannot select, with
+ * the secret key. Never throws: a failure is logged and the note left out.
+ * @param event - Incoming request, after `requireAdmin`
+ * @param bookingId - Identifier of a booking BINOVYA Pro shows
+ * @returns The note, or null when there is none or it cannot be read
+ */
+export const loadAdminNote = async (event: H3Event, bookingId: string): Promise<string | null> => {
+  const { data, error } = await serverSupabaseServiceRole<Database>(event)
+    .from('bookings')
+    .select('admin_note')
+    .eq('id', bookingId)
+    .maybeSingle()
+  if (error) {
+    console.error(`Admin note unavailable for booking ${bookingId}`)
+    return null
+  }
+  return data?.admin_note ?? null
+}
+
+const RANGE_NOT_SATISFIABLE: string = 'PGRST103'
+
+type FilterableQuery<Query> = {
+  in: (column: 'status', values: ProBookingStatus[]) => Query
+  gte: (column: 'scheduled_date', value: string) => Query
+  lte: (column: 'scheduled_date', value: string) => Query
+  or: (filters: string) => Query
+}
+
+const withFilters = <Query extends FilterableQuery<Query>>(
+  query: Query,
+  filters: ProInterventionsFilters,
+): Query => {
+  const byStatus: Query = query.in('status', filters.statuses).or(ADMIN_ONLY_FILTER)
+  const fromDate: Query = filters.from ? byStatus.gte('scheduled_date', filters.from) : byStatus
+  return filters.to ? fromDate.lte('scheduled_date', filters.to) : fromDate
+}
+
+const countInterventions = async (
+  client: SupabaseClient<Database>,
+  filters: ProInterventionsFilters,
+): Promise<number> => {
+  const { error, count } = await withFilters(
+    client.from('bookings').select('id', { count: 'exact', head: true }),
+    filters,
+  )
+  if (error) {
+    throw unavailable()
+  }
+  return count ?? 0
+}
+
+/**
+ * Loads one page of interventions matching the filters, sorted by date. A page past the last one
+ * comes back empty with the total, so the browser can move to the last page. Relies on RLS: the
+ * client must carry an admin session.
+ * @param client - Supabase client of the logged-in admin
+ * @param filters - Statuses and optional inclusive date range
+ * @param page - Page number, starting at 1
+ * @returns The page of interventions with the total number of matches
+ * @throws 500 when the database cannot be read
+ */
+export const loadInterventionsPage = async (
+  client: SupabaseClient<Database>,
+  filters: ProInterventionsFilters,
+  page: number,
+): Promise<ProInterventionsPage> => {
+  const start: number = (page - 1) * PRO_INTERVENTIONS_PAGE_SIZE
+  const { data, error, count } = await withFilters(
+    client.from('bookings').select(INTERVENTION_COLUMNS, { count: 'exact' }),
+    filters,
+  )
+    .order('scheduled_date', { ascending: true })
+    .order('created_at', { ascending: true })
+    .range(start, start + PRO_INTERVENTIONS_PAGE_SIZE - 1)
+  if (error?.code === RANGE_NOT_SATISFIABLE) {
+    return {
+      interventions: [],
+      total: await countInterventions(client, filters),
+      page,
+      pageSize: PRO_INTERVENTIONS_PAGE_SIZE,
+    }
+  }
+  if (error) {
+    throw unavailable()
+  }
+  return {
+    interventions: await withRelations(client, data),
+    total: count ?? 0,
+    page,
+    pageSize: PRO_INTERVENTIONS_PAGE_SIZE,
+  }
+}
+
+/**
+ * Reads the depot coordinates, start and end of every round. Relies on RLS: the client must
+ * carry an admin session.
+ * @param client - Supabase client of the logged-in admin
+ * @returns Depot coordinates, or null when the settings row is missing
+ * @throws 500 when the database cannot be read
+ */
+export const loadDepot = async (client: SupabaseClient<Database>): Promise<GeoPoint | null> => {
+  const { data, error } = await client
+    .from('booking_settings')
+    .select('depot_latitude, depot_longitude')
+    .maybeSingle()
+  if (error) {
+    throw unavailable()
+  }
+  return data ? { latitude: data.depot_latitude, longitude: data.depot_longitude } : null
+}
+
+/**
+ * Lists the dates holding paid interventions, the only ones that can be marked to move.
+ * @param interventions - Interventions of a page or a day
+ * @returns Distinct ISO dates of the paid interventions
+ */
+export const paidInterventionDates = (interventions: ProIntervention[]): string[] => [
+  ...new Set(
+    interventions
+      .filter(intervention => intervention.status === 'paid')
+      .map(intervention => intervention.scheduledDate),
+  ),
+]
+
+/**
+ * Loads the overviews of the days holding paid interventions, to flag the ones to move. The day
+ * rules are read with the secret key; when they cannot be read, no intervention is flagged rather
+ * than the whole page failing.
+ * @param event - Incoming request, after `requireAdmin`
+ * @param interventions - Interventions of a page, a day or a single one
+ * @returns Overviews of their paid days, empty when none or when unavailable
+ */
+export const loadPaidDayOverviews = (
+  event: H3Event,
+  interventions: ProIntervention[],
+): Promise<ProDayOverview[]> => {
+  const dates: string[] = paidInterventionDates(interventions)
+  if (dates.length === 0) {
+    return Promise.resolve([])
+  }
+  return loadDayOverviewsOfDates(serverSupabaseServiceRole<Database>(event), dates).catch(
+    (): ProDayOverview[] => {
+      console.error('Interventions day overviews unavailable')
+      return []
+    },
+  )
+}
+
+/**
+ * Marks to move every paid intervention whose day is closed, by its weekday rule or by an
+ * exception. A day holding more bookings than its capacity marks none.
+ * @param interventions - Interventions of a page or a day
+ * @param days - Overviews of the days of these interventions
+ * @returns The interventions with their `isToMove` flag
+ */
+export const flagInterventionsToMove = (
+  interventions: ProIntervention[],
+  days: ProDayOverview[],
+): ProIntervention[] => {
+  const closedDates: Set<string> = new Set(days.filter(day => day.isClosed).map(day => day.date))
+  return interventions.map(
+    (intervention: ProIntervention): ProIntervention => ({
+      ...intervention,
+      isToMove: intervention.status === 'paid' && closedDates.has(intervention.scheduledDate),
+    }),
+  )
+}

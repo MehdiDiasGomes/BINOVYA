@@ -1,4 +1,4 @@
-import type { Ref } from 'vue'
+import type { ComputedRef, Ref } from 'vue'
 
 export type ServiceSlug = 'small-bin' | 'large-bin'
 
@@ -26,11 +26,17 @@ export type BookingService = {
 
 export type CountryCode = 'FR' | 'LU'
 
+export type AddressKind = 'address' | 'municipality'
+
 export type AddressDetails = GeoPoint & {
   label: string
   city: string
   postcode: string
   countryCode: CountryCode
+}
+
+export type LuxembourgCommune = GeoPoint & {
+  name: string
 }
 
 export type BookingAddress = AddressDetails & {
@@ -39,6 +45,11 @@ export type BookingAddress = AddressDetails & {
 
 export type AddressSearchResponse = {
   suggestions: BookingAddress[]
+}
+
+export type NationalPhone = {
+  phone: string
+  countryCode: CountryCode
 }
 
 export type BookingContact = {
@@ -72,6 +83,30 @@ export type PriceGridEntry = {
   smallBinCount: number
   largeBinCount: number
   priceCents: number
+}
+
+export type PriceGridState = {
+  grid: Ref<PriceGridEntry[]>
+  isGridReady: ComputedRef<boolean>
+  hasGridError: ComputedRef<boolean>
+}
+
+export type BinCounts = {
+  small: number
+  large: number
+}
+
+export type GridPriceSource = {
+  counts: () => BinCounts
+  plan: () => BookingPlan
+}
+
+export type GridPrice = {
+  isGridReady: ComputedRef<boolean>
+  hasGridError: ComputedRef<boolean>
+  priceFor: (plan: BookingPlan) => number | null
+  priceCents: ComputedRef<number | null>
+  isQuoteRequired: ComputedRef<boolean>
 }
 
 export type DayStatusEntry = {

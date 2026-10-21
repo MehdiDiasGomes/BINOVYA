@@ -11,6 +11,8 @@ import type {
 
 import { toSvgDataUri } from '@/utils/svg'
 
+export const BUSINESS_TIME_ZONE: string = 'Europe/Paris'
+
 export const COUNTRY_CODES: CountryCode[] = ['FR', 'LU']
 
 export const BOOKING_ADDRESS_INPUT_ID: string = 'booking-address'
@@ -23,12 +25,6 @@ export const COUNTRY_FLAG_SOURCES: Record<CountryCode, string> = {
   FR: toSvgDataUri(FR),
   LU: toSvgDataUri(LU),
 }
-
-export const INPUT_GROUP_FRAME_CLASS =
-  'col-span-2 col-start-1 row-start-2 rounded-lg border border-ink/50 bg-white transition-shadow group-has-[:focus-visible]:border-primary group-has-[:focus-visible]:ring-[3px] group-has-[:focus-visible]:ring-primary/60 group-has-[[aria-invalid=true]]:border-destructive'
-
-export const FIELD_ERROR_CLASS: string =
-  'mt-1.5 flex items-center gap-1.5 text-[13px] font-bold text-destructive'
 
 export const BOOKING_SERVICES: BookingService[] = [
   {

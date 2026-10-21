@@ -41,8 +41,13 @@ brief. Anything needed outside your scope goes under "Hors périmètre".
 - Errors: `createError({ statusCode, statusMessage })`, short English message, nothing internal.
 - Secrets through `useRuntimeConfig()`, declared in `nuxt.config.ts`, listed empty in
   `.env.example`. Browser storage wrapped in try/catch.
+- Action labels say the real-world situation that makes the user press them, not a generic verb:
+  « Je suis sur place » rather than « Continuer » after the directions step, « Oui, passer »
+  rather than « OK ». A generic « Continuer » / « Valider » / « Suivant » is acceptable only when
+  nothing on screen tells the user what they are confirming. Same rule for the EN text.
 - Motion: presets in `app/constants/motion.ts`, Tailwind tokens `ease-brand`, `duration-press`,
-  `duration-lift`, `duration-enter` (a unit test keeps both in sync).
+  `duration-lift`, `duration-enter` (a unit test keeps both in sync). An accordion uses
+  `ACCORDION_ENTER_ACTIVE_CLASS` / `ACCORDION_LEAVE_ACTIVE_CLASS`.
 
 ## Mistakes already made, do not repeat
 
@@ -64,9 +69,60 @@ Each one was caught by a review. Check your change against this list before repo
   that receives focus at the same time.
 - Repeated link texts: put the distinguishing part inside the link (sr-only), not only in
   `aria-describedby`.
+- An accessible name that does not contain the visible text (WCAG 2.5.3 « label in name »): a
+  button showing « 16 oct. 2026 » must not be named « vendredi 16 octobre 2026 ». Prefer
+  `aria-labelledby` pointing at the visible label and value.
+- A visual state driven by `useMediaQuery` (or any JS breakpoint): it returns its SSR default
+  until mount, so client-rendered content flashes the wrong layout. Let CSS breakpoints drive the
+  visuals; keep the JS value for ARIA/`inert` only.
+- A hyphenated binding on a case-sensitive SVG attribute (`:view-box`): Vue renders it as
+  written and the browser ignores it. Write `viewBox` / `:viewBox`.
+- A new optional prop on a shared component whose default changes the rendering of existing
+  callers (`inputMode: 'text'` broke every `type="email"` keyboard). Default to `undefined` so
+  the attribute is not rendered unless a caller asks for it.
+- A controlled input whose local text diverges from its model (reka NumberField applies typed
+  text only on blur): emitting a value equal to the current model triggers no re-render, so the
+  field keeps showing stale text. Write the text back (`input.value` + an `input` event) when
+  you take over its behaviour.
+- A page live region that must announce while or right after a reka modal (Dialog, AlertDialog)
+  closes, with `role="status"` alone: `hideOthers` only spares `[aria-live]`, so give it an
+  explicit `aria-live`, and emit the announcing event from `closeAutoFocus` after a `nextTick`.
+- A named i18n param `n` or `count` next to a different plural number: vue-i18n picks the form
+  from `named.count`, then `named.n`, before the 3rd argument of `t`. Name the shown value
+  otherwise (`bookings`, `value`).
+- A state change on blur (re-emitted value, cleared error, conditional button) that inserts or
+  removes content above a button: the mousedown on that button blurs the field, the button moves
+  and the click is lost. Apply input while typing, and never emit an unchanged value.
+- An `AnimatePresence` without `mode` around content holding a ref used for focus: the old child
+  survives its exit, the ref still points to it and the focus falls on `body`. Use a `Motion` per
+  `v-if` branch (Vue keys the branches itself; a dynamic `:key` only when the same element swaps
+  content) with a conditional `initial` (no exit phase) for mode swaps.
+- An `aria-label` on a reka menu / popover content: reka sets `aria-labelledby` to the trigger,
+  which wins, so the label is never read. Put the context in the trigger's name (sr-only).
+  Exception: a `PopoverTrigger as-child` around a button with its own `id` keeps that id, so
+  reka's `aria-labelledby` points to nothing and the content's `aria-label` is the name (see
+  `DatePicker.vue`). Keep it there, and keep the button's `id`.
+- A sr-only text inside a reka `CalendarCellTrigger`: reka sets an `aria-label` on the cell,
+  which replaces its content. Bind a full `aria-label` (long date + suffix) instead.
+- A focus set on mount (`initial-focus`, `onMounted` + `focus()`) inside a reka popover or menu
+  opened in a modal Dialog: the dialog's focus trap is paused only after a `nextTick`, takes the
+  focus back and, on Safari, the popover closes at once (`focusOutside`). Set the focus in
+  `@open-auto-focus` (with `preventDefault`).
+- A Nuxt `refresh()` of the page data to update one sub-part: in Nuxt 4 a failed refresh resets
+  `data`, wiping the whole page. Fetch the sub-part with a dedicated `$fetch` and keep the rest.
+- Routes built as raw paths (`/pro/...`) passed to `NuxtLink` or `navigateTo`: wrap them in
+  `useLocalePath()`, otherwise `/en` pages link back to French.
+- A client `timeout` on a write treated as a failure: the server may still commit. Say the result
+  is unknown and reload the data instead of inviting a retry.
 - Explicit types everywhere, including `safeParse` results and Node results in `scripts/`
   (`Socket`, `SpawnSyncReturns<string>`…). `scripts/` is not covered by `nuxi typecheck`: check it
   with `tsc --noEmit` on a scratch tsconfig extending `.nuxt/tsconfig.node.json`.
+- A `ul` / `ol` without bullets (Tailwind preflight, grid, flex) loses its list semantics in
+  Safari / VoiceOver. Add `role="list"` (allowed by the ESLint config), not on `aria-hidden`
+  skeletons.
+- A value clamped or reset by another control (radio, button) while focus stays there, signalled
+  only through `aria-describedby`: nothing is announced (WCAG 4.1.3). Announce it through an
+  always-present `role="status"` region (`useLiveAnnouncement`).
 - Prettier only on the files you changed, never on a folder.
 
 ## Checks (mandatory before reporting)
@@ -75,6 +131,10 @@ Change set: `git diff --name-only dev` plus `git ls-files --others --exclude-sta
 `bun run lint`, `bunx nuxi typecheck`, `bunx prettier --check <your files>`, and
 `bun run test:unit` when you touched tested code. Fix every error in the change set. Errors that
 also exist on `dev` are pre-existing: list them, do not fix them.
+
+Never run `nuxi prepare`, `nuxi build`, `nuxi generate` or `bun run build`: they rewrite `.nuxt/`,
+which the user's running dev server reads, and crash it with a 500. If generated types look stale,
+say so in the report and let the orchestrator decide.
 
 ## Report (in French, short, a status emoji on every row: ✅ 🔴 🟠 ⚪ ⚠️)
 

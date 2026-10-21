@@ -5,13 +5,13 @@
       <BookingCountrySelect
         :id="`${props.id}-country`"
         :model-value="countryCode"
-        :label="$t('booking.address.country')"
+        :label="$t(textKey('country'))"
         class="col-start-1 row-start-2"
         @update:model-value="changeCountry"
       />
       <label :for="props.id" class="contents">
         <span class="col-span-2 row-start-1 mb-1.5 block text-sm font-bold text-ink">
-          {{ $t('booking.address.label') }}
+          {{ props.label || $t(textKey('label')) }}
         </span>
         <input
           :id="props.id"
@@ -25,7 +25,7 @@
           :aria-invalid="props.error ? 'true' : undefined"
           :aria-expanded="isListOpen"
           :aria-activedescendant="activeOptionId"
-          :placeholder="$t(`booking.address.placeholder.${countryCode}`)"
+          :placeholder="$t(`${textKey('placeholder')}.${countryCode}`)"
           class="relative z-10 col-start-2 row-start-2 h-12 min-w-0 bg-transparent px-3 text-[15px] text-ink outline-none placeholder:text-ink/60"
           @input="handleInput"
           @keydown="handleKeydown"
@@ -33,8 +33,8 @@
         />
       </label>
     </div>
-    <p :id="`${props.id}-hint`" class="mt-1.5 text-[13px] text-ink/70">
-      {{ $t('booking.address.hint') }}
+    <p :id="`${props.id}-hint`" :class="FIELD_HINT_CLASS">
+      {{ hintText }}
     </p>
     <p v-if="props.error" :id="`${props.id}-error`" :class="FIELD_ERROR_CLASS">
       <Icon name="CircleAlert" :size="14" aria-hidden="true" />
@@ -46,7 +46,7 @@
         v-if="isListOpen"
         :id="`${props.id}-listbox`"
         role="listbox"
-        :aria-label="$t('booking.address.listLabel')"
+        :aria-label="$t(textKey('listLabel'))"
         class="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border border-border bg-white py-1 shadow-lg"
         @mousedown.prevent
       >
@@ -74,12 +74,15 @@
       </ul>
     </div>
 
-    <p class="mt-3 text-sm text-ink/70 empty:mt-0" role="status">
-      <span v-if="isLoading">{{ $t('booking.address.loading') }}</span>
-      <span v-else-if="hasError" class="font-semibold text-destructive">
+    <p class="text-sm text-ink/70" role="status">
+      <span v-if="isLoading" class="mt-3 block">{{ $t('booking.address.loading') }}</span>
+      <span v-else-if="hasError" :class="cn('mt-3 block font-semibold', ERROR_TEXT_TONE_CLASS)">
         {{ $t('booking.address.error') }}
       </span>
-      <span v-else-if="hasNoResult">{{ $t('booking.address.noResult') }}</span>
+      <span v-else-if="hasNoResult" class="mt-3 block">{{ $t(textKey('noResult')) }}</span>
+      <span v-else-if="isListOpen" class="sr-only">
+        {{ $t(textKey('count'), { n: suggestions.length }, suggestions.length) }}
+      </span>
     </p>
   </div>
 </template>
@@ -87,13 +90,12 @@
 <script setup lang="ts">
 import { useDebounceFn } from '@vueuse/core'
 
-import type { BookingAddress, CountryCode } from '@/types/booking'
+import type { AddressKind, BookingAddress, CountryCode } from '@/types/booking'
 
-import {
-  BOOKING_ADDRESS_INPUT_ID,
-  FIELD_ERROR_CLASS,
-  INPUT_GROUP_FRAME_CLASS,
-} from '@/constants/booking'
+import { ADDRESS_SEARCH_MIN_LENGTH } from '@/constants/address'
+import { BOOKING_ADDRESS_INPUT_ID } from '@/constants/booking'
+import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
+import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, INPUT_GROUP_FRAME_CLASS } from '@/constants/form'
 import { cn } from '@/lib/utils'
 import { describedByIds } from '@/utils/field'
 
@@ -102,11 +104,16 @@ const props = withDefaults(
     id?: string
     modelValue?: BookingAddress | null
     error?: string
+    label?: string
+    /** Full addresses or municipalities, read once at setup: it must not change afterwards. */
+    kind?: AddressKind
   }>(),
   {
     id: BOOKING_ADDRESS_INPUT_ID,
     modelValue: null,
     error: '',
+    label: '',
+    kind: 'address',
   },
 )
 
@@ -119,8 +126,16 @@ const SEARCH_DELAY_MS = 500
 const { t } = useI18n()
 
 const countryCode: Ref<CountryCode> = ref(props.modelValue?.countryCode ?? 'FR')
-const { suggestions, isLoading, hasError, hasSearched, search, clear } =
-  useAddressSearch(countryCode)
+const { suggestions, isLoading, hasError, hasSearched, search, clear } = useAddressSearch(
+  countryCode,
+  props.kind,
+)
+
+const textKey = (name: string): string => `booking.${props.kind}.${name}`
+
+const hintText: ComputedRef<string> = computed(() =>
+  t(textKey('hint'), { min: ADDRESS_SEARCH_MIN_LENGTH }),
+)
 
 const query: Ref<string> = ref(props.modelValue?.label ?? '')
 const isListVisible: Ref<boolean> = ref(false)
@@ -137,7 +152,7 @@ const activeOptionId: ComputedRef<string | undefined> = computed(() =>
 )
 
 const describedBy: ComputedRef<string | undefined> = computed((): string | undefined =>
-  describedByIds(props.id, t('booking.address.hint'), props.error),
+  describedByIds(props.id, hintText.value, props.error),
 )
 
 const hasNoResult: ComputedRef<boolean> = computed(

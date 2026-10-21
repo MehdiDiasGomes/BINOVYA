@@ -1,5 +1,6 @@
 export default {
   nav: 'Espace client',
+  navAdmin: 'Espace admin',
   login: {
     seo: {
       title: 'Espace client - BINOVYA',
@@ -110,18 +111,46 @@ export default {
     summaryTitle: 'Récapitulatif',
     date: 'Date',
     address: 'Adresse',
+    newTab: '(s’ouvre dans un nouvel onglet)',
     photos: {
       title: 'Photos avant/après',
       text: 'BINOVYA ajoutera ici les photos de vos bacs après l’intervention.',
+      textAvailable: 'Touchez une photo pour l’ouvrir en grand.',
+      textNone: 'Aucune photo pour cette intervention.',
       kinds: {
         before: 'Photo avant',
         after: 'Photo après',
       },
+      alt: {
+        before: 'Vos bacs avant le nettoyage',
+        after: 'Vos bacs après le nettoyage',
+      },
       placeholder: 'Pas encore de photo',
+      placeholderNone: 'Pas de photo',
+      failed: 'La photo n’a pas pu s’afficher',
+      reload: 'Recharger les photos',
+      refreshed: 'Liens des photos actualisés, rouvrez la photo.',
+      reloaded: 'Photos rechargées.',
+      refreshFailed: 'Les liens des photos n’ont pas pu être actualisés, réessayez.',
+    },
+    receipt: {
+      title: 'Reçu de paiement',
+      open: 'Voir le reçu de paiement',
+      unavailable: 'Reçu indisponible pour le moment.',
+      hint: 'Reçu émis par Stripe, notre prestataire de paiement. Il indique aussi un éventuel remboursement.',
+    },
+    offline: {
+      title: 'Paiement',
+      text: 'Paiement réglé directement auprès de BINOVYA.',
+      hint: 'Pour obtenir un justificatif, répondez simplement à votre mail de confirmation.',
     },
     invoice: {
       title: 'Facture',
-      soon: 'Bientôt disponible',
+      download: 'Télécharger la facture',
+      open: 'Voir la facture',
+      pdfNewTab: '(PDF, s’ouvre dans un nouvel onglet)',
+      unavailable: 'Facture indisponible pour le moment.',
+      hint: 'Facture émise via Stripe, notre prestataire de paiement.',
     },
     rebook: 'Réserver une autre date',
   },

@@ -1,4 +1,5 @@
 import type { GeoPoint } from '@/types/booking'
+import type { MapsStop } from '@/types/pro'
 
 const EARTH_RADIUS_KM = 6371
 
@@ -20,3 +21,23 @@ export const distanceInKm = (from: GeoPoint, to: GeoPoint): number => {
       Math.sin(longitudeDelta / 2) ** 2
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.sqrt(a))
 }
+
+/**
+ * Tells whether a point has usable coordinates: finite, latitude within ±90, longitude within ±180.
+ * @param point - Point to check
+ * @returns True when the coordinates can be put in a maps link
+ */
+export const hasValidCoordinates = (point: GeoPoint): boolean =>
+  Number.isFinite(point.latitude) &&
+  Number.isFinite(point.longitude) &&
+  Math.abs(point.latitude) <= 90 &&
+  Math.abs(point.longitude) <= 180
+
+/**
+ * Formats the destination of a maps link: `latitude,longitude` when the coordinates are valid,
+ * the trimmed address otherwise.
+ * @param stop - Coordinates and address text of the destination
+ * @returns Location text, not URL-encoded
+ */
+export const stopLocation = (stop: MapsStop): string =>
+  hasValidCoordinates(stop) ? `${stop.latitude},${stop.longitude}` : stop.address.trim()

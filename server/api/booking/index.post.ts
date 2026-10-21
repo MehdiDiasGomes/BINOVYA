@@ -1,8 +1,6 @@
 import type { BookingErrorCode, BookingResponse } from '@/types/booking'
 import type { Database } from '@/types/database.types'
-import type { SupabaseClient } from '@supabase/supabase-js'
 import type { H3Error } from 'h3'
-import type Stripe from 'stripe'
 
 import { serverSupabaseServiceRole } from '#supabase/server'
 
@@ -40,31 +38,6 @@ const bookingRejection = (message: string): H3Error => {
 }
 
 const MAX_BODY_BYTES = 16 * 1024
-
-const attachCheckout = async (
-  client: SupabaseClient<Database>,
-  checkout: BookingCheckoutInput,
-): Promise<string> => {
-  const { bookingId } = checkout
-  const session: Stripe.Checkout.Session = await createBookingCheckout(checkout).catch(async () => {
-    await expireUnpaidBooking(client, bookingId)
-    throw createError({ statusCode: 502, statusMessage: 'Checkout creation failed' })
-  })
-
-  const { error } = await client
-    .from('bookings')
-    .update({ stripe_checkout_session_id: session.id })
-    .eq('id', bookingId)
-  if (error || !session.url) {
-    await useStripe()
-      .checkout.sessions.expire(session.id)
-      .catch(() => null)
-    await expireUnpaidBooking(client, bookingId)
-    throw createError({ statusCode: 500, statusMessage: 'Checkout attachment failed' })
-  }
-
-  return session.url
-}
 
 export default defineEventHandler(async (event): Promise<BookingResponse> => {
   assertBodySize(event, MAX_BODY_BYTES)
@@ -108,12 +81,13 @@ export default defineEventHandler(async (event): Promise<BookingResponse> => {
     throw createError({ statusCode: 500, statusMessage: 'Booking creation failed' })
   }
 
-  const checkoutUrl: string = await attachCheckout(client, {
+  const checkoutUrl: string = await attachBookingCheckout(client, {
     bookingId: created.new_booking_id,
     amountCents: created.total_cents,
+    profileId: customerId,
     plan: body.plan,
     scheduledDate: body.date,
-    email: body.contact.email.trim().toLowerCase(),
+    address: body.address,
     locale: body.locale,
   })
 

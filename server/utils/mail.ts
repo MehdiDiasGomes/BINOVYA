@@ -10,6 +10,7 @@ import {
   resolveOutboxDir,
   writeOutboxRecord,
 } from './mailOutbox'
+import { redirectedEmailSubject, resolveMailRedirect } from './mailRedirect'
 
 import type { MailOutboxRecord, MailTransport } from '@/types/email'
 
@@ -120,6 +121,17 @@ export const isMailConfigured = (): boolean => {
   return Boolean(resendApiKey)
 }
 
+const applyMailRedirect = (email: OutgoingEmail, transport: MailTransport): OutgoingEmail => {
+  const redirectTo: string | null = resolveMailRedirect(useRuntimeConfig().mailRedirectTo, {
+    isDev: Boolean(import.meta.dev),
+    nodeEnv: process.env.NODE_ENV,
+    transport,
+  })
+  return redirectTo
+    ? { ...email, to: redirectTo, subject: redirectedEmailSubject(email.subject, email.to) }
+    : email
+}
+
 const sendToOutbox = async (email: OutgoingEmail, logLabel: string): Promise<boolean> => {
   if (!isOutboxAllowed({ isDev: Boolean(import.meta.dev), nodeEnv: process.env.NODE_ENV })) {
     console.error(`${logLabel} failed: Mail outbox transport refused outside development`)
@@ -148,9 +160,10 @@ const sendToOutbox = async (email: OutgoingEmail, logLabel: string): Promise<boo
 /**
  * Sends one transactional email through Resend, giving up after 5 seconds. With
  * `NUXT_MAIL_TRANSPORT=outbox`, allowed in development and tests only, the email is written to the
- * local outbox instead, see `writeOutboxRecord`. An unknown transport is refused on the
- * development server, see `resolveMailTransport`. A failure is logged with the given label only,
- * never thrown, so the caller's flow always continues.
+ * local outbox instead, see `writeOutboxRecord`. On the development server,
+ * `NUXT_MAIL_REDIRECT_TO` sends every Resend mail to one address, see `resolveMailRedirect`. An
+ * unknown transport is refused on the development server, see `resolveMailTransport`. A failure is
+ * logged with the given label only, never thrown, so the caller's flow always continues.
  * @param email - Recipient, subject, HTML body, inlined here, and optional idempotency key
  * @param logLabel - Short label without personal data, used in logs
  * @returns True when Resend accepted the email, or when it is in the outbox
@@ -172,6 +185,7 @@ export const sendTransactionalEmail = async (
     console.warn(`${logLabel} skipped: NUXT_RESEND_API_KEY is not set`)
     return false
   }
+  const outgoing: OutgoingEmail = applyMailRedirect(email, transport)
   let timer: ReturnType<typeof setTimeout> | undefined
   const timeout: Promise<typeof SEND_TIMEOUT> = new Promise(resolve => {
     timer = setTimeout(() => resolve(SEND_TIMEOUT), SEND_TIMEOUT_MS)
@@ -181,12 +195,12 @@ export const sendTransactionalEmail = async (
       new Resend(resendApiKey).emails.send(
         {
           from: mailSender(),
-          to: [email.to],
-          subject: sanitizeEmailSubject(email.subject),
-          html: finalizeEmailHtml(email.html),
-          replyTo: email.replyTo,
+          to: [outgoing.to],
+          subject: sanitizeEmailSubject(outgoing.subject),
+          html: finalizeEmailHtml(outgoing.html),
+          replyTo: outgoing.replyTo,
         },
-        email.idempotencyKey ? { idempotencyKey: email.idempotencyKey } : undefined,
+        outgoing.idempotencyKey ? { idempotencyKey: outgoing.idempotencyKey } : undefined,
       ),
       timeout,
     ])

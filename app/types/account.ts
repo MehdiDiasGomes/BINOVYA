@@ -10,6 +10,20 @@ export type AccountTranslate = (key: string, named: Record<string, unknown>) => 
 
 export type AccountStatusIcon = 'CalendarDays' | 'CircleCheck' | 'CircleX'
 
+export type AccountNavIcon = 'CircleUser' | 'LayoutDashboard'
+
+export type AccountPaymentIcon = 'FileText' | 'Receipt' | 'HandCoins'
+
+export type AccountPaymentDocumentView = {
+  titleKey: string
+  openKey: string
+  newTabKey: string
+  unavailableKey: string
+  hintKey: string
+  icon: AccountPaymentIcon
+  url: string | null
+}
+
 export type AccountBookingCardView = {
   tone: MediaCardTone
   icon: AccountStatusIcon
@@ -30,8 +44,32 @@ export type AccountBooking = {
   status: AccountBookingStatus
 }
 
+export type AccountBookingRecord = {
+  booking: AccountBooking
+  paymentIntentId: string | null
+  invoiceId: string | null
+  isPaidOffline: boolean
+}
+
+export type AccountBookingPhotos = Record<AccountPhotoKind, string | null>
+
+export type AccountInvoiceLink = {
+  url: string | null
+  isPdf: boolean
+}
+
+export type AccountBookingDocuments = {
+  photos: AccountBookingPhotos
+  receiptUrl: string | null
+  invoice: AccountInvoiceLink | null
+  isPaidOffline: boolean
+}
+
+export type AccountLinksRefresh = 'ok' | 'failed' | 'expired'
+
 export type AccountBookingDetail = {
   booking: AccountBooking
+  documents: AccountBookingDocuments
 }
 
 export type AccountDetailRow = {
@@ -50,6 +88,10 @@ export type LoginRequest = {
   locale: BookingLocale
   website: string
 }
+
+export type LoginEndpoint = '/api/auth/login' | '/api/pro/auth/login'
+
+export type LoginLinkRpc = 'claim_login_link' | 'claim_admin_login_link'
 
 export type LoginResponse = {
   success: boolean
@@ -85,7 +127,7 @@ export type DeletionAlertData = {
 
 export type DeletionStep = 'idle' | 'confirming' | 'submitting' | 'done'
 
-export type CustomerSessionStatus = 'none' | 'active' | 'expired'
+export type CustomerSessionStatus = 'none' | 'active' | 'expired' | 'admin'
 
 export type CustomerSessionState = {
   status: ComputedRef<CustomerSessionStatus>

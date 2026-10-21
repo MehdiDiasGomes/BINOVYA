@@ -1,4 +1,5 @@
 import { readEnv } from './env'
+import { ADMIN_ROLE } from '../../app/constants/pro'
 import { sleep } from '../../scripts/test-process'
 
 export type BookingRow = {
@@ -12,6 +13,8 @@ export type BookingRow = {
 }
 
 type Credentials = { url: string; key: string }
+
+export type AuthUserRow = { id: string; email?: string; app_metadata?: { role?: string } }
 
 export const E2E_EMAIL_PATTERN = /^(e2e\+.+@binovya\.test|delivered\+e2e-.+@resend\.dev)$/
 
@@ -100,6 +103,34 @@ const listE2eProfiles = async (): Promise<{ id: string; email: string }[]> => {
   return lists.flat().filter(profile => E2E_EMAIL_PATTERN.test(profile.email))
 }
 
+/**
+ * Lists every Auth user, page by page.
+ * @returns Identifier, email and app metadata of each user
+ */
+export const listAuthUsers = async (): Promise<AuthUserRow[]> => {
+  const perPage = 200
+  const users: AuthUserRow[] = []
+  for (let page = 1; ; page += 1) {
+    const response: Response = await rest(`/auth/v1/admin/users?per_page=${perPage}&page=${page}`)
+    const batch: AuthUserRow[] = ((await response.json()) as { users?: AuthUserRow[] }).users ?? []
+    users.push(...batch)
+    if (batch.length < perPage) {
+      return users
+    }
+  }
+}
+
+/**
+ * Lists the test Auth users still present, which the profile based cleanup cannot see when they
+ * have no profile. Admins are left to `removeE2eAdmins`, which keeps the admin shared by a
+ * Playwright run.
+ * @returns Test accounts without the admin role
+ */
+export const listRemainingE2eUsers = async (): Promise<AuthUserRow[]> =>
+  (await listAuthUsers()).filter(
+    user => E2E_EMAIL_PATTERN.test(user.email ?? '') && user.app_metadata?.role !== ADMIN_ROLE,
+  )
+
 const removePhotoObjects = async (customerId: string): Promise<void> => {
   const response: Response = await rest(`/rest/v1/bookings?select=id&customer_id=eq.${customerId}`)
   const ids: string[] = ((await response.json()) as { id: string }[]).map(row => row.id)
@@ -140,7 +171,11 @@ export const cleanupE2eData = async (): Promise<{ bookings: number; users: numbe
     }),
   )
   const bookings: number = counts.reduce((total, count) => total + count, 0)
-  return { bookings, users: profiles.length }
+  const orphans: AuthUserRow[] = await listRemainingE2eUsers()
+  await Promise.all(
+    orphans.map(user => rest(`/auth/v1/admin/users/${user.id}`, { method: 'DELETE' })),
+  )
+  return { bookings, users: profiles.length + orphans.length }
 }
 
 export const ACTIVE_BOOKING_STATUSES: string[] = ['pending_payment', 'paid', 'completed']
@@ -165,4 +200,58 @@ export const countActiveBookings = async (date: string): Promise<number> => {
     `/rest/v1/bookings?select=id&scheduled_date=eq.${date}&${ACTIVE_STATUS_FILTER}`,
   )
   return ((await response.json()) as unknown[]).length
+}
+
+export type BookingStripeRow = {
+  status: string
+  payment_method: string
+  created_by_admin: boolean
+  stripe_checkout_session_id: string | null
+  stripe_payment_intent_id: string | null
+  stripe_invoice_id: string | null
+  amount_total_cents: number
+  expires_at: string | null
+  customer_id: string
+}
+
+/**
+ * Reads the payment columns of a booking.
+ * @param bookingId - Booking identifier
+ * @returns Status, payment method, Stripe identifiers, amount and hold end
+ */
+export const readBookingStripe = async (bookingId: string): Promise<BookingStripeRow> => {
+  const response: Response = await rest(
+    `/rest/v1/bookings?select=status,payment_method,created_by_admin,stripe_checkout_session_id,stripe_payment_intent_id,stripe_invoice_id,amount_total_cents,expires_at,customer_id&id=eq.${bookingId}`,
+  )
+  const [row] = (await response.json()) as BookingStripeRow[]
+  if (!row) {
+    throw new Error(`Booking ${bookingId} not found`)
+  }
+  return row
+}
+
+export type AdminBookingColumns = {
+  admin_note: string | null
+  admin_request_id: string | null
+  price_source: string
+  small_bin_count: number
+  large_bin_count: number
+  amount_total_cents: number
+  payment_method: string
+}
+
+/**
+ * Reads the admin-only columns and the price of a booking with the service role.
+ * @param bookingId - Booking identifier
+ * @returns Note, request id, price source, bins, amount and payment method
+ */
+export const readAdminBooking = async (bookingId: string): Promise<AdminBookingColumns> => {
+  const response: Response = await rest(
+    `/rest/v1/bookings?select=admin_note,admin_request_id,price_source,small_bin_count,large_bin_count,amount_total_cents,payment_method&id=eq.${bookingId}`,
+  )
+  const [row] = (await response.json()) as AdminBookingColumns[]
+  if (!row) {
+    throw new Error(`Booking ${bookingId} not found`)
+  }
+  return row
 }

@@ -18,9 +18,12 @@ ses réservations et les photos avant/après depuis son espace client.
 6. Il reçoit un mail de confirmation dès le paiement, avec un lien « Suivre ma réservation » vers
    `/login`. Un rappel par mail suit entre J-1 et J-2 (heure de Paris), puis les SMS (la veille et
    le jour J).
-7. Après l'intervention, l'admin dépose une photo avant et une photo après. Le client reçoit un
-   mail l'informant que ses photos sont disponibles dans son espace client, avec un tutoriel pas
-   à pas pour s'y connecter. Le lien du bouton est à décider à l'étape 8 (voir `TODO.md`).
+7. Le jour de l'intervention, l'admin ouvre sa fiche dans BINOVYA Pro et suit quatre étapes :
+   itinéraire, photo avant, photo après (facultative), récapitulatif. Il termine l'intervention
+   depuis le récapitulatif. Le client reçoit alors un mail l'informant que ses photos sont
+   disponibles dans son espace client, avec un tutoriel pas à pas pour s'y connecter ; le bouton
+   mène à `/login`. L'admin peut forcer la fin sans photos, après confirmation. Dans ce cas,
+   aucun mail photos n'est envoyé.
 8. Le client demande un lien de connexion sur `/login`, puis consulte ses réservations et ses
    photos aussi souvent qu'il le souhaite, pendant 7 jours après chaque clic sur un lien.
 
@@ -65,8 +68,8 @@ bookings                              intervention_photos
 id                                    id
 customer_id  -> profiles.id           booking_id -> bookings.id
 scheduled_date                        kind (before | after)
-address, city, postcode, country_code storage_path
-latitude, longitude
+address, city, postcode, country_code storage_path ({booking_id}/{kind}.jpg)
+latitude, longitude                   updated_at
 plan                                  quote_requests
 small_bin_count, large_bin_count      --------------
 household_collection_weekdays         id
@@ -83,30 +86,45 @@ stripe_payment_intent_id              status (new | answered | closed)
 expires_at
 reminder_sent_at
 day_of_sms_sent_at
+rescheduled_at, reschedule_count,
+reschedule_window_start
 completed_at
+completed_without_photos
+photos_notified_at
 
 availability_rules            availability_overrides        booking_settings (1 ligne)
 ------------------            ----------------------        --------------------------
 weekday (0 à 6)               date                          depot_latitude, depot_longitude
-max_bookings (0 = fermé)      max_bookings (0 = fermé)      service_area_radius_km
-                              sector_latitude               day_sector_radius_km
-                              sector_longitude              min_lead_days, horizon_days
+max_bookings (0 à 50,         max_bookings (null = suit     service_area_radius_km
+  0 = fermé)                    la règle, 0 = fermé, ≤ 50)  day_sector_radius_km
+                              sector_latitude               min_lead_days, horizon_days
+                              sector_longitude
+                              sector_label
+                              note (500 caractères au plus)
 ```
 
 Fonctions réservées au serveur : `get_availability` (statut de chaque jour pour une adresse),
 `create_booking` (contrôle, calcul du prix et blocage de la place en une transaction),
 `confirm_booking_payment` (confirme un paiement reçu, sous le verrou du jour),
 `expire_stale_bookings` (libère les réservations non payées), `claim_login_link` (plafond d'envoi
-des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
+des liens de connexion client), `claim_admin_login_link` (idem pour les admins), `day_check`
+(statut d'un jour pour une adresse, partagé par `day_status` et le déplacement admin),
+`admin_day_overview` (capacité effective et réservations de chaque jour d'une plage) et
+`admin_reschedule_booking` (déplace une réservation payée), `admin_set_intervention_photo`
+(enregistre ou remplace une photo) et `admin_complete_booking` (termine une intervention).
+`has_recent_sign_in()` et
+`is_admin()` servent aux policies RLS.
 
 ## Règles
 
 - **Créneau** : le client réserve un jour, jamais une heure. Le passage ce jour-là est garanti.
 - **Capacité** : `availability_rules` fixe le nombre d'interventions par jour de semaine,
-  `availability_overrides` gère les exceptions (congés, jours fériés, journée renforcée).
+  `availability_overrides` gère les exceptions (congés, jours fériés, journée renforcée). Voir
+  « Disponibilités » plus bas pour ce que règle l'admin.
 - **Secteur du jour** : la première réservation d'un jour fixe son secteur. Le jour ne reste
   ouvert qu'aux adresses situées à moins de **15 km** de ce point. L'admin peut aussi
-  imposer à l'avance le secteur d'un jour.
+  imposer à l'avance le secteur d'un jour, par commune : ce secteur prend alors la place de la
+  première réservation.
 - **Adresse signée** : seule une adresse choisie dans la recherche est acceptée, son jeton
   valant 24 h. Si le serveur refuse le jeton (expiré, par exemple un brouillon restauré plus de
   24 h après, ou adresse modifiée), le client revient à l'étape des coordonnées : le champ
@@ -116,7 +134,8 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
   refusée. Les deux rayons sont des valeurs de configuration, modifiables sans redéploiement.
 - **Jour de collecte** : règle souple. Le jour de collecte et le lendemain sont mis en avant
   comme recommandés, les autres jours restent réservables avec l'avertissement « vos bacs
-  doivent être vides ». Le SMS de la veille le rappelle.
+  doivent être vides ». Le SMS de la veille le rappelle. Dans le calendrier, le point d'un jour
+  recommandé est décoratif : le nom accessible de la case est « {date longue}, jour recommandé ».
 - **Place bloquée** : la place est prise dès la création de la réservation, dans une
   transaction, pour 35 minutes. Elle est libérée (`expired`) si la session Stripe expire sans
   paiement, si le client abandonne ou revient en arrière, ou par la tâche planifiée.
@@ -144,7 +163,9 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
   19,90 € puis 9,90 €, grands bacs 39,90 € puis 29,90 €), appliqué par prestation. Le total
   est calculé côté serveur.
 - **Montant** : figé dans `amount_total_cents` au moment du paiement.
-- **Photos** : bucket privé, URL signées temporaires, à brancher dans l'espace à l'étape 8.
+- **Photos** : bucket privé `intervention-photos` (5 Mo, JPEG seulement), une photo `before` et une
+  `after` par réservation, au chemin `{booking_id}/{kind}.jpg` : remplacer une photo écrase le
+  fichier. Le client les voit par des URL signées temporaires (voir « Photos et reçu »).
 - **Espace client (décision RGPD « option C »)** : la réservation crée la fiche client
   (`profiles`), nécessaire au contrat. L'espace ne s'ouvre que lorsque le client clique sur un lien
   de connexion qu'il a lui-même demandé. Pas de mot de passe, pas de mail de bienvenue, aucune
@@ -156,13 +177,16 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
   carte donne le détail, le montant (« Montant payé », ou « Remboursé » si annulée) et un seul lien,
   « Voir la réservation » (la date fait partie de son nom accessible). Une réservation à venir
   porte le rappel « Videz vos bacs la veille ».
-- **Page d'une réservation** (`/account/bookings/[id]`) : résumé, emplacements photos (masqués si
-  annulée), emplacement facture « Bientôt disponible » et, pour une annulée, « Réserver une autre
-  date ». Un identifiant inconnu, invalide ou appartenant à un autre client donne le même écran
+- **Page d'une réservation** (`/account/bookings/[id]`) : résumé, section photos (masquée si
+  annulée), « Reçu de paiement » et, pour une annulée, « Réserver une autre date ». Un
+  identifiant inconnu, invalide ou appartenant à un autre client donne le même écran
   « Réservation introuvable ».
-- **Photos et facture** : pas encore visibles dans l'espace (aucune URL signée pour l'instant),
-  elles arrivent à l'étape 8. Les factures seront réelles plus tard : les mentions légales
-  françaises sont à fixer avec le client.
+- **Photos et reçu** : le client ne voit les photos que d'une réservation terminée (règle posée
+  aussi en RLS, table et bucket). Avant la fin, la section annonce que les photos arriveront ;
+  terminée sans photos, elle affiche « Aucune photo pour cette intervention ». Les liens des
+  photos valent 10 minutes et se renouvellent sans recharger la page. Le reçu est celui de Stripe
+  (« Reçu de paiement ») ; il reflète un remboursement. Ce n'est pas une facture : une facture
+  française avec ses mentions légales reste à fixer avec le client (`TODO.md`).
 - Le client ne modifie rien : aucun UPDATE client sur `profiles` (une modification des coordonnées
   passera plus tard par une route serveur).
 - **Accès** : RLS, un client ne lit que ses données, seul l'admin écrit photos et statuts. La RLS
@@ -194,8 +218,133 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
   demande est remise à zéro et le client voit une erreur, pour qu'il puisse réessayer. Les
   réservations payées sont conservées pour la comptabilité. La requête est refusée si son
   `Origin` n'est pas celui du site.
-- **Connexion admin (étape 8)** : une route serveur utilisera `generateLink`, puisque Supabase
-  n'envoie plus aucun mail d'auth. `is_admin()` n'est pas soumis à la règle des 7 jours.
+- **Accès admin** : sur `/pro/login`, l'admin saisit son adresse. Il reçoit un lien valable 24 h, à
+  usage unique, dont le jeton est dans le fragment de `/pro/confirm` (comme pour le client). Le
+  rôle ne vient que de `app_metadata.role`. La session admin dure 7 jours depuis la connexion par
+  lien (la plus ancienne entrée `otp` ou `magiclink` de l'`amr`), comme celle d'un client. Une
+  session par mot de passe n'est jamais admin ni client. `is_admin()` exige le rôle ET cette
+  connexion par lien de moins de 7 jours.
+- **Plafond des liens admin** : 60 secondes entre deux liens et 5 sur 24 h glissantes, tenus en
+  base (`claim_admin_login_link`, table `admin_login_links`). Les admins bannis sont ignorés. La
+  réponse de `POST /api/pro/auth/login` est identique dans tous les cas (adresse inconnue, non
+  admin, plafond atteint, champ piège).
+- **Admin sur les pages client** : `/login` et `/account/**` renvoient un admin vers `/pro`. La
+  navigation affiche « Espace admin » (icône `LayoutDashboard`) vers `/pro`. Le code client ne
+  termine jamais une session admin, et `/account/confirm` ne redirige pas.
+- **Planning du jour** (`/pro`) : choix du jour (précédent, suivant, sélecteur de date,
+  « Aujourd'hui »). Il liste les réservations `paid` et `completed`, triées par code postal puis
+  adresse jusqu'à l'étape 9. « Aujourd'hui » est calculé en Europe/Paris (`businessToday`, aussi
+  utilisé par les rappels), même si le serveur tourne en UTC.
+- **Itinéraire** : le bloc est toujours en haut du planning (squelette pendant le chargement,
+  « Aucune intervention à réaliser ce jour. » sans intervention à faire ; masqué sans dépôt ou en
+  cas d'erreur). Le trajet part du dépôt et y revient en passant par les seules interventions
+  `paid`, dans l'ordre affiché. Au-delà de `GOOGLE_MAPS_MAX_WAYPOINTS` (9) étapes, il est coupé en
+  « Tournée, partie X sur N ». Les coordonnées sont utilisées si elles sont valides, sinon
+  l'adresse. L'itinéraire d'une seule intervention se choisit dans sa fiche (étape 1, voir
+  « Fiche d'une intervention »).
+- **Carte d'intervention** (planning et liste) : une pastille d'avancement (À faire, Photo avant
+  faite, Photo après faite, Photos faites, Terminée, Terminée sans photos, Annulée), les détails de la
+  réservation (date dans la liste, bacs, formule) et un seul lien principal : « Commencer » (paid,
+  jour venu, sans photo), « Continuer » (paid, jour venu, au moins une photo) ou « Voir » (tout le
+  reste : jour à venir, terminée, annulée). Le menu « … » (« Plus d'actions ») ne contient que
+  « Changer la date », pour une intervention `paid`. Sur téléphone, l'intervention est une ligne
+  compacte sombre : pastille, nom du client, adresse et détails sur deux lignes au plus, badge
+  « À déplacer » si besoin, toute la ligne ouvre la fiche et le menu « … » reste cliquable à
+  part. À partir de `sm`, c'est une carte avec le lien et le menu en bas.
+- **Liste des interventions** (`/pro/interventions`) : filtre de statut (Tous, À réaliser,
+  Réalisées, Annulées). « Du » vaut aujourd'hui par défaut ; « Du » vide = aucune borne basse ;
+  un « Au » antérieur à « Du » est ignoré (les deux sélecteurs se bornent l'un l'autre). Les
+  filtres s'appliquent aussitôt et remplacent l'entrée d'historique (`replace`). Pagination par 50,
+  pages 1 à 1000, chaque page ajoute une entrée d'historique (`push`) ; une page au-delà de la
+  dernière ramène à la dernière. Tri par date puis date de création. Les sélecteurs de date du
+  planning et des filtres marquent d'un point les jours qui ont au moins une intervention
+  (`paid` ou `completed`, jours passés compris), avec une légende ; le point ne suit pas le
+  filtre de statut.
+- **Disponibilités** (`/pro/availability`) : l'admin règle la capacité de chaque jour de semaine,
+  de 0 à `PRO_DAY_CAPACITY_MAX` (50). 0 ferme le jour. Un jour sans règle est fermé. Il peut
+  aussi créer l'exception d'une date : capacité (vide = suit la règle, 0 = fermé), secteur imposé
+  par commune et note de 500 caractères au plus. Une exception sans aucune valeur est supprimée.
+  Les jours passés ne se modifient pas et l'horizon est de 365 jours à partir d'aujourd'hui
+  (Europe/Paris). Les nouveaux réglages s'appliquent aux réservations suivantes ; les
+  réservations déjà payées ne bougent pas.
+- **Secteur par commune** : l'admin cherche une commune, pas une adresse. France : IGN
+  `type=municipality`, libellé `<nom> (<code postal>)`. Luxembourg : liste fixe des 27 communes
+  proches du dépôt (`server/utils/luxembourgCommunes.ts`), libellé `<nom> (LU)`, code postal
+  vide. Le jeton de la commune a le même format que celui d'une adresse (24 h) mais un contexte de
+  signature distinct : un jeton d'adresse n'est pas accepté pour une commune, ni l'inverse. Une
+  commune expirée ou modifiée est refusée (`invalidAddress`) et l'admin doit la rechercher de
+  nouveau.
+- **Statut d'un jour** (`/pro`) : quand des interventions `paid` sont à déplacer, le planning
+  affiche une alerte urgente (rouge) « N intervention(s) à déplacer d'urgence ». Ce cas couvre
+  un jour fermé qui garde des interventions payées (toutes sont à déplacer) et un jour qui
+  contient plus de réservations que sa capacité après un déplacement forcé (au plus autant
+  d'interventions que de réservations en trop). La consigne dit de passer par le menu « ⋯ » de
+  chaque intervention puis « Changer la date » ; pour un jour fermé, elle renvoie au badge
+  « À déplacer », pour un dépassement il n'y a pas de badge. Un dépassement sans intervention
+  déplaçable affiche un avertissement ambre qui conseille d'augmenter la capacité ; un jour
+  fermé sans réservation, un panneau d'information. Les liens « Rouvrir » et « Augmenter »
+  mènent à `/pro/availability?date=…` tant que la date est modifiable. Le titre de l'alerte
+  est aussi annoncé aux lecteurs d'écran au chargement du planning, sans prendre le focus.
+- **« À déplacer »** : une intervention `paid` dont le jour est fermé (par la règle ou par une
+  exception) porte le badge « À déplacer » dans le planning et la liste. Un jour en dépassement
+  de capacité n'en marque aucune. Une intervention `completed` ou annulée n'est jamais marquée.
+- **Déplacement par l'admin** (bouton « Changer la date », `ProRescheduleDialog`) : ne vaut que
+  pour une réservation `paid`. L'admin choisit une date d'aujourd'hui à +365 jours.
+  - Refus jamais forçables : date passée (`pastDate`), même date (`sameDate`), réservation non
+    payée (`notPaid`), réservation inconnue (`notFound`), date invalide (`invalidDate`), date
+    au-delà de 365 jours (`tooFar`), plus de 3 déplacements par heure pour une même réservation
+    (`tooFrequent`, réponse 429).
+  - Refus forçables avec « Forcer quand même » : adresse hors zone (`outOfArea`), jour fermé
+    (`dayClosed`), jour complet (`dayFull`), secteur d'un autre jour (`outOfSector`). Les
+    contrôles sont ceux d'une réservation client (zone, jour fermé, capacité, secteur), sans
+    compter la réservation déplacée. Le délai minimum et l'horizon de réservation du client ne
+    s'appliquent pas. Les contrôles forcés sont renvoyés (`overriddenCodes`) et annoncés.
+  - Effets : `reminder_sent_at` et `day_of_sms_sent_at` sont remis à zéro, pour que les rappels
+    repartent sur la nouvelle date. Le client reçoit un mail de changement de date, avec la clé
+    d'idempotence `booking-reschedule-<uuid>-<id>` : un mail par déplacement, même si la
+    réservation revient à sa date d'origine. La clé du rappel devient
+    `booking-reminder-<date>-<id>` : une réservation déplacée dans la fenêtre de rappel reçoit un
+    nouveau rappel pour sa nouvelle date.
+- **Fiche d'une intervention** (`/pro/interventions/[id]`) : ouverte depuis la carte, elle suit
+  l'état de la réservation.
+  - Réservation `paid` dont le jour est venu (aujourd'hui ou passé) : quatre étapes, 1
+    Itinéraire, 2 Photo avant, 3 Photo après (facultative, « Passer cette photo »), 4 Récapitulatif
+    et « Terminer l'intervention ». L'étape de reprise vient de ce que le serveur a enregistré :
+    itinéraire sans photo, photo manquante s'il n'en existe qu'une, récapitulatif si les deux
+    existent. Le bouton retour du téléphone revient à l'étape précédente. L'en-tête se réduit au
+    nom du client : l'adresse est dans l'étape 1. Une barre de quatre segments avec un compteur
+    « Étape N sur 4 » montre l'avancement (étape faite, en cours, à faire, passée).
+  - Étape 1 : la destination (adresse), le menu d'itinéraire, un bouton d'appel (icône) si le
+    client a un téléphone, et « Je suis sur place ». Étapes photo : la ligne « À nettoyer »
+    rappelle les bacs. « Passer cette photo » demande une confirmation sur place (sans les deux
+    photos, aucun mail photos ne part) ; une photo prise remplace ce choix par « Aller à la photo
+    après » (étape 2) ou « Voir le récap » (étape 3).
+  - « Plus d'infos », sous l'étape et fermé au départ : téléphone (numéro en groupes de chiffres,
+    appelable), date, bacs, formule, jours de collecte et montant. Il n'y a pas de ligne de
+    paiement.
+  - Réservation `paid` dont le jour n'est pas venu, ou annulée : lecture seule, aucune photo ni
+    fin possible.
+  - Réservation `completed` : récapitulatif avec les deux photos. « Remplacer » reste possible et
+    n'envoie aucun nouveau mail.
+  - Itinéraire : un menu propose les applications du téléphone. iPhone et iPad : Plans, Google
+    Maps, Waze. Android : Google Maps, Waze, « Autre application… » (lien `geo:`). Mac : Google
+    Maps, Waze, Plans. Autre appareil : Google Maps, Waze. Le bouton d'appel, s'il y a un
+    téléphone, est à côté du menu.
+- **Photos prises par l'admin** : un seul champ fichier (`image/*`, sans `capture`), donc
+  l'appareil photo ou la galerie au choix du téléphone. Le navigateur réduit la photo à 2 000 px
+  au plus et l'envoie en JPEG ; le serveur la contrôle et efface ses métadonnées (EXIF dont le
+  GPS). Refus : réservation non payée, jour pas encore venu (une réservation terminée accepte
+  toujours un remplacement), image invalide, plus de 5 Mo. L'envoi continue quand l'admin change
+  d'étape. Un envoi dont le résultat est inconnu (délai dépassé) recharge la fiche au lieu de
+  proposer de réessayer.
+- **Terminer l'intervention** : réservation `paid`, jour venu. Avec les deux photos, elle se
+  termine et le client est prévenu une seule fois. Sans les deux photos, l'admin doit confirmer
+  une fin « sans photos » : la réservation est marquée `completed_without_photos`, et aucun mail
+  photos ne part, même si des photos sont ajoutées après. Une réservation déjà terminée, annulée
+  ou non payée ne peut pas être terminée. Le bouton est inactif tant qu'un envoi de photo est en
+  cours.
+- **Lien du mail « photos disponibles »** : lien vers `/login` (option A, comme « Suivre ma
+  réservation »), jamais un lien de connexion ni une URL signée.
 - **SMS** : tâche quotidienne (`pg_cron`), les colonnes `*_sent_at` empêchent les doublons.
 - **Confidentialité** : téléphone, photos des locaux et durée de conservation des données
   client à mentionner dans la page dédiée. Suppression des données sur simple demande.
@@ -208,6 +357,23 @@ des liens de connexion). `has_recent_sign_in()` sert aux policies RLS.
   secteur. Parade : l'admin impose le secteur du jour à l'avance.
 - **Zone desservie** : sans distance maximale autour du dépôt, n'importe quelle adresse en
   France pourrait réserver. D'où la limite de 30 km.
+- **Jour fermé avec interventions** : fermer un jour (règle ou exception) ne déplace rien. Les
+  interventions payées restent sur ce jour, marquées « À déplacer », jusqu'à ce que l'admin les
+  déplace une à une. Seul un jour fermé marque ; un jour en dépassement de capacité n'affiche
+  qu'un statut.
+- **Menu « … » de la carte** : il ne contient que « Changer la date ». L'itinéraire, les photos
+  et la fin passent par la fiche de l'intervention.
+- **Fin sans photos irréversible côté mail** : une réservation terminée sans photos ne notifie
+  jamais le client, même si l'admin ajoute les photos plus tard (elles sont visibles dans
+  l'espace client, sans mail).
+- **Reçu Stripe** : si Stripe ne répond pas en 4 s (ou ne donne pas de reçu), la page affiche
+  que le reçu est indisponible, sans nouvel essai ; le résultat est gardé en mémoire 5 minutes
+  (30 secondes en cas d'échec), par instance du serveur.
+- **Durée de conservation des photos** : non décidée (étapes 10 et 13).
+- **Clé de rappel par date non vérifiée en intégration** : `booking-reminder-<date>-<id>` est
+  attendue par `tests/integration/email/booking-reminder.test.ts`, mais ce test refuse de
+  tourner tant que de vraies réservations payées sont dans la fenêtre J+1..J+2. Il n'a pas
+  été rejoué pour le lot 2 (les tests tournent à la fin de l'étape 8).
 
 - **Anti-abus** : champ piège et une seule réservation en attente par client pour l'instant. La
   limite de débit par IP sur `/api/booking` et `/api/booking/release` (Cloudflare) est reportée

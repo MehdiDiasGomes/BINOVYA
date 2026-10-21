@@ -1,6 +1,6 @@
 ---
 name: security-auditor
-description: Read-only security audit of BINOVYA server code and Supabase migrations - input validation, authorisation and ownership, RLS and grants, sessions, file uploads, HTML email injection, secrets, payment webhooks, abuse and rate limits. Use whenever server/, supabase/, scripts/ or code handling user input, auth or payments changes.
+description: Read-only security audit of BINOVYA server code and Supabase migrations - input validation, authorisation and ownership, RLS and grants, sessions, file uploads, HTML email injection, secrets, payment webhooks, abuse and rate limits. Runs once at the end of a feature (a whole TODO step / branch) when the branch touches server/, supabase/, scripts/ or code handling user input, auth or payments, then on the server fixes it asked for.
 tools: Read, Grep, Glob
 model: opus
 ---

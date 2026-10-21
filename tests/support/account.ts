@@ -3,6 +3,9 @@ import { deflateSync } from 'node:zlib'
 import { THIONVILLE_ADDRESS } from './address'
 import { rest } from './db'
 import { readEnv } from './env'
+import { sleep } from '../../scripts/test-process'
+
+import type { AddressDetails } from '../../app/types/booking'
 
 export type AccountCustomer = { id: string; email: string; firstName: string }
 
@@ -11,6 +14,13 @@ export type AccountBookingSeed = {
   status: 'paid' | 'completed' | 'cancelled' | 'pending_payment' | 'expired'
   scheduledDate: string
   reminderSentAt?: string | null
+  address?: AddressDetails
+  paymentMethod?: 'stripe' | 'offline'
+  createdByAdmin?: boolean
+  invoiceId?: string
+  expiresAt?: string
+  checkoutSessionId?: string
+  adminNote?: string
 }
 
 export type ProfileThrottle = {
@@ -74,6 +84,9 @@ export const pngFixture = (color: [number, number, number]): Uint8Array => {
   )
 }
 
+const JPEG_FIXTURE_BASE64: string =
+  '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA='
+
 const publishableKey = (): string => readEnv('NUXT_PUBLIC_SUPABASE_KEY')
 
 const supabaseUrl = (): string => readEnv('NUXT_PUBLIC_SUPABASE_URL')
@@ -105,37 +118,61 @@ export const createCustomer = async (options: {
   return { id, email: options.email, firstName: options.firstName }
 }
 
+const bookingRow = (seed: AccountBookingSeed): Record<string, unknown> => {
+  const address: AddressDetails = seed.address ?? THIONVILLE_ADDRESS
+  return {
+    customer_id: seed.customerId,
+    scheduled_date: seed.scheduledDate,
+    address: address.label,
+    city: address.city,
+    postcode: address.postcode,
+    latitude: address.latitude,
+    longitude: address.longitude,
+    status: seed.status,
+    plan: 'one_off',
+    small_bin_count: 1,
+    large_bin_count: 0,
+    amount_total_cents: 1990,
+    bins_ready_confirmed_at: new Date().toISOString(),
+    reminder_sent_at: seed.reminderSentAt ?? null,
+    payment_method: seed.paymentMethod ?? 'stripe',
+    created_by_admin: seed.createdByAdmin ?? false,
+    stripe_invoice_id: seed.invoiceId ?? null,
+    expires_at: seed.expiresAt ?? null,
+    stripe_checkout_session_id: seed.checkoutSessionId ?? null,
+    admin_note: seed.adminNote ?? null,
+  }
+}
+
+/**
+ * Inserts bookings in one request, bypassing the lead time rule and the day capacity.
+ * @param seeds - Customer, status, date and optional address of each booking
+ * @returns Booking identifiers, in the order of the seeds
+ */
+export const seedAccountBookings = async (seeds: AccountBookingSeed[]): Promise<string[]> => {
+  const response: Response = await rest('/rest/v1/bookings', {
+    method: 'POST',
+    headers: { Prefer: 'return=representation' },
+    body: JSON.stringify(seeds.map(bookingRow)),
+  })
+  const rows = (await response.json()) as { id: string }[]
+  if (!Array.isArray(rows) || rows.length !== seeds.length) {
+    throw new Error('Account booking seed failed')
+  }
+  return rows.map(row => row.id)
+}
+
 /**
  * Inserts a booking for a customer, bypassing the lead time rule.
  * @param seed - Customer, status and intervention date
  * @returns Booking identifier
  */
 export const seedAccountBooking = async (seed: AccountBookingSeed): Promise<string> => {
-  const response: Response = await rest('/rest/v1/bookings', {
-    method: 'POST',
-    headers: { Prefer: 'return=representation' },
-    body: JSON.stringify({
-      customer_id: seed.customerId,
-      scheduled_date: seed.scheduledDate,
-      address: THIONVILLE_ADDRESS.label,
-      city: THIONVILLE_ADDRESS.city,
-      postcode: '57100',
-      latitude: THIONVILLE_ADDRESS.latitude,
-      longitude: THIONVILLE_ADDRESS.longitude,
-      status: seed.status,
-      plan: 'one_off',
-      small_bin_count: 1,
-      large_bin_count: 0,
-      amount_total_cents: 1990,
-      bins_ready_confirmed_at: new Date().toISOString(),
-      reminder_sent_at: seed.reminderSentAt ?? null,
-    }),
-  })
-  const [row] = (await response.json()) as { id: string }[]
-  if (!row) {
+  const [id] = await seedAccountBookings([seed])
+  if (!id) {
     throw new Error('Account booking seed failed')
   }
-  return row.id
+  return id
 }
 
 /**
@@ -147,14 +184,14 @@ export const seedPhoto = async (options: {
   bookingId: string
   kind: 'before' | 'after'
 }): Promise<string> => {
-  const path = `${options.bookingId}/${options.kind}.png`
+  const path = `${options.bookingId}/${options.kind}.jpg`
   const key: string = readEnv('NUXT_SUPABASE_SECRET_KEY')
   const upload: Response = await fetch(
     `${supabaseUrl()}/storage/v1/object/${PHOTO_BUCKET}/${path}`,
     {
       method: 'POST',
-      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'image/png' },
-      body: pngFixture(options.kind === 'before' ? [150, 90, 40] : [40, 150, 90]) as BodyInit,
+      headers: { apikey: key, Authorization: `Bearer ${key}`, 'Content-Type': 'image/jpeg' },
+      body: Buffer.from(JPEG_FIXTURE_BASE64, 'base64') as BodyInit,
     },
   )
   if (!upload.ok) {
@@ -243,6 +280,28 @@ export const readProfileState = async (customerId: string): Promise<ProfileThrot
     throw new Error('Profile not found')
   }
   return row
+}
+
+/**
+ * Polls the throttle columns of a test profile until a condition holds. The login route claims
+ * the link in the background, after its answer, so the columns change a moment later.
+ * @param customerId - Test customer identifier
+ * @param isReady - Condition on the profile state
+ * @param timeoutMs - Maximum wait
+ * @returns The state when the condition holds, or the last state read when time ran out
+ */
+export const waitForProfileState = async (
+  customerId: string,
+  isReady: (state: ProfileThrottle) => boolean,
+  timeoutMs: number = 8_000,
+): Promise<ProfileThrottle> => {
+  const deadline: number = Date.now() + timeoutMs
+  let state: ProfileThrottle = await readProfileState(customerId)
+  while (!isReady(state) && Date.now() < deadline) {
+    await sleep(200)
+    state = await readProfileState(customerId)
+  }
+  return state
 }
 
 /**

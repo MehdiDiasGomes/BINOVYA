@@ -1,6 +1,6 @@
 ---
 name: a11y-auditor
-description: Read-only WCAG 2.1 AA accessibility audit of BINOVYA Vue pages and components - labels, ARIA, focus management, keyboard support, live regions, heading order, contrast against the project tokens, and i18n of every accessible text. Use after any UI change.
+description: Read-only WCAG 2.1 AA accessibility audit of BINOVYA Vue pages and components - labels, ARIA, focus management, keyboard support, live regions, heading order, contrast against the project tokens, and i18n of every accessible text. Use after each change that touches .vue or i18n/ files, once ui-stylist has finished.
 tools: Read, Grep, Glob
 model: sonnet
 ---

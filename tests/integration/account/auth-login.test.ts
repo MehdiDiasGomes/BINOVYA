@@ -1,17 +1,21 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { sleep } from '../../../scripts/test-process'
 import {
   countAuthUsersByEmail,
   countProfilesByEmail,
   createCustomer,
   patchProfile,
   readProfileState,
+  waitForProfileState,
   type AccountCustomer,
 } from '../../support/account'
 import { postJson, type ApiResult } from '../../support/api'
 import { assertTestStripeKey, cleanupE2eData, rest } from '../../support/db'
 import { readEnv, uniqueTestEmail } from '../../support/env'
 import { mailsAfterSettling } from '../../support/outbox'
+
+const SETTLE_MS = 1500
 
 const LOGIN_SUBJECT = 'Votre lien de connexion'
 
@@ -74,6 +78,7 @@ describe('POST /api/auth/login: neutral answer', () => {
     const result = await requestLink(throttled.email, { website: 'https://spam.test' })
     expect(result.status).toBe(200)
     expect(result.body).toEqual({ success: true })
+    await sleep(SETTLE_MS)
     expect((await readProfileState(throttled.id)).login_link_sent_at).toBeNull()
   })
 
@@ -88,7 +93,7 @@ describe('POST /api/auth/login: neutral answer', () => {
 
 describe('POST /api/auth/login: known customer', () => {
   it('records the claim in the database', async () => {
-    const state = await readProfileState(known.id)
+    const state = await waitForProfileState(known.id, row => row.login_link_sent_at !== null)
     expect(state.login_link_sent_at).not.toBeNull()
     expect(state.login_link_count).toBe(1)
     expect(state.login_link_window_start).not.toBeNull()
@@ -97,6 +102,7 @@ describe('POST /api/auth/login: known customer', () => {
   it('does not claim again within 60 seconds', async () => {
     const before = await readProfileState(known.id)
     expect((await requestLink(known.email)).status).toBe(200)
+    await sleep(SETTLE_MS)
     const after = await readProfileState(known.id)
     expect(after.login_link_count).toBe(before.login_link_count)
     expect(after.login_link_sent_at).toBe(before.login_link_sent_at)
@@ -105,7 +111,8 @@ describe('POST /api/auth/login: known customer', () => {
   it('matches the email whatever its case', async () => {
     await patchProfile(known.id, { login_link_sent_at: TWO_MINUTES_AGO(), login_link_count: 1 })
     await requestLink(known.email.toUpperCase())
-    expect((await readProfileState(known.id)).login_link_count).toBe(2)
+    const state = await waitForProfileState(known.id, row => row.login_link_count === 2)
+    expect(state.login_link_count).toBe(2)
   })
 })
 
@@ -117,11 +124,12 @@ describe('POST /api/auth/login: rolling 24 h cap', () => {
       login_link_window_start: HOURS_AGO(1),
     })
     await requestLink(throttled.email)
-    const fifth = await readProfileState(throttled.id)
+    const fifth = await waitForProfileState(throttled.id, row => row.login_link_count === 5)
     expect(fifth.login_link_count).toBe(5)
 
     await patchProfile(throttled.id, { login_link_sent_at: TWO_MINUTES_AGO() })
     await requestLink(throttled.email)
+    await sleep(SETTLE_MS)
     const sixth = await readProfileState(throttled.id)
     expect(sixth.login_link_count).toBe(5)
     expect(new Date(sixth.login_link_sent_at ?? 0).getTime()).toBeLessThan(Date.now() - 60_000)
@@ -134,7 +142,7 @@ describe('POST /api/auth/login: rolling 24 h cap', () => {
       login_link_window_start: HOURS_AGO(25),
     })
     await requestLink(throttled.email)
-    const state = await readProfileState(throttled.id)
+    const state = await waitForProfileState(throttled.id, row => row.login_link_count === 1)
     expect(state.login_link_count).toBe(1)
     expect(new Date(state.login_link_window_start ?? 0).getTime()).toBeGreaterThan(
       Date.now() - 60_000,

@@ -1,4 +1,11 @@
-import type { AddressSearchResponse, BookingAddress, CountryCode } from '@/types/booking'
+import type {
+  AddressKind,
+  AddressSearchResponse,
+  BookingAddress,
+  CountryCode,
+} from '@/types/booking'
+
+import { ADDRESS_SEARCH_MIN_LENGTH } from '@/constants/address'
 
 type AddressSearch = {
   suggestions: Ref<BookingAddress[]>
@@ -9,19 +16,21 @@ type AddressSearch = {
   clear: () => void
 }
 
-const MIN_QUERY_LENGTH = 3
-
 /**
- * Searches the addresses of the selected country through the server.
+ * Searches the addresses, or the municipalities, of the selected country through the server.
  * @param countryCode - Country picked next to the address field
+ * @param kind - Full addresses (booking) or municipalities (imposed sector)
  * @returns Suggestions, request state and the search trigger
  */
-export const useAddressSearch = (countryCode: Ref<CountryCode>): AddressSearch => {
+export const useAddressSearch = (
+  countryCode: Ref<CountryCode>,
+  kind: AddressKind = 'address',
+): AddressSearch => {
   const suggestions: Ref<BookingAddress[]> = ref([])
   const isLoading: Ref<boolean> = ref(false)
   const hasError: Ref<boolean> = ref(false)
   const hasSearched: Ref<boolean> = ref(false)
-  let latestRequest = 0
+  let latestRequest: number = 0
 
   const clear = (): void => {
     latestRequest += 1
@@ -33,7 +42,7 @@ export const useAddressSearch = (countryCode: Ref<CountryCode>): AddressSearch =
 
   const search = async (text: string): Promise<void> => {
     const query: string = text.trim()
-    if (query.length < MIN_QUERY_LENGTH) {
+    if (query.length < ADDRESS_SEARCH_MIN_LENGTH) {
       clear()
       return
     }
@@ -44,9 +53,12 @@ export const useAddressSearch = (countryCode: Ref<CountryCode>): AddressSearch =
     hasError.value = false
 
     try {
-      const response = await $fetch<AddressSearchResponse>('/api/address/search', {
-        query: { q: query, country: countryCode.value },
-      })
+      const response: AddressSearchResponse = await $fetch<AddressSearchResponse>(
+        '/api/address/search',
+        {
+          query: { q: query, country: countryCode.value, kind },
+        },
+      )
       if (request !== latestRequest) {
         return
       }

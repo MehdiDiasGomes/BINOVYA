@@ -4,6 +4,8 @@ import { CUSTOMER_SESSION_MAX_AGE_SECONDS, SIGN_IN_METHODS } from '@/constants/a
 
 type SessionClaims = Pick<JwtPayload, 'amr'>
 
+type TokenClaims = Pick<JwtPayload, 'amr' | 'app_metadata' | 'email'>
+
 const readTimestamp = (entry: unknown): number | null =>
   typeof entry === 'object' &&
   entry !== null &&
@@ -33,24 +35,29 @@ export const signInTimestamp = (claims: SessionClaims | null): number | null => 
 }
 
 /**
- * Tells whether a customer session is past its absolute lifetime, counted from the sign-in with a
- * login link. A session without a readable sign-in time counts as expired.
+ * Tells whether a session is past its absolute lifetime, counted from the sign-in with a login
+ * link. A session without a readable sign-in time, such as a password session, counts as expired.
  * @param claims - Claims of the access token, or null without session
  * @param nowSeconds - Current time in seconds since the epoch
+ * @param maxAgeSeconds - Absolute lifetime, seven days for a customer by default
  * @returns True when the session must be ended
  */
-export const isSignInExpired = (claims: SessionClaims | null, nowSeconds: number): boolean => {
+export const isSignInExpired = (
+  claims: SessionClaims | null,
+  nowSeconds: number,
+  maxAgeSeconds: number = CUSTOMER_SESSION_MAX_AGE_SECONDS,
+): boolean => {
   const signedInAt: number | null = signInTimestamp(claims)
-  return signedInAt === null || nowSeconds - signedInAt > CUSTOMER_SESSION_MAX_AGE_SECONDS
+  return signedInAt === null || nowSeconds - signedInAt > maxAgeSeconds
 }
 
 /**
- * Reads the claims of an access token without verifying it, to hide the customer area in the
- * browser. The server always verifies the token before serving data.
+ * Reads the claims of an access token without verifying it, to hide the customer or BINOVYA Pro
+ * area in the browser. The server always verifies the token before serving data.
  * @param accessToken - JWT access token of the session
  * @returns Decoded claims, or null when the token cannot be read
  */
-export const readAccessTokenClaims = (accessToken: string | undefined): SessionClaims | null => {
+export const readAccessTokenClaims = (accessToken: string | undefined): TokenClaims | null => {
   try {
     const payload: string = accessToken?.split('.')[1] ?? ''
     const binary: string = atob(payload.replace(/-/g, '+').replace(/_/g, '/'))
@@ -58,7 +65,7 @@ export const readAccessTokenClaims = (accessToken: string | undefined): SessionC
       Uint8Array.from(binary, character => character.charCodeAt(0)),
     )
     const claims: unknown = JSON.parse(json)
-    return typeof claims === 'object' && claims !== null ? (claims as SessionClaims) : null
+    return typeof claims === 'object' && claims !== null ? (claims as TokenClaims) : null
   } catch {
     return null
   }

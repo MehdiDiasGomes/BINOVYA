@@ -78,8 +78,11 @@ export const fillUntilPayment = async (
 
 export const acceptPaymentCheckboxes = async (page: Page, lang: Lang): Promise<void> => {
   const m = MESSAGES[lang]
-  await page.getByLabel(m.payment.binsReady).check()
-  await page.getByLabel(m.payment.terms).check()
+  for (const label of [m.payment.binsReady, m.payment.terms]) {
+    const checkbox: Locator = page.getByLabel(label)
+    await checkbox.evaluate(element => element.scrollIntoView({ block: 'center' }))
+    await checkbox.check()
+  }
 }
 
 export const clickPay = async (page: Page, lang: Lang): Promise<void> => {
@@ -114,8 +117,27 @@ export const restoreViewport = async (page: Page): Promise<void> => {
   await expect.poll(isCollapsed).toBe(false)
 }
 
+export const BILLING_ADDRESS = {
+  line1: '12 rue de la Gare',
+  postalCode: '57100',
+  city: 'Thionville',
+} as const
+
+export const fillBillingAddressIfAsked = async (page: Page): Promise<boolean> => {
+  const line1: Locator = page.locator('#billingAddressLine1')
+  if ((await line1.count()) === 0) {
+    return false
+  }
+  await page.locator('#billingCountry').selectOption('FR')
+  await line1.fill(BILLING_ADDRESS.line1)
+  await page.locator('#billingPostalCode').fill(BILLING_ADDRESS.postalCode)
+  await page.locator('#billingLocality').fill(BILLING_ADDRESS.city)
+  return true
+}
+
 export const payOnStripe = async (page: Page, card = '4242424242424242'): Promise<void> => {
   await fillCard(page, card)
+  await fillBillingAddressIfAsked(page)
   await page.getByTestId('hosted-payment-submit-button').click()
 }
 

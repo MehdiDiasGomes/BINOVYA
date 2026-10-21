@@ -15,6 +15,7 @@ export default defineNuxtConfig({
     mailFrom: '',
     mailTransport: '',
     mailOutboxDir: '',
+    mailRedirectTo: '',
     stripeSecretKey: '',
     stripeWebhookSecret: '',
     siteUrl: '',

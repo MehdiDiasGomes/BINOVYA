@@ -4,6 +4,7 @@ import {
   bookingAmountLabel,
   bookingDateLabel,
   bookingDetailsBlock,
+  emailDateLabel,
 } from '@/templates/email/bookingDetails'
 import { describeBins } from '@/templates/email/labels'
 import {
@@ -24,10 +25,17 @@ type ConfirmationEmailData = BookingEmailData & {
   accountUrl?: string
 }
 
+type RescheduleEmailData = ConfirmationEmailData & {
+  previousDate: string
+}
+
 const greeting = (booking: BookingEmailData, escape: Escape): string =>
   emailParagraph(`Bonjour ${escape(booking.firstName)},`)
 
-const QUESTIONS_PARAGRAPH: string = emailParagraph(
+/**
+ * Paragraph inviting the customer to reply to the email with any question.
+ */
+export const QUESTIONS_PARAGRAPH: string = emailParagraph(
   'Une question ? Répondez simplement à ce mail, nous vous répondrons rapidement.',
 )
 
@@ -124,6 +132,44 @@ export const generateBookingRefundEmail = (
         `Votre réservation est donc annulée et le montant de <strong>${escape(bookingAmountLabel(booking))}</strong> vous est intégralement remboursé. Le remboursement apparaît sur votre compte sous 5 à 10 jours ouvrés, selon votre banque.`,
       ),
       booking.bookingUrl ? emailButton('Réserver une autre date', escape(booking.bookingUrl)) : '',
+      QUESTIONS_PARAGRAPH,
+    ].join(''),
+  }),
+})
+
+/**
+ * Builds the notice sent to the customer when BINOVYA moves a paid booking to another date.
+ * @param booking - Moved booking with its new date, its customer, the previous date and the
+ * optional login page URL, as plain text
+ * @param escape - Function escaping untrusted text for HTML
+ * @returns Subject and HTML body of the email
+ */
+export const generateBookingRescheduleEmail = (
+  booking: RescheduleEmailData,
+  escape: Escape,
+): BookingEmailContent => ({
+  subject: `Votre intervention BINOVYA a été déplacée au ${bookingDateLabel(booking)}`,
+  html: renderEmailLayout({
+    title: 'Votre intervention a été déplacée',
+    preheader: `Nouveau passage le ${escape(bookingDateLabel(booking))}. Pensez à vider vos bacs la veille.`,
+    content: [
+      emailTitle('Votre intervention a été déplacée'),
+      greeting(booking, escape),
+      emailParagraph(
+        `Votre intervention prévue le ${escape(emailDateLabel(booking.previousDate))} est déplacée au <strong>${escape(bookingDateLabel(booking))}</strong>.`,
+      ),
+      emailFieldTable(
+        emailField('Ancienne date', escape(emailDateLabel(booking.previousDate))) +
+          emailField('Nouvelle date', escape(bookingDateLabel(booking))) +
+          emailField('Adresse', escape(booking.address)) +
+          emailField('Bacs', escape(describeBins(booking))),
+        'details',
+      ),
+      emailParagraph(
+        '<strong>Videz vos bacs la veille : le jour du passage, ils doivent être vides et accessibles.</strong> Nous passons dans la journée, sans heure fixe.',
+      ),
+      emailParagraph('Vous recevrez un rappel par mail un ou deux jours avant le nouveau passage.'),
+      booking.accountUrl ? trackingParagraph(booking.accountUrl, escape) : '',
       QUESTIONS_PARAGRAPH,
     ].join(''),
   }),

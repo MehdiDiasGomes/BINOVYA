@@ -28,7 +28,7 @@
         />
       </label>
     </div>
-    <span v-if="props.hint" :id="`${props.id}-hint`" class="mt-1.5 block text-[13px] text-ink/70">
+    <span v-if="props.hint" :id="`${props.id}-hint`" :class="FIELD_HINT_CLASS">
       {{ props.hint }}
     </span>
     <span v-if="props.error" :id="`${props.id}-error`" role="alert" :class="FIELD_ERROR_CLASS">
@@ -41,7 +41,7 @@
 <script setup lang="ts">
 import type { CountryCode } from '@/types/booking'
 
-import { FIELD_ERROR_CLASS, INPUT_GROUP_FRAME_CLASS } from '@/constants/booking'
+import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS, INPUT_GROUP_FRAME_CLASS } from '@/constants/form'
 import { describedByIds } from '@/utils/field'
 
 const props = withDefaults(

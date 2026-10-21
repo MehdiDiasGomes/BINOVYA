@@ -21,7 +21,7 @@ vi.mock('#supabase/server', () => ({
 
 const now = (): number => Math.floor(Date.now() / 1000)
 
-const call = async (event: object = {}): Promise<string | number> => {
+const call = async (event: object = { waitUntil: vi.fn() }): Promise<string | number> => {
   vi.resetModules()
   const { requireCustomerId } = await import('../../../server/utils/customerSession')
   return requireCustomerId(event as H3Event).then(
@@ -94,7 +94,7 @@ describe('requireCustomerId', () => {
     expect(await call()).toBe(401)
   })
 
-  it('schedules the revocation with waitUntil when the runtime offers it', async () => {
+  it('schedules the revocation with waitUntil', async () => {
     claims = { sub: 'c1', amr: [{ method: 'otp', timestamp: now() - 8 * 86400 }] }
     const waitUntil = vi.fn()
     expect(await call({ waitUntil })).toBe(401)

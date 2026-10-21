@@ -1,3 +1,5 @@
+import { normalizeEmail } from './emailAddress'
+
 import type { BookingContact } from '@/types/booking'
 import type { Database } from '@/types/database.types'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -30,7 +32,7 @@ export const findOrCreateCustomer = async (
   client: SupabaseClient<Database>,
   contact: CustomerContact,
 ): Promise<string> => {
-  const email: string = contact.email.trim().toLowerCase()
+  const email: string = normalizeEmail(contact.email)
   const existingId: string | null = await findCustomerId(client, email)
   if (existingId) {
     return existingId

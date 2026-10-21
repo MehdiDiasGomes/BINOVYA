@@ -36,7 +36,7 @@
           @change="toggleWeekday(weekday)"
         />
         <span
-          class="flex h-11 items-center rounded-full border border-ink/50 bg-white px-4 text-sm font-bold capitalize text-ink transition-all duration-200 group-hover:border-primary group-active:scale-[0.97] motion-reduce:transition-none motion-reduce:group-active:scale-100 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2"
+          class="flex h-11 items-center rounded-full border border-ink/50 bg-white px-4 text-sm font-bold capitalize text-ink transition-[scale,border-color,background-color,color] duration-press ease-brand [@media(hover:hover)]:group-hover:border-primary group-active:scale-[0.97] motion-reduce:transition-none motion-reduce:group-active:scale-100 peer-checked:border-primary peer-checked:bg-primary peer-checked:text-white peer-focus-visible:ring-[3px] peer-focus-visible:ring-primary peer-focus-visible:ring-offset-2"
         >
           {{ formatWeekday(weekday, locale) }}
         </span>
@@ -67,32 +67,37 @@ import { COLLECTION_LID_CLASSES, WEEKDAYS_MONDAY_FIRST } from '@/constants/booki
 const props = withDefaults(
   defineProps<{
     kind?: CollectionKind
+    modelValue?: CollectionAnswer
   }>(),
   {
     kind: 'household',
+    modelValue: () => ({ weekdays: [], isUnknown: false }),
   },
 )
 
-const { locale } = useI18n()
-const { draft } = useBookingDraft()
+const emit = defineEmits<{
+  'update:modelValue': [value: CollectionAnswer]
+}>()
 
-const answer: ComputedRef<CollectionAnswer> = computed(() => draft.value.collection[props.kind])
+const { locale } = useI18n()
+
+const answer: ComputedRef<CollectionAnswer> = computed(() => props.modelValue)
 
 const toggleWeekday = (weekday: number): void => {
   const selected: number[] = answer.value.weekdays
-  draft.value.collection[props.kind] = {
+  emit('update:modelValue', {
     weekdays: selected.includes(weekday)
       ? selected.filter(day => day !== weekday)
       : [...selected, weekday],
     isUnknown: false,
-  }
+  })
 }
 
 const toggleUnknown = (): void => {
   const isUnknown: boolean = !answer.value.isUnknown
-  draft.value.collection[props.kind] = {
+  emit('update:modelValue', {
     weekdays: isUnknown ? [] : answer.value.weekdays,
     isUnknown,
-  }
+  })
 }
 </script>

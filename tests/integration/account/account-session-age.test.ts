@@ -33,7 +33,7 @@ const supabase = (path: string, token: string, init: RequestInit = {}): Promise<
   })
 
 const rowsOf = async (table: string, token: string): Promise<unknown[]> => {
-  const response = await supabase(`/rest/v1/${table}?select=*`, token)
+  const response = await supabase(`/rest/v1/${table}?select=id`, token)
   return response.ok ? ((await response.json()) as unknown[]) : []
 }
 

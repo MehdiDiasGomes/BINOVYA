@@ -5,6 +5,7 @@ import { BASE_URL } from './tests/support/env'
 export default defineConfig({
   testDir: './tests/e2e',
   globalSetup: './tests/e2e/global-setup.ts',
+  globalTeardown: './tests/e2e/global-teardown.ts',
   fullyParallel: false,
   workers: 1,
   retries: 0,

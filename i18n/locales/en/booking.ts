@@ -62,7 +62,7 @@ export default {
     terms: 'You must accept the terms to continue.',
     dayTaken: 'This day has just been booked by someone else. Please choose another one.',
     pendingPayment:
-      'A payment is already in progress for this email address. Complete it or try again in a few minutes.',
+      'A payment is already pending for this email address: complete it from the link you received by email, or try again later.',
     invalidAddress:
       'Your address could not be verified or its selection has expired. Choose it again from the list.',
     submit: 'The booking could not be saved. Try again in a moment.',
@@ -78,8 +78,9 @@ export default {
       FR: '12 rue de la Gare, Thionville',
       LU: '24 Grand-Rue, Rumelange',
     },
-    hint: 'Type at least 3 characters, then choose an address from the list.',
+    hint: 'Type at least {min} characters, then choose an address from the list.',
     listLabel: 'Suggested addresses',
+    count: 'One suggested address | {n} suggested addresses',
     loading: 'Searching…',
     noResult: 'No address found. Check what you typed.',
     error: 'The search is unavailable right now. Try again in a moment.',
@@ -89,6 +90,18 @@ export default {
     inArea: 'Good news, we operate in {city}.',
     outOfArea: 'We do not operate in {city} yet. Our area covers {radius} km around Uckange.',
     outOfAreaCta: 'Contact us for a specific request',
+  },
+  municipality: {
+    label: 'Municipality',
+    country: 'Country of the municipality',
+    placeholder: {
+      FR: 'Thionville',
+      LU: 'Dudelange',
+    },
+    hint: 'Type at least {min} characters, then choose a municipality from the list.',
+    listLabel: 'Suggested municipalities',
+    count: 'One suggested municipality | {n} suggested municipalities',
+    noResult: 'No municipality found. Check what you typed.',
   },
   bins: {
     small: {
@@ -141,9 +154,7 @@ export default {
   },
   date: {
     calendarLabel: 'Visit day selection',
-    previousMonth: 'Previous month',
-    nextMonth: 'Next month',
-    recommendedSuffix: ', recommended day',
+    recommendedDay: '{date}, recommended day',
     nextRecommended: 'Next recommended date',
     nextAvailable: 'Next available date',
     pickSuggested: 'Choose this date',
@@ -194,6 +205,8 @@ export default {
   },
   checkout: {
     productName: 'BINOVYA bin cleaning ({plan})',
+    lineDescription: '{date}, {address}',
+    invoiceDescription: '{product}, service on {date}, {address}',
   },
   summary: {
     title: 'Your booking',
@@ -219,5 +232,17 @@ export default {
     },
     home: 'Back to home',
     newBooking: 'New booking',
+  },
+  paymentLink: {
+    seo: {
+      title: 'Payment not completed - BINOVYA',
+    },
+    eyebrow: 'Payment link',
+    title: 'Payment not completed',
+    text: 'You have not been charged. Your intervention stays booked until the deadline given in the BINOVYA email holding your payment link.',
+    reopen:
+      'To pay it, open this link again from the email. Cannot find it anymore? Write to us and we will send it again.',
+    contact: 'I cannot find the email',
+    home: 'Back to home',
   },
 }

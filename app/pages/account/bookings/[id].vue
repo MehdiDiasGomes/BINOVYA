@@ -1,11 +1,8 @@
 <template>
   <div class="min-h-[70vh] bg-paper">
-    <p class="sr-only" role="status">{{ liveStatus }}</p>
+    <p class="sr-only" role="status" aria-live="polite">{{ liveStatus }}</p>
     <div class="mx-auto max-w-[880px] px-4 pb-16 pt-12 sm:px-8 sm:pt-16">
-      <NuxtLink
-        :to="localePath('/account')"
-        class="inline-flex min-h-11 items-center gap-2 rounded-lg text-sm font-bold text-primary underline-offset-4 transition-colors duration-press ease-brand hover:text-navy-800 hover:underline motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
-      >
+      <NuxtLink :to="localePath('/account')" :class="BACK_LINK_CLASS">
         <Icon name="ArrowLeft" :size="16" aria-hidden="true" />
         {{ $t('account.detail.back') }}
       </NuxtLink>
@@ -58,11 +55,7 @@
             </template>
 
             <dl class="grid gap-2 text-[15px]">
-              <div
-                v-for="detail in details"
-                :key="detail.labelKey"
-                class="flex flex-col gap-0.5 sm:flex-row sm:justify-between sm:gap-3"
-              >
+              <div v-for="detail in details" :key="detail.labelKey" :class="DETAIL_ROW_CLASS">
                 <dt class="text-white/80">{{ $t(detail.labelKey) }}</dt>
                 <dd class="break-words font-semibold sm:text-right">{{ detail.value }}</dd>
               </div>
@@ -89,46 +82,54 @@
           :transition="{ ...CONTENT_ENTER_TRANSITION, delay: REVEAL_STAGGER }"
           class="space-y-8"
         >
-          <AccountBookingDocuments :show-photos="!view.showRebook" />
+          <AccountBookingDocuments
+            :show-photos="!view.showRebook"
+            :is-completed="booking.status === 'completed'"
+            :documents="documents"
+            :refresh-links="refreshLinks"
+          />
 
-          <NuxtLink
+          <AppButton
             v-if="view.showRebook"
             :to="localePath('/booking')"
-            class="inline-flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
+            icon="CalendarCheck"
+            class="w-full sm:w-auto"
           >
-            <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
             {{ $t('account.detail.rebook') }}
-          </NuxtLink>
+          </AppButton>
         </Motion>
       </div>
 
       <div v-else role="alert" class="mt-6">
-        <p class="flex items-center gap-2 text-sm font-bold text-destructive">
+        <p :class="ERROR_MESSAGE_CLASS">
           <Icon name="CircleAlert" :size="16" aria-hidden="true" />
           {{ $t('account.detail.loadError') }}
         </p>
-        <button
-          ref="retryRef"
-          type="button"
-          class="mt-3 flex h-11 items-center justify-center gap-2 rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-paper-2 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
-          @click="reload"
-        >
-          <Icon name="RotateCw" :size="16" aria-hidden="true" />
+        <AppButton ref="retryRef" variant="secondary" icon="RotateCw" class="mt-3" @click="reload">
           {{ $t('account.detail.retry') }}
-        </button>
+        </AppButton>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { FetchError } from 'ofetch'
+
 import type {
   AccountBooking,
   AccountBookingCardView,
   AccountBookingDetail,
+  AccountBookingDocuments,
   AccountDetailRow,
+  AccountLinksRefresh,
 } from '@/types/account'
+import type { FocusTarget } from '@/types/button'
 
+import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
+import { BACK_LINK_CLASS } from '@/constants/buttons'
+import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
+import { DETAIL_ROW_CLASS } from '@/constants/mediaCard'
 import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION, REVEAL_STAGGER } from '@/constants/motion'
 import { bookingCardView, bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'
 import { formatFullDate } from '@/utils/date'
@@ -151,11 +152,12 @@ const { data, status, error, refresh } = useFetch<AccountBookingDetail>(
     key: () => `account-booking-${bookingId.value}`,
     server: false,
     lazy: true,
+    timeout: PAGE_DATA_TIMEOUT_MS,
   },
 )
 
 const titleRef: Ref<HTMLElement | null> = ref(null)
-const retryRef: Ref<HTMLButtonElement | null> = ref(null)
+const retryRef: Ref<FocusTarget | null> = ref(null)
 
 const booking: ComputedRef<AccountBooking | null> = computed(() => data.value?.booking ?? null)
 
@@ -165,6 +167,8 @@ const isNotFound: ComputedRef<boolean> = computed(() =>
 
 const hasLoaded: ComputedRef<boolean> = computed(() => Boolean(booking.value) || isNotFound.value)
 
+const hasContent: ComputedRef<boolean> = computed(() => Boolean(booking.value))
+
 const { isLoading, isMounted, reload } = useAccountPageState({
   status,
   error,
@@ -172,7 +176,43 @@ const { isLoading, isMounted, reload } = useAccountPageState({
   titleRef,
   retryRef,
   hasLoaded,
+  hasContent,
 })
+
+const { expireSession } = useCustomerSession()
+
+const documents: Ref<AccountBookingDocuments | undefined> = ref(undefined)
+
+watch(
+  () => data.value?.documents,
+  (latest: AccountBookingDocuments | undefined): void => {
+    if (latest) {
+      documents.value = latest
+    }
+  },
+  { immediate: true },
+)
+
+/**
+ * Fetches fresh photo links without the page `refresh()`, which would clear the whole booking
+ * when it fails, and replaces only the documents. A 401 expires the customer session.
+ * @returns `ok` when refreshed, `expired` when the session ended, `failed` otherwise
+ */
+const refreshLinks = async (): Promise<AccountLinksRefresh> => {
+  try {
+    const latest: AccountBookingDetail = await $fetch<AccountBookingDetail>(
+      `/api/account/bookings/${encodeURIComponent(bookingId.value)}`,
+    )
+    documents.value = latest.documents
+    return 'ok'
+  } catch (fetchError: unknown) {
+    if (fetchError instanceof FetchError && fetchError.statusCode === 401) {
+      await expireSession()
+      return 'expired'
+    }
+    return 'failed'
+  }
+}
 
 const view: ComputedRef<AccountBookingCardView | null> = computed(() =>
   booking.value ? bookingCardView(booking.value) : null,

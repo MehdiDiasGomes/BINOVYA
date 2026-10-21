@@ -5,6 +5,7 @@ import type { MultiPartData } from 'h3'
 
 import { serverSupabaseServiceRole } from '#supabase/server'
 import { QUOTE_MAX_PHOTO_BYTES, QUOTE_MAX_PHOTOS } from '@/constants/quote'
+import { normalizeEmail } from '~~/server/utils/emailAddress'
 
 const MULTIPART_OVERHEAD_BYTES = 64 * 1024
 const MAX_BODY_BYTES = QUOTE_MAX_PHOTOS * QUOTE_MAX_PHOTO_BYTES + MULTIPART_OVERHEAD_BYTES
@@ -41,7 +42,7 @@ export default defineEventHandler(async (event): Promise<QuoteResponse> => {
   const photoPaths: string[] = await uploadQuotePhotos(client, quoteId, photos)
 
   const { contact, address } = payload
-  const email: string = contact.email.trim().toLowerCase()
+  const email: string = normalizeEmail(contact.email)
   const comment: string = payload.comment.trim()
   const { error } = await client.from('quote_requests').insert({
     id: quoteId,

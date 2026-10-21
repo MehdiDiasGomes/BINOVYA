@@ -1,5 +1,5 @@
 ---
-description: Runs the full BINOVYA feature pipeline - implementation, styling, security and accessibility audits, final review and docs, all done by the project subagents while the main session orchestrates.
+description: Runs the BINOVYA feature pipeline - implementation and styling on each change, then review, security and SEO audits, tests and docs once at the end of the feature, all done by the project subagents while the main session orchestrates.
 argument-hint: <feature description or TODO step number>
 ---
 
@@ -12,12 +12,19 @@ or styles yourself. Subagents implement, style, audit, review and document; you 
 reports between them, run the read-only checks and talk to the user. Never let two agents that
 write the same files run at the same time.
 
-How to brief agents:
+The pipeline has two phases:
 
-- **Review every code pass.** After each `implementer` or `ui-stylist` pass, launch a fresh
-  `code-reviewer` on that pass's delta (files, intent, check outputs) before the next step, and
-  send its findings to a fresh `implementer` (or `ui-stylist` for visual ones). Same cap as step 8:
-  at most two re-runs per pass, then the open findings go to the user.
+- **Each change** (steps 2 to 6): implementer and ui-stylist only. The a11y-auditor is disabled
+  for now (user decision): do not launch it. No code-reviewer, security-auditor, seo-auditor or tester: they cost too many tokens and too
+  much time on code that keeps changing. The lint, typecheck and prettier outputs of every pass
+  are the safety net in between.
+- **End of feature** (steps 7 to 11): a feature is a whole TODO step, i.e. its branch (e.g. step
+  8, `feat/pro-space`, lots 1 to 3 and its chores). Review, security and SEO audits, tests and docs
+  run once on the whole branch, just before the merge into `dev`. For a lot or any delivery that
+  does not close the TODO step, stop after step 6 and go to the handover. When it is unclear
+  whether the step is complete, ask the user.
+
+How to brief agents:
 
 - **Launch fresh, never resume.** Every agent is a new one with a complete, self-contained brief
   (feature, decisions, files to read, previous findings quoted verbatim, check outputs): it starts
@@ -27,13 +34,15 @@ How to brief agents:
   problem, proposed fix), then add your decision. Never paraphrase a finding.
 - **Formatting is automatic.** A project `PostToolUse` hook runs prettier on every file an agent
   writes, so nobody needs a pass just to format.
+- **Keep a running list** of every `server/` or `supabase/` file touched, every "Pour tester",
+  "À vérifier dans le navigateur" and "Hors périmètre" item: the end-of-feature agents get it.
 
 ## 0. Skip check
 
 If the change is under ~30 lines, adds no component, and touches neither `server/` nor
 `supabase/` (i18n text, rename, one Tailwind class, doc typo): launch only `implementer` (or
 `docs-writer` for a doc typo), and stop. Any change to `server/` or `supabase/`, even one line,
-goes at least through `security-auditor` (step 4).
+goes on the running list for the end-of-feature `security-auditor` (step 7).
 
 ## 1. Framing
 
@@ -59,88 +68,95 @@ goes at least through `security-auditor` (step 4).
    decisions taken with the user, the files to take as reference, and the db-migrator report if
    any (tables, columns, functions the code can rely on).
 2. Read its report. If the verdict is ⚠️ or ⛔, relaunch it with what is missing, or ask the user
-   if a business decision blocks it.
+   if a business decision blocks it. If lint or typecheck fails in the change set, relaunch it.
 3. Build the change set: `git diff --name-only dev` plus `git ls-files --others
 --exclude-standard`. This list is passed to every agent.
 4. Keep the lint, typecheck and prettier outputs from its report: read-only agents cannot run
    commands. Re-run them yourself if you doubt the report.
 
-## 4. Styling and security audit (in parallel)
+## 4. Styling (`ui-stylist`, only if templates changed)
 
-In a single message, launch:
+Launch `ui-stylist` with: the feature description, the `.vue` files of the change set, the pages
+to take as reference, and which elements appear, disappear or change state (conditional blocks,
+success screens, steps) so it can animate them.
 
-- `ui-stylist` (only if templates changed) with: the feature description, the `.vue` files of the
-  change set, the pages to take as reference, and which elements appear, disappear or change
-  state (conditional blocks, success screens, steps) so it can animate them.
-- `security-auditor` (if the change set touches `server/`, `supabase/`, auth, payments or any
-  user input handling) with: the feature description, the change set, the spec sections and the
-  server files first. It only reads `server/` and `supabase/`, which `ui-stylist` never edits, so
-  both can run at the same time.
+When it is done, run lint, typecheck and prettier yourself on the files it touched, including
+`app/constants/motion.ts` if it added a preset (it has no Bash); errors go back to `implementer`
+(logic) or `ui-stylist` (markup, classes). Keep its "À vérifier dans le navigateur" list for the
+handover: animations are only validated by the user in a browser.
 
-When `ui-stylist` is done, re-run lint and typecheck on the files it touched, including
-`app/constants/motion.ts` if it added a preset; errors go back to `implementer` (logic) or
-`ui-stylist` (markup, classes). Keep its "À vérifier dans le navigateur" list for the handover:
-animations are only validated by the user in a browser.
+## 5. Accessibility audit: disabled
 
-## 5. Accessibility audit (read-only, after styling)
-
-Launch `a11y-auditor` if the change set touches `.vue` files or `i18n/`, once `ui-stylist` has
-finished, since it audits the final markup. Give it: the feature description, the change set, the
-spec sections, and the `.vue` and `i18n/` files first.
+The `a11y-auditor` is disabled for now (user decision). Do not launch it. implementer and
+ui-stylist apply the accessibility rules of `CLAUDE.md` themselves, and the end-of-feature
+`code-reviewer` checks them (label in name, focus, live regions, i18n of accessible text).
 
 ## 6. Fixes (delegated)
 
-- Launch a new `implementer` with every critical, high and medium finding of both audits in one
-  message, quoted verbatim. List low findings for the user without fixing them unless trivial
-  (those go to `implementer` too).
-- Purely visual findings (contrast, focus ring) flagged for `ui-stylist`: relaunch it with those
-  findings only, after `implementer` has finished.
+- Errors from the checks of steps 3 and 4 go back to `implementer` (logic) or `ui-stylist`
+  (markup, classes).
 - Each agent's "Hors périmètre" items: send code to `implementer`, schema to `db-migrator`, or
   keep them for the final summary.
-- Get the checks of step 3 from the fixing agent's report.
 
-## 7. Tests (`tester`)
+## 7. End-of-feature audits (read-only, in parallel)
+
+In a single message, on the whole branch (`git diff --name-only dev` + untracked files):
+
+- `code-reviewer` (final review, pass 1) with: the feature description, the change set, the check
+  outputs, the decisions taken with the user, and the list of what was fixed
+  during the feature. Ask it to look especially for regressions between changes, and to cover accessibility since
+  the a11y-auditor is disabled.
+- `security-auditor` if the branch touches `server/`, `supabase/`, auth, payments or any user
+  input handling, with the running list of server files first.
+- `seo-auditor` if the branch touches a public page (`app/pages/` outside `account/**`, `pro/**`
+  and `login.vue`), a layout, `app.vue`, the meta texts in `i18n/`, `nuxt.config.ts` or
+  `public/robots.txt`, or adds a page (public or private: a new private page must be `noindex`).
+
+## 8. Fixes and re-review (loop, max 2 re-runs)
+
+1. Launch a new `implementer` with every critical, high and medium finding of the three audits in
+   one message, quoted verbatim (visual ones to `ui-stylist` afterwards), plus the trivial lows.
+2. Launch a new `code-reviewer` on the fixes with the previous review and the pass number (pass
+   2, then 3); add a new `security-auditor` if a server fix was made.
+3. After pass 3, if findings remain, stop the loop and present them to the user with your
+   recommendation. Do not loop further.
+
+## 9. Tests (`tester`)
 
 1. Launch `tester` with: the feature description, the TODO step, the spec sections, the change
-   set, and for each level what to prove:
+   set of the whole branch, the decisions taken during the feature, and for each level what to
+   prove:
    - unit: the new or changed pure functions and schemas (rules, edge values)
    - integration: the new or changed server routes and webhooks (status codes, `data.code`,
      database effects, signed Stripe events)
    - end-to-end: the critical visitor journeys only (pages, actions, expected messages and
      database states, including error and cancel paths)
 
-   plus the decisions taken with the user and the "À vérifier dans le navigateur" lists of
-   `implementer` and `ui-stylist`.
+   plus the running list of "À vérifier dans le navigateur" and "Pour tester" items. The tester
+   writes the missing tests for the whole branch, then runs the full `bun run test` (unit,
+   integration, e2e).
 
 2. ⛔ (environment: secret mismatch, server to restart, live key): relay the manual action to the
    user, wait for confirmation, then launch a new `tester`.
 3. ⚠️: launch a new `implementer` (or `ui-stylist` for visual items) with the failures quoted
-   verbatim, then a new `tester` to re-run. Max 2 re-runs, then the failures go to the user.
+   verbatim, then a new `tester` that re-runs only the failing files, and one `code-reviewer` on
+   those fixes. Max 2 re-runs, then the failures go to the user.
 
-## 8. Final review (loop, max 2 re-runs)
-
-1. Launch `code-reviewer` with: the feature description, the change set, the check outputs, all
-   previous reports including the e2e report, and the list of what you fixed. Tell it which pass
-   this is.
-2. If the verdict is ⛔ or ⚠️: launch a new `implementer` with the findings quoted verbatim, then a
-   new `code-reviewer` with the previous review, the fixes and the pass number (pass 2, then 3).
-3. After pass 3, if findings remain, stop the loop and present them to the user with your
-   recommendation. Do not loop further.
-
-## 9. Docs
+## 10. Docs
 
 Launch `docs-writer` with: the feature description, the change set, the final review report
 (its "Pour docs-writer" section), and any manual step left for the user (env var, migration).
 
-## 10. Handover
+## 11. Handover
 
 Do not commit. Give the user a table with one row per item marked ✅ or ❌:
 
 | Étape | Agent | Résultat |
 | ----- | ----- | -------- |
 
-followed by: findings left open with their severity, manual actions for the user, the e2e result
-table, a short numbered list of what `tester` could not prove automatically (animations from
-ui-stylist, a pass with the system "reduce motion" setting on, screen reader), and the suggested
-gitmoji commit message(s).
+followed by: findings left open with their severity, manual actions for the user, the test
+result table when step 9 ran (otherwise say review, audits and tests run at the end of the
+feature, before the merge into `dev`), a short numbered list of what was not proved
+automatically (animations from ui-stylist, a pass with the system "reduce motion" setting on,
+screen reader), and the suggested gitmoji commit message(s).
 The user commits with `/ship`.

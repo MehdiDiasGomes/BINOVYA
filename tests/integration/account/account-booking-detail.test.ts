@@ -8,6 +8,7 @@ import {
   sessionCookie,
   type AccountCustomer,
 } from '../../support/account'
+import { createPaidInvoice } from '../../support/api'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { BASE_URL, uniqueTestEmail } from '../../support/env'
 
@@ -67,6 +68,25 @@ beforeAll(async () => {
       status: 'expired',
       scheduledDate: '2027-04-02',
     }),
+    offline: await seedAccountBooking({
+      customerId: owner.id,
+      status: 'paid',
+      scheduledDate: '2027-03-11',
+      paymentMethod: 'offline',
+      createdByAdmin: true,
+    }),
+    invoiced: await seedAccountBooking({
+      customerId: owner.id,
+      status: 'paid',
+      scheduledDate: '2027-03-12',
+      invoiceId: (await createPaidInvoice(1990)).invoiceId,
+    }),
+    brokenInvoice: await seedAccountBooking({
+      customerId: owner.id,
+      status: 'paid',
+      scheduledDate: '2027-03-13',
+      invoiceId: 'in_test_does_not_exist',
+    }),
     other: await seedAccountBooking({
       customerId: stranger.id,
       status: 'paid',
@@ -96,6 +116,12 @@ describe('GET /api/account/bookings/[id]: own booking', () => {
         amountTotalCents: 1990,
         status: 'paid',
       },
+      documents: {
+        photos: { before: null, after: null },
+        receiptUrl: null,
+        invoice: null,
+        isPaidOffline: false,
+      },
     })
   })
 
@@ -108,6 +134,40 @@ describe('GET /api/account/bookings/[id]: own booking', () => {
   it('never returns a photos property', async () => {
     const result = await getDetail(ids.completed as string, cookie)
     expect(JSON.parse(result.text).booking).not.toHaveProperty('photos')
+  })
+})
+
+describe('GET /api/account/bookings/[id]: payment document', () => {
+  type DetailDocuments = {
+    documents: {
+      receiptUrl: string | null
+      isPaidOffline: boolean
+      invoice: { url: string | null; isPdf: boolean } | null
+    }
+  }
+
+  it('flags a booking paid outside the site, without receipt nor invoice', async () => {
+    const result = await getDetail(ids.offline as string, cookie)
+    expect(result.status).toBe(200)
+    const { documents } = JSON.parse(result.text) as DetailDocuments
+    expect(documents).toMatchObject({ isPaidOffline: true, receiptUrl: null, invoice: null })
+  })
+
+  it('links the Stripe invoice of an invoiced booking, on stripe.com only', async () => {
+    const result = await getDetail(ids.invoiced as string, cookie)
+    expect(result.status).toBe(200)
+    const { documents } = JSON.parse(result.text) as DetailDocuments
+    expect(documents.isPaidOffline).toBe(false)
+    expect(documents.receiptUrl).toBeNull()
+    expect(new URL(documents.invoice?.url ?? '').protocol).toBe('https:')
+    expect(new URL(documents.invoice?.url ?? '').hostname.endsWith('.stripe.com')).toBe(true)
+  })
+
+  it('answers 200 with an empty invoice URL when Stripe does not know the invoice', async () => {
+    const result = await getDetail(ids.brokenInvoice as string, cookie)
+    expect(result.status).toBe(200)
+    const { documents } = JSON.parse(result.text) as DetailDocuments
+    expect(documents.invoice).toEqual({ url: null, isPdf: false })
   })
 })
 

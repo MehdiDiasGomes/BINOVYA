@@ -1,5 +1,6 @@
 export default {
   nav: 'Customer area',
+  navAdmin: 'Admin area',
   login: {
     seo: {
       title: 'Customer area - BINOVYA',
@@ -108,18 +109,46 @@ export default {
     summaryTitle: 'Summary',
     date: 'Date',
     address: 'Address',
+    newTab: '(opens in a new tab)',
     photos: {
       title: 'Before/after photos',
       text: 'BINOVYA will add the photos of your bins here after the cleaning.',
+      textAvailable: 'Tap a photo to open it full size.',
+      textNone: 'No photos for this intervention.',
       kinds: {
         before: 'Before photo',
         after: 'After photo',
       },
+      alt: {
+        before: 'Your bins before the cleaning',
+        after: 'Your bins after the cleaning',
+      },
       placeholder: 'No photo yet',
+      placeholderNone: 'No photo',
+      failed: 'The photo could not be displayed',
+      reload: 'Reload the photos',
+      refreshed: 'Photo links refreshed, open the photo again.',
+      reloaded: 'Photos reloaded.',
+      refreshFailed: 'The photo links could not be refreshed, try again.',
+    },
+    receipt: {
+      title: 'Payment receipt',
+      open: 'View the payment receipt',
+      unavailable: 'Receipt unavailable for now.',
+      hint: 'Receipt issued by Stripe, our payment provider. It also shows any refund.',
+    },
+    offline: {
+      title: 'Payment',
+      text: 'Paid directly to BINOVYA.',
+      hint: 'To get a proof of payment, simply reply to your confirmation email.',
     },
     invoice: {
       title: 'Invoice',
-      soon: 'Available soon',
+      download: 'Download the invoice',
+      open: 'View the invoice',
+      pdfNewTab: '(PDF, opens in a new tab)',
+      unavailable: 'Invoice unavailable for now.',
+      hint: 'Invoice issued through Stripe, our payment provider.',
     },
     rebook: 'Book another date',
   },

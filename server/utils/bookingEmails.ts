@@ -1,3 +1,6 @@
+import { randomUUID } from 'node:crypto'
+
+import type { Escape } from '@/templates/email/layout'
 import type { Database } from '@/types/database.types'
 import type { BookingEmailContent, BookingEmailData, CustomerEmailRow } from '@/types/email'
 import type { SupabaseClient } from '@supabase/supabase-js'
@@ -6,8 +9,13 @@ import { generateBookingAdminEmail } from '@/templates/email/bookingAdminEmail'
 import {
   generateBookingConfirmationEmail,
   generateBookingRefundEmail,
+  generateBookingRescheduleEmail,
 } from '@/templates/email/bookingCustomerEmails'
-import { generatePhotosAvailableEmail } from '@/templates/email/photosAvailableEmail'
+import { generateInterventionCompletedEmail } from '@/templates/email/interventionCompletedEmail'
+import {
+  type CustomerAreaEmailData,
+  generatePhotosAvailableEmail,
+} from '@/templates/email/photosAvailableEmail'
 import { parseSecureUrl } from '@/utils/link'
 
 type BookingRow = Database['public']['Tables']['bookings']['Row']
@@ -194,53 +202,108 @@ export const sendBookingRefundEmail = async (
   }
 }
 
-const hostOf = (url: string): string | null => {
-  try {
-    return url ? new URL(url).host : null
-  } catch {
-    return null
-  }
-}
-
 /**
- * Checks that a login link targets an allowed host over https, or plain http on localhost only.
- * @param loginUrl - Link to put in the email
- * @param allowedHosts - Hosts the link may point to, such as the Supabase and site hosts
- * @returns True when the link is safe to send
+ * Tells the customer that BINOVYA moved a paid booking to another date, with the reminder to
+ * empty the bins. Each move gets its own idempotency key, so moving the booking back and forth
+ * within a day still sends every notice. Never throws.
+ * @param client - Supabase client using the secret key
+ * @param bookingId - Identifier of the moved booking, already at its new date
+ * @param previousDate - ISO date the booking was moved from
  */
-export const isAllowedLoginUrl = (loginUrl: string, allowedHosts: string[]): boolean => {
-  const url: URL | null = parseSecureUrl(loginUrl)
-  return url !== null && allowedHosts.includes(url.host)
-}
-
-/**
- * Tells the customer that the before and after photos of a booking are available. The login link
- * must point to the Supabase or site host, see `isAllowedLoginUrl`. Never throws.
- * @param booking - Completed booking and its customer, see `loadBookingEmailData`
- * @param loginUrl - One-click login link to the customer area
- * @returns True when Resend accepted the email
- */
-export const sendPhotosAvailableEmail = async (
-  booking: BookingEmailData,
-  loginUrl: string,
-): Promise<boolean> => {
+export const sendBookingRescheduleEmail = async (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+  previousDate: string,
+): Promise<void> => {
   try {
-    const config = useRuntimeConfig()
-    const { siteUrl } = config
-    const allowedHosts: string[] = [hostOf(config.public.supabase.url), hostOf(siteUrl)].filter(
-      (host): host is string => host !== null,
-    )
-    if (!isAllowedLoginUrl(loginUrl, allowedHosts)) {
-      console.error(`Booking photos email skipped for ${booking.id}: login URL not allowed`)
-      return false
+    const booking: BookingEmailData | null = await loadBookingEmailData(client, bookingId)
+    if (!booking) {
+      return
     }
-    return await sendToCustomer(
+    await sendToCustomer(
       booking,
-      generatePhotosAvailableEmail({ ...booking, loginUrl, siteUrl }, escapeHtml),
-      'photos',
+      generateBookingRescheduleEmail(
+        { ...booking, previousDate, accountUrl: emailSitePageUrl('/login') },
+        escapeHtml,
+      ),
+      `reschedule-${randomUUID()}`,
     )
   } catch {
-    console.error(`Booking photos email failed for ${booking.id}`)
-    return false
+    console.error(`Booking reschedule email failed for ${bookingId}`)
   }
 }
+
+type CompletionEmail = {
+  kind: string
+  label: string
+  generate: (data: CustomerAreaEmailData, escape: Escape) => BookingEmailContent
+}
+
+const PHOTOS_EMAIL: CompletionEmail = {
+  kind: 'photos',
+  label: 'photos',
+  generate: generatePhotosAvailableEmail,
+}
+
+const COMPLETED_EMAIL: CompletionEmail = {
+  kind: 'completed',
+  label: 'completion',
+  generate: generateInterventionCompletedEmail,
+}
+
+const sendCompletionEmail = async (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+  email: CompletionEmail,
+): Promise<void> => {
+  try {
+    const booking: BookingEmailData | null = await loadBookingEmailData(client, bookingId)
+    const isSent: boolean = booking
+      ? await sendToCustomer(
+          booking,
+          email.generate(
+            {
+              ...booking,
+              accountUrl: emailSitePageUrl('/login'),
+              siteUrl: useRuntimeConfig().siteUrl,
+            },
+            escapeHtml,
+          ),
+          email.kind,
+        )
+      : false
+    if (!isSent) {
+      console.error(
+        `Booking ${email.label} email not sent for ${bookingId}, it will not be retried`,
+      )
+    }
+  } catch {
+    console.error(`Booking ${email.label} email failed for ${bookingId}, it will not be retried`)
+  }
+}
+
+/**
+ * Tells the customer that the before and after photos of a finished intervention are available,
+ * with a link to the customer area login page (`/login`, never a signed URL nor a login link).
+ * Sent at most once per booking: `admin_complete_booking` claims `photos_notified_at`, and the
+ * idempotency key is `booking-photos-<id>`. A failure is logged and not retried. Never throws.
+ * @param client - Supabase client using the secret key
+ * @param bookingId - Identifier of the booking just finished with both photos
+ */
+export const sendPhotosAvailableEmail = (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+): Promise<void> => sendCompletionEmail(client, bookingId, PHOTOS_EMAIL)
+
+/**
+ * Tells the customer that their bins were cleaned when the intervention was finished without the
+ * photos, with a link to the customer area login page (`/login`). Sent at most once per booking:
+ * `admin_complete_booking` refuses a second finish, and the idempotency key is
+ * `booking-completed-<id>`. A failure is logged and not retried. Never throws.
+ * @param client - Supabase client using the secret key
+ * @param bookingId - Identifier of the booking just finished without photos
+ */
+export const sendInterventionCompletedEmail = (
+  client: SupabaseClient<Database>,
+  bookingId: string,
+): Promise<void> => sendCompletionEmail(client, bookingId, COMPLETED_EMAIL)

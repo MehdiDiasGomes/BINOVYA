@@ -30,13 +30,14 @@
     <template #action>
       <div class="flex flex-col gap-4.5">
         <AccountBookingReminder v-if="view.showReminder" />
-        <NuxtLink
+        <AppButton
           :to="localePath(`/account/bookings/${props.booking.id}`)"
-          class="block min-h-12 w-full rounded-full bg-white px-5 py-3.5 text-center font-heading text-base font-bold text-ink transition-all duration-press ease-brand hover:-translate-y-px hover:bg-paper-2 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-turquoise focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900"
+          variant="onDark"
+          class="w-full"
         >
           {{ $t('account.booking.view') }}
           <span class="sr-only">{{ $t('account.booking.viewContext', { date: linkDate }) }}</span>
-        </NuxtLink>
+        </AppButton>
       </div>
     </template>
   </MediaCard>
