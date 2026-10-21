@@ -5,7 +5,7 @@
   >
     <div class="mx-auto flex max-w-[1180px] items-center justify-between px-8 py-4">
       <NuxtLink
-        to="/"
+        :to="localePath('/')"
         :aria-label="$t('common.backToHome')"
         class="rounded-lg focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
       >
@@ -13,7 +13,8 @@
           src="/images/brand/logo.png"
           :alt="$t('common.logoAlt')"
           class="h-10 w-auto object-contain"
-          width="160"
+          width="48"
+          height="40"
           loading="eager"
         />
       </NuxtLink>
@@ -30,6 +31,7 @@
       </nav>
 
       <div class="flex items-center gap-3.5">
+        <LanguageSwitcher class="hidden md:block" />
         <NuxtLink
           :to="accountPath"
           class="hidden h-11 items-center gap-2 rounded-lg px-2 text-[14px] font-semibold text-[#dce8f0] transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none md:flex"
@@ -80,6 +82,11 @@
           <Icon :name="accountIcon" :size="16" aria-hidden="true" />
           {{ $t(accountLabelKey) }}
         </NuxtLink>
+        <LanguageSwitcher
+          variant="mobile"
+          class="border-b border-white/5"
+          @navigate="closeFromLink"
+        />
         <NuxtLink
           :to="localePath('/booking')"
           class="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors duration-press ease-brand hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none"
