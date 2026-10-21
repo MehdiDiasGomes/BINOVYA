@@ -131,6 +131,7 @@ type SessionOverrides = Partial<{
   paymentIntent: string | null
   paymentStatus: string
   currency: string
+  invoice: string | null
 }>
 
 export const sessionEvent = (
@@ -158,6 +159,7 @@ export const sessionEvent = (
           overrides.paymentIntent === undefined
             ? `pi_test_${crypto.randomUUID().replaceAll('-', '').slice(0, 24)}`
             : overrides.paymentIntent,
+        invoice: overrides.invoice ?? null,
       },
     },
   })
@@ -253,4 +255,34 @@ export const payInStripeTestMode = async (booking: PendingBooking): Promise<stri
   })
   expect(paymentIntent.status).toBe('succeeded')
   return paymentIntent.id
+}
+
+export type PaidInvoice = { invoiceId: string; paymentIntentId: string }
+
+/**
+ * Creates a Stripe test-mode invoice already paid by card, the way Checkout `invoice_creation`
+ * leaves one after a payment.
+ * @param amountCents - Invoice total in cents
+ * @returns Invoice id and the payment intent that paid it
+ */
+export const createPaidInvoice = async (amountCents: number): Promise<PaidInvoice> => {
+  const stripe: Stripe = stripeClient()
+  const customer = await stripe.customers.create({ email: uniqueTestEmail('invoice-customer') })
+  const method = await stripe.paymentMethods.create({ type: 'card', card: { token: 'tok_visa' } })
+  await stripe.paymentMethods.attach(method.id, { customer: customer.id })
+  await stripe.customers.update(customer.id, {
+    invoice_settings: { default_payment_method: method.id },
+  })
+  await stripe.invoiceItems.create({ customer: customer.id, amount: amountCents, currency: 'eur' })
+  const draft = await stripe.invoices.create({
+    customer: customer.id,
+    auto_advance: false,
+    pending_invoice_items_behavior: 'include',
+  })
+  const paid = await stripe.invoices.pay((await stripe.invoices.finalizeInvoice(draft.id)).id)
+  const [payment] = (await stripe.invoicePayments.list({ invoice: paid.id })).data
+  const paymentIntentId: string | undefined = payment?.payment.payment_intent as string | undefined
+  expect(paid.status).toBe('paid')
+  expect(paymentIntentId).toMatch(/^pi_/)
+  return { invoiceId: paid.id, paymentIntentId: paymentIntentId ?? '' }
 }

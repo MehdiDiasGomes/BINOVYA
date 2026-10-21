@@ -91,6 +91,8 @@ test('1. happy path FR: busy button, Stripe page, success page, paid booking', a
   await payOnStripe(page)
   await page.waitForURL(/\/booking\?checkout=success/, { timeout: 60_000 })
   await expect(page.getByRole('heading', { name: m.confirmation.title })).toBeVisible()
+  await expect(page.locator('#booking-confirmation-title')).toBeFocused()
+  expect(await page.evaluate(() => window.scrollY)).toBe(0)
   await expect(
     page.getByText(
       m.confirmation.text.replace('{email}', email).replace('{date}', LONG_DATE(isoDate, 'fr-FR')),

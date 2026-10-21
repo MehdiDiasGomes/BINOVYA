@@ -114,7 +114,7 @@ test.describe('availability page', () => {
     await expect(
       page
         .getByRole('region', { name: AVAILABILITY.override.title })
-        .getByText(AVAILABILITY.capacityField.closed),
+        .getByText(AVAILABILITY.capacityField.closed, { exact: true }),
     ).toBeVisible()
     await saveException(page, BLOCKED_DAY)
     expect((await readOverride(BLOCKED_DAY))?.max_bookings).toBe(0)

@@ -15,6 +15,12 @@ export type AccountBookingSeed = {
   scheduledDate: string
   reminderSentAt?: string | null
   address?: AddressDetails
+  paymentMethod?: 'stripe' | 'offline'
+  createdByAdmin?: boolean
+  invoiceId?: string
+  expiresAt?: string
+  checkoutSessionId?: string
+  adminNote?: string
 }
 
 export type ProfileThrottle = {
@@ -129,6 +135,12 @@ const bookingRow = (seed: AccountBookingSeed): Record<string, unknown> => {
     amount_total_cents: 1990,
     bins_ready_confirmed_at: new Date().toISOString(),
     reminder_sent_at: seed.reminderSentAt ?? null,
+    payment_method: seed.paymentMethod ?? 'stripe',
+    created_by_admin: seed.createdByAdmin ?? false,
+    stripe_invoice_id: seed.invoiceId ?? null,
+    expires_at: seed.expiresAt ?? null,
+    stripe_checkout_session_id: seed.checkoutSessionId ?? null,
+    admin_note: seed.adminNote ?? null,
   }
 }
 

@@ -99,6 +99,18 @@ describe('sendTransactionalEmail', () => {
     expect(sendMock.mock.calls[0]?.[0].subject).toBe('a b')
   })
 
+  it('keeps the real recipient and subject under Vitest even when a redirect is configured', async () => {
+    configMock.mockReturnValue({
+      resendApiKey: 're_test',
+      mailFrom: '',
+      mailRedirectTo: 'me@example.com',
+    })
+    sendMock.mockResolvedValue({ error: null } satisfies SendResult)
+    await sendTransactionalEmail(EMAIL, 'label')
+    expect(sendMock.mock.calls[0]?.[0].to).toEqual([EMAIL.to])
+    expect(sendMock.mock.calls[0]?.[0].subject).toBe(EMAIL.subject)
+  })
+
   it('returns false without calling Resend when the API key is missing', async () => {
     configMock.mockReturnValue({ resendApiKey: '', mailFrom: '' })
     expect(await sendTransactionalEmail(EMAIL, 'label')).toBe(false)

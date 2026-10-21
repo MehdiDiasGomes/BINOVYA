@@ -9,12 +9,12 @@ import type { Database } from '../../app/types/database.types'
 import type { ProWeekdayRule } from '../../app/types/proAvailability'
 
 /** Offset of the first day tests may use for exceptions, far from the dates real customers book. */
-export const FAR_OFFSET_DAYS: number = 300
+export const FAR_OFFSET_DAYS: number = 250
 
 /**
  * Returns a Paris date far enough ahead to stay away from real customers, within the 365 day
  * horizon of BINOVYA Pro.
- * @param index - Distinct index of the day, 0 to 60
+ * @param index - Distinct index of the day, 0 to 115
  * @returns ISO date
  */
 export const farDate = (index: number): string => parisDateFromToday(FAR_OFFSET_DAYS + index)
@@ -32,6 +32,12 @@ export const FAR_RANGES = {
   toMove: { start: 46, count: 6 },
   emailReschedule: { start: 52, count: 2 },
   e2eDatePicker: { start: 54, count: 4 },
+  integrationProCreate: { start: 58, count: 6 },
+  e2eProCreate: { start: 64, count: 6 },
+  integrationProCreateReplay: { start: 70, count: 3 },
+  integrationProResend: { start: 73, count: 2 },
+  integrationProRecreate: { start: 75, count: 2 },
+  integrationProRelease: { start: 77, count: 1 },
 } as const satisfies Record<string, FarRange>
 
 /**

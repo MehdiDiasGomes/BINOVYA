@@ -77,6 +77,11 @@ export const intervention = (
   amountTotalCents: 1990,
   status,
   isToMove: false,
+  photos: { before: false, after: false },
+  completedWithoutPhotos: false,
+  paymentMethod: 'stripe',
+  createdByAdmin: false,
+  paymentDueAt: null,
 })
 
 export const caught = async (action: () => Promise<unknown>): Promise<HttpError> => {

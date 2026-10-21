@@ -23,8 +23,7 @@ const ROUTES: [string, string, string][] = [
 const INVALID_QUERIES: Record<string, string[]> = {
   planning: ['date=2026-02-30', 'date=hier', 'date=2026-10-1'],
   interventions: [
-    'status=pending_payment',
-    'status=expired',
+    'status=refunded',
     'status=bogus',
     'from=2026-13-01',
     'to=nope',

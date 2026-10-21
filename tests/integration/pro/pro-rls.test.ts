@@ -122,6 +122,29 @@ describe('Row Level Security with an admin session opened by password', () => {
   })
 })
 
+describe('admin-only booking columns', () => {
+  it.each(['admin_note', 'admin_request_id'])(
+    'cannot be selected with a customer session (%s)',
+    async column => {
+      const response = await restAs(ownerToken, `/rest/v1/bookings?select=${column}`)
+      expect(response.ok).toBe(false)
+    },
+  )
+
+  it.each(['admin_note', 'admin_request_id'])(
+    'cannot be selected with an admin session either (%s)',
+    async column => {
+      const response = await restAs(adminToken, `/rest/v1/bookings?select=${column}`)
+      expect(response.ok).toBe(false)
+    },
+  )
+
+  it('keeps the other columns readable', async () => {
+    const response = await restAs(ownerToken, '/rest/v1/bookings?select=id,status')
+    expect(response.ok).toBe(true)
+  })
+})
+
 describe('admin_login_links table', () => {
   it('is not readable with an admin session: service role only', async () => {
     const response = await restAs(adminToken, '/rest/v1/admin_login_links?select=user_id')

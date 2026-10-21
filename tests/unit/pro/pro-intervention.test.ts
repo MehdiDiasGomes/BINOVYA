@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
 import { ACCOUNT_STATUS_TONES } from '../../../app/constants/account'
+import { PRO_PENDING_PAYMENT_TONE } from '../../../app/constants/pro'
 import {
   collectionWeekdaysLabel,
   proCustomerName,
@@ -29,6 +30,12 @@ const intervention = (status: ProBookingStatus): ProIntervention => ({
   recyclingCollectionWeekdays: [],
   amountTotalCents: 1990,
   status,
+  isToMove: false,
+  photos: { before: false, after: false },
+  completedWithoutPhotos: false,
+  paymentMethod: 'stripe',
+  createdByAdmin: false,
+  paymentDueAt: null,
 })
 
 describe('proInterventionView', () => {
@@ -46,6 +53,31 @@ describe('proInterventionView', () => {
     expect(proInterventionView(intervention('cancelled')).paymentKey).toBe(
       'pro.intervention.payments.refunded',
     )
+  })
+})
+
+describe('proInterventionView for admin-created bookings', () => {
+  it('shows a pending payment as awaiting the payment link, with a note', () => {
+    const view = proInterventionView(intervention('pending_payment'))
+    expect(view.paymentKey).toBe('pro.intervention.payments.awaitingLink')
+    expect(view.tone).toBe(PRO_PENDING_PAYMENT_TONE)
+    expect(view.hasPaymentNote).toBe(true)
+  })
+
+  it('shows a booking paid outside the site as offline, with a note', () => {
+    const view = proInterventionView({ ...intervention('paid'), paymentMethod: 'offline' })
+    expect(view.paymentKey).toBe('pro.intervention.payments.offline')
+    expect(view.hasPaymentNote).toBe(true)
+  })
+
+  it('has no payment note for a plain online payment', () => {
+    expect(proInterventionView(intervention('paid')).hasPaymentNote).toBe(false)
+  })
+
+  it('shows a cancelled offline booking as refunded, without note', () => {
+    const view = proInterventionView({ ...intervention('cancelled'), paymentMethod: 'offline' })
+    expect(view.paymentKey).toBe('pro.intervention.payments.refunded')
+    expect(view.hasPaymentNote).toBe(false)
   })
 })
 

@@ -63,8 +63,14 @@ describe('status lists', () => {
     expect(PRO_PLANNING_STATUSES).toEqual(['paid', 'completed'])
   })
 
-  it('lists paid, completed and cancelled, never pending or expired', () => {
-    expect(PRO_LIST_STATUSES).toEqual(['paid', 'completed', 'cancelled'])
+  it('lists pending payment, paid, completed, cancelled and expired', () => {
+    expect(PRO_LIST_STATUSES).toEqual([
+      'pending_payment',
+      'paid',
+      'completed',
+      'cancelled',
+      'expired',
+    ])
   })
 
   it('offers "all" first, then every listed status', () => {

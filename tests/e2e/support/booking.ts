@@ -114,8 +114,27 @@ export const restoreViewport = async (page: Page): Promise<void> => {
   await expect.poll(isCollapsed).toBe(false)
 }
 
+export const BILLING_ADDRESS = {
+  line1: '12 rue de la Gare',
+  postalCode: '57100',
+  city: 'Thionville',
+} as const
+
+export const fillBillingAddressIfAsked = async (page: Page): Promise<boolean> => {
+  const line1: Locator = page.locator('#billingAddressLine1')
+  if ((await line1.count()) === 0) {
+    return false
+  }
+  await page.locator('#billingCountry').selectOption('FR')
+  await line1.fill(BILLING_ADDRESS.line1)
+  await page.locator('#billingPostalCode').fill(BILLING_ADDRESS.postalCode)
+  await page.locator('#billingLocality').fill(BILLING_ADDRESS.city)
+  return true
+}
+
 export const payOnStripe = async (page: Page, card = '4242424242424242'): Promise<void> => {
   await fillCard(page, card)
+  await fillBillingAddressIfAsked(page)
   await page.getByTestId('hosted-payment-submit-button').click()
 }
 

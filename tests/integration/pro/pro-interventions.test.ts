@@ -48,18 +48,37 @@ beforeAll(async () => {
   const admin = await createAdmin(uniqueTestEmail('list-admin'))
   cookie = sessionCookie((await openSession(admin.email)).raw)
   customer = await createCustomer({ email: uniqueTestEmail('list-cust'), firstName: 'Liste' })
-  const seeds: [string, AccountBookingSeed['status'], string][] = [
+  const seeds: [string, AccountBookingSeed['status'], string, Partial<AccountBookingSeed>?][] = [
     ['paidLate', 'paid', '2041-04-20'],
     ['completedEarly', 'completed', '2041-04-02'],
     ['cancelledMid', 'cancelled', '2041-04-10'],
     ['pending', 'pending_payment', '2041-04-11'],
     ['expired', 'expired', '2041-04-12'],
+    [
+      'pendingAdmin',
+      'pending_payment',
+      '2041-04-13',
+      { createdByAdmin: true, expiresAt: '2041-04-12T10:00:00Z' },
+    ],
+    [
+      'expiredAdminLink',
+      'expired',
+      '2041-04-15',
+      { createdByAdmin: true, checkoutSessionId: 'cs_test_expired_link' },
+    ],
+    ['expiredAdminNoLink', 'expired', '2041-04-16', { createdByAdmin: true }],
+    ['paidOffline', 'paid', '2041-04-14', { createdByAdmin: true, paymentMethod: 'offline' }],
     ['paidEdgeFrom', 'paid', FROM],
     ['paidEdgeTo', 'paid', TO],
     ['paidOutside', 'paid', '2041-05-01'],
   ]
   const created: string[] = await seedAccountBookings(
-    seeds.map(([, status, scheduledDate]) => ({ customerId: customer.id, status, scheduledDate })),
+    seeds.map(([, status, scheduledDate, extra]) => ({
+      customerId: customer.id,
+      status,
+      scheduledDate,
+      ...extra,
+    })),
   )
   ids = Object.fromEntries(seeds.map(([name], index) => [name, created[index] ?? '']))
   await seedAccountBookings(
@@ -83,26 +102,54 @@ describe('GET /api/pro/interventions data', () => {
     expect(page.total).toBe(page.interventions.length)
   })
 
-  it('lists paid, completed and cancelled sorted by date ascending, inclusive bounds', async () => {
+  it('lists paid, completed, cancelled and admin-created pending bookings by date, inclusive bounds', async () => {
     const page = await listOf(RANGE)
     expect(idsOf(page)).toEqual([
       ids.paidEdgeFrom,
       ids.completedEarly,
       ids.cancelledMid,
+      ids.pendingAdmin,
+      ids.paidOffline,
+      ids.expiredAdminLink,
       ids.paidLate,
       ids.paidEdgeTo,
     ])
-    expect(page.total).toBe(5)
+    expect(page.total).toBe(8)
   })
 
-  it('never returns pending_payment or expired bookings', async () => {
+  it('never returns an online pending_payment or an online expired booking', async () => {
     const returned = idsOf(await listOf(`status=all&${RANGE}`))
     expect(returned).not.toContain(ids.pending)
     expect(returned).not.toContain(ids.expired)
   })
 
+  it('returns an admin expired booking only when it had a checkout session', async () => {
+    const page = await listOf(`status=expired&${RANGE}`)
+    expect(idsOf(page)).toEqual([ids.expiredAdminLink])
+    expect(page.interventions[0]).toMatchObject({ status: 'expired', createdByAdmin: true })
+    expect(idsOf(await listOf(`status=all&${RANGE}`))).not.toContain(ids.expiredAdminNoLink)
+  })
+
+  it('returns the payment fields of an admin-created pending booking', async () => {
+    const page = await listOf(`status=pending_payment&${RANGE}`)
+    expect(idsOf(page)).toEqual([ids.pendingAdmin])
+    expect(page.interventions[0]).toMatchObject({
+      status: 'pending_payment',
+      createdByAdmin: true,
+      paymentMethod: 'stripe',
+      paymentDueAt: '2041-04-12T09:59:00.000Z',
+    })
+  })
+
+  it('returns a booking paid outside the site with its payment method', async () => {
+    const page = await listOf(`status=paid&${RANGE}`)
+    const offline = page.interventions.find(item => item.id === ids.paidOffline)
+    expect(offline).toMatchObject({ paymentMethod: 'offline', createdByAdmin: true })
+    expect(offline?.paymentDueAt).toBeNull()
+  })
+
   it.each([
-    ['paid', ['paidEdgeFrom', 'paidLate', 'paidEdgeTo']],
+    ['paid', ['paidEdgeFrom', 'paidOffline', 'paidLate', 'paidEdgeTo']],
     ['completed', ['completedEarly']],
     ['cancelled', ['cancelledMid']],
   ])('filters on the status %s', async (status, names) => {
@@ -160,7 +207,7 @@ describe('GET /api/pro/interventions pagination', () => {
 
   it('answers 200 with an empty page for a page beyond a short result', async () => {
     const page = await listOf(`${RANGE}&page=2`)
-    expect(page).toMatchObject({ interventions: [], total: 5, page: 2 })
+    expect(page).toMatchObject({ interventions: [], total: 8, page: 2 })
   })
 
   it('answers 200 with an empty list and a zero total when nothing matches', async () => {

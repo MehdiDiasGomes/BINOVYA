@@ -108,6 +108,8 @@ test.describe('status filter', () => {
     await expect(page.getByRole('listbox')).toBeVisible()
     await expect(page.getByRole('option', { name: FILTERS.statuses.all })).toBeFocused()
     await page.keyboard.press('ArrowDown')
+    await expect(page.getByRole('option', { name: FILTERS.statuses.pending_payment })).toBeFocused()
+    await page.keyboard.press('ArrowDown')
     await expect(page.getByRole('option', { name: FILTERS.statuses.paid })).toBeFocused()
     await page.keyboard.press('Enter')
     await expect(page).toHaveURL(/status=paid/)

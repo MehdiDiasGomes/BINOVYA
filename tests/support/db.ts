@@ -166,3 +166,57 @@ export const countActiveBookings = async (date: string): Promise<number> => {
   )
   return ((await response.json()) as unknown[]).length
 }
+
+export type BookingStripeRow = {
+  status: string
+  payment_method: string
+  created_by_admin: boolean
+  stripe_checkout_session_id: string | null
+  stripe_payment_intent_id: string | null
+  stripe_invoice_id: string | null
+  amount_total_cents: number
+  expires_at: string | null
+  customer_id: string
+}
+
+/**
+ * Reads the payment columns of a booking.
+ * @param bookingId - Booking identifier
+ * @returns Status, payment method, Stripe identifiers, amount and hold end
+ */
+export const readBookingStripe = async (bookingId: string): Promise<BookingStripeRow> => {
+  const response: Response = await rest(
+    `/rest/v1/bookings?select=status,payment_method,created_by_admin,stripe_checkout_session_id,stripe_payment_intent_id,stripe_invoice_id,amount_total_cents,expires_at,customer_id&id=eq.${bookingId}`,
+  )
+  const [row] = (await response.json()) as BookingStripeRow[]
+  if (!row) {
+    throw new Error(`Booking ${bookingId} not found`)
+  }
+  return row
+}
+
+export type AdminBookingColumns = {
+  admin_note: string | null
+  admin_request_id: string | null
+  price_source: string
+  small_bin_count: number
+  large_bin_count: number
+  amount_total_cents: number
+  payment_method: string
+}
+
+/**
+ * Reads the admin-only columns and the price of a booking with the service role.
+ * @param bookingId - Booking identifier
+ * @returns Note, request id, price source, bins, amount and payment method
+ */
+export const readAdminBooking = async (bookingId: string): Promise<AdminBookingColumns> => {
+  const response: Response = await rest(
+    `/rest/v1/bookings?select=admin_note,admin_request_id,price_source,small_bin_count,large_bin_count,amount_total_cents,payment_method&id=eq.${bookingId}`,
+  )
+  const [row] = (await response.json()) as AdminBookingColumns[]
+  if (!row) {
+    throw new Error(`Booking ${bookingId} not found`)
+  }
+  return row
+}
