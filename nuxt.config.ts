@@ -1,7 +1,18 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from '@tailwindcss/vite'
 
+import { PRIVATE_PAGE_ROBOTS, PRIVATE_PAGE_ROUTE_PATTERNS } from './app/constants/seo'
+
+import type { NuxtConfig } from 'nuxt/schema'
+
 const isTestServer: boolean = process.env.BINOVYA_TEST_SERVER === '1'
+
+const privatePageRouteRules: NonNullable<NuxtConfig['routeRules']> = Object.fromEntries(
+  PRIVATE_PAGE_ROUTE_PATTERNS.map(pattern => [
+    pattern,
+    { headers: { 'X-Robots-Tag': PRIVATE_PAGE_ROBOTS } },
+  ]),
+)
 
 export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
@@ -20,7 +31,12 @@ export default defineNuxtConfig({
     stripeWebhookSecret: '',
     siteUrl: '',
     addressTokenSecret: '',
+    public: {
+      siteUrl: '',
+    },
   },
+
+  routeRules: privatePageRouteRules,
 
   nitro: {
     experimental: { tasks: true },
@@ -82,7 +98,7 @@ export default defineNuxtConfig({
   i18n: {
     locales: [
       { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.ts' },
-      { code: 'en', language: 'en-US', name: 'English', file: 'en.ts' },
+      { code: 'en', language: 'en', name: 'English', file: 'en.ts' },
     ],
     defaultLocale: 'fr',
     strategy: 'prefix_except_default',

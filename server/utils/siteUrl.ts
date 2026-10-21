@@ -1,4 +1,7 @@
 import type { BookingLocale } from '@/types/booking'
+import type { H3Event } from 'h3'
+
+import { parseSecureUrl } from '@/utils/link'
 
 /**
  * Returns the public site URL used to build links to the site. Refuses to run without it, and
@@ -25,4 +28,20 @@ export const resolveSiteUrl = (): string => {
 export const localizedSiteUrl = (locale: BookingLocale, path: string): string => {
   const localePrefix: string = locale === 'fr' ? '' : `/${locale}`
   return `${resolveSiteUrl()}${localePrefix}${path}`
+}
+
+/**
+ * Returns the public site URL used for search engine files, or an empty string when
+ * `NUXT_PUBLIC_SITE_URL` is missing or neither https nor local http.
+ * @param event - Current request, so the runtime environment value is read
+ * @returns Site URL without trailing slash, or an empty string
+ */
+export const resolvePublicSiteUrl = (event: H3Event): string => {
+  const siteUrl: string = useRuntimeConfig(event).public.siteUrl
+  const url: URL | null = parseSecureUrl(siteUrl)
+  if (!url) {
+    return ''
+  }
+  const path: string = url.pathname.endsWith('/') ? url.pathname.slice(0, -1) : url.pathname
+  return `${url.origin}${path}`
 }
