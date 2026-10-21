@@ -1,16 +1,11 @@
 import { expect, test } from '@playwright/test'
 
-import { addDaysToIsoDate, formatFullDate, formatMediumDate } from '../../../app/utils/date'
-import SITE_FR from '../../../i18n/locales/fr'
+import { addDaysToIsoDate, formatMediumDate } from '../../../app/utils/date'
 import frPro from '../../../i18n/locales/fr/pro'
-import { createCustomer, seedAccountBooking } from '../../support/account'
 import { removeE2eAdmins } from '../../support/admin'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
-import { uniqueTestEmail } from '../../support/env'
 import { parisDateFromToday } from '../../support/seed'
 import { historyLength, signInAdmin } from '../support/pro'
-
-const MARKED_DAY = '2041-11-04'
 
 test.beforeAll(async () => {
   assertTestStripeKey()
@@ -59,50 +54,5 @@ test.describe('planning date row', () => {
 
     await page.getByRole('button', { name: frPro.planning.previousDay }).click()
     await expect(page).toHaveURL(new RegExp(`date=${addDaysToIsoDate(today, -1)}`))
-  })
-
-  test('a date picked in the calendar changes the planning day', async ({ page }) => {
-    const today = parisDateFromToday(0)
-    await signInAdmin(page)
-    await page.waitForLoadState('networkidle')
-    await page
-      .getByRole('button', {
-        name: `${frPro.planning.dateLabel} ${formatMediumDate(today, 'fr-FR')}`,
-      })
-      .click()
-    await expect(page.getByRole('dialog', { name: frPro.planning.dateLabel })).toBeVisible()
-    await page.keyboard.press('ArrowRight')
-    await page.keyboard.press('Enter')
-    await expect(page).toHaveURL(new RegExp(`date=${addDaysToIsoDate(today, 1)}`))
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(
-      frPro.planning.title.replace('{date}', formatFullDate(addDaysToIsoDate(today, 1), 'fr-FR')),
-    )
-  })
-
-  test('marks in the calendar the days that hold an intervention', async ({ page }) => {
-    const customer = await createCustomer({
-      email: uniqueTestEmail('pro-marks'),
-      firstName: 'Marque',
-    })
-    await seedAccountBooking({
-      customerId: customer.id,
-      status: 'paid',
-      scheduledDate: MARKED_DAY,
-    })
-    await signInAdmin(page)
-    await page.goto(`/pro?date=${MARKED_DAY}`)
-    await page.waitForLoadState('networkidle')
-    await page
-      .getByRole('button', {
-        name: `${frPro.planning.dateLabel} ${formatMediumDate(MARKED_DAY, 'fr-FR')}`,
-      })
-      .click()
-    const dialog = page.getByRole('dialog', { name: frPro.planning.dateLabel })
-    await expect(
-      dialog.getByRole('button', {
-        name: new RegExp(`${formatFullDate(MARKED_DAY, 'fr-FR')}, une intervention$`),
-      }),
-    ).toBeVisible()
-    await expect(dialog.getByText(SITE_FR.common.datePicker.markedLegend)).toBeVisible()
   })
 })

@@ -78,8 +78,11 @@ export const fillUntilPayment = async (
 
 export const acceptPaymentCheckboxes = async (page: Page, lang: Lang): Promise<void> => {
   const m = MESSAGES[lang]
-  await page.getByLabel(m.payment.binsReady).check()
-  await page.getByLabel(m.payment.terms).check()
+  for (const label of [m.payment.binsReady, m.payment.terms]) {
+    const checkbox: Locator = page.getByLabel(label)
+    await checkbox.evaluate(element => element.scrollIntoView({ block: 'center' }))
+    await checkbox.check()
+  }
 }
 
 export const clickPay = async (page: Page, lang: Lang): Promise<void> => {

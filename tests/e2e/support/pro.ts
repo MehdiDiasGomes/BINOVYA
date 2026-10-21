@@ -73,15 +73,6 @@ export const pickCalendarDate = async (
 const escapeRegExp = (text: string): string => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
 
 /**
- * Picks one branch of a vue-i18n plural message such as `« one | many »`.
- * @param template - Message with its branches separated by ` | `
- * @param index - Zero-based branch
- * @returns The branch
- */
-export const pluralForm = (template: string, index: number): string =>
-  template.split(' | ')[index] ?? template
-
-/**
  * Builds a pattern from a locale message: the text is matched literally, each `{param}` is
  * replaced by the given value, or by any text when none is given.
  * @param template - Locale message with `{param}` placeholders
@@ -197,39 +188,6 @@ export const readAnnouncement = (page: Page): Promise<AnnouncementRecord | undef
     key => (window as unknown as Record<string, AnnouncementRecord | undefined>)[key],
     ANNOUNCEMENT_KEY,
   )
-
-const CALENDAR_WEEK_ROWS = 6
-
-/**
- * Opens a `DatePicker` and steps through months, checking each time that the calendar sits below
- * its field, inside the viewport, with six week rows.
- * @param page - Page of the test
- * @param calendar - Button that opens the calendar and popover that holds it
- * @param months - Number of month changes to make after the first month
- */
-export const expectCalendarBelowField = async (
-  page: Page,
-  calendar: { trigger: Locator; panel: Locator },
-  months: number,
-): Promise<void> => {
-  const { trigger, panel } = calendar
-  await trigger.click()
-  await expect(panel).toBeVisible()
-  const weekRows: Locator = panel.getByRole('row').filter({ has: page.getByRole('gridcell') })
-  const viewportHeight: number = page.viewportSize()?.height ?? 0
-  for (let month = 0; month <= months; month += 1) {
-    await expect(weekRows).toHaveCount(CALENDAR_WEEK_ROWS)
-    const field = (await trigger.boundingBox()) ?? { y: 0, height: 0 }
-    await expect
-      .poll(async () => ((await panel.boundingBox())?.y ?? -1) - (field.y + field.height))
-      .toBeGreaterThanOrEqual(-1)
-    const box = await panel.boundingBox()
-    expect((box?.y ?? 0) + (box?.height ?? 0)).toBeLessThanOrEqual(viewportHeight + 1)
-    if (month < months) {
-      await page.getByRole('button', { name: SITE_FR.common.datePicker.nextMonth }).click()
-    }
-  }
-}
 
 /**
  * Waits until Vue has mounted the Nuxt app, so that a click is not lost on server-rendered markup

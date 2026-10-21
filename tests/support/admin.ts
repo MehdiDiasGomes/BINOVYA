@@ -1,4 +1,4 @@
-import { E2E_EMAIL_PATTERN, rest } from './db'
+import { E2E_EMAIL_PATTERN, listAuthUsers, rest, type AuthUserRow } from './db'
 import { readEnv } from './env'
 import { ADMIN_ROLE } from '../../app/constants/pro'
 import { sleep } from '../../scripts/test-process'
@@ -7,8 +7,6 @@ import type { AccountCustomer } from './account'
 
 /** Admin shared by the whole Playwright run: signed in once, its session reused by every test. */
 export const SHARED_ADMIN_EMAIL: string = 'e2e+pro-shared-admin@binovya.test'
-
-type AuthUserRow = { id: string; email?: string; app_metadata?: { role?: string } }
 
 export type AdminThrottle = { sent_at: string; link_count: number; window_start: string }
 
@@ -30,19 +28,6 @@ export const createAdmin = async (email: string): Promise<AccountCustomer> => {
     throw new Error(`Admin creation failed with ${response.status}`)
   }
   return { id, email, firstName: 'Admin' }
-}
-
-const listAuthUsers = async (): Promise<AuthUserRow[]> => {
-  const perPage = 200
-  const users: AuthUserRow[] = []
-  for (let page = 1; ; page += 1) {
-    const response: Response = await rest(`/auth/v1/admin/users?per_page=${perPage}&page=${page}`)
-    const batch: AuthUserRow[] = ((await response.json()) as { users?: AuthUserRow[] }).users ?? []
-    users.push(...batch)
-    if (batch.length < perPage) {
-      return users
-    }
-  }
 }
 
 /**

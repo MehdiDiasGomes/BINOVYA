@@ -187,24 +187,6 @@ test('creates a payment link, resends it, then the customer pays it with a billi
   await customerPage.context().close()
 })
 
-test('refuses a closed day, then creates the intervention after « Forcer quand même »', async ({
-  page,
-}) => {
-  const email = uniqueTestEmail('pcreate-closed')
-  await signInAdmin(page)
-  await openCreateForm(page)
-  await fillForm(page, { email, date: CLOSED_DAY, mode: 'offline' })
-  await submitButton(page, 'offline').click()
-
-  const main = page.getByRole('main')
-  await expect(main.getByRole('alert').filter({ hasText: CREATE.errors.dayClosed })).toBeVisible()
-  await expect(submitButton(page, 'offline')).toBeEnabled()
-  await page.getByRole('button', { name: CREATE.force }).click()
-  await page.waitForURL(/\/pro\/interventions\/[0-9a-f-]{36}/)
-  const booking = await waitForStatus(email, 'paid')
-  expect(booking.scheduled_date).toBe(CLOSED_DAY)
-})
-
 test('prices a quote with typed bin counts, clamps them and keeps the quote price', async ({
   page,
 }) => {

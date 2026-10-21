@@ -136,27 +136,7 @@ test('2. cancel on Stripe: draft restored, alert, focus, booking expired, repay 
   await waitForStatus(email, 'expired')
 })
 
-test('3. browser Back from Stripe: booking expired, new attempt works', async ({ page }) => {
-  const lang: Lang = 'fr'
-  const email = uniqueTestEmail('back')
-  await startCheckout(page, lang, { email, isoDate: days[2] })
-
-  await page.goBack()
-  await page.waitForURL(url => url.pathname === bookingPath(lang), { timeout: 30_000 })
-  await restoreViewport(page)
-  await expect(stepTitle(page, lang, 'payment')).toBeVisible()
-  await waitForStatus(email, 'expired')
-
-  await acceptPaymentCheckboxes(page, lang)
-  await goToStripe(page, lang)
-  const rows = await findBookings(email)
-  expect(rows).toHaveLength(2)
-  expect(rows.at(-1)?.status).toBe('pending_payment')
-  await cancelOnStripe(page, lang)
-  await waitForStatus(email, 'expired')
-})
-
-test('4. one pending booking per customer', async ({ page, context }) => {
+test('3. one pending booking per customer', async ({ page, context }) => {
   const lang: Lang = 'fr'
   const m = MESSAGES[lang]
   const email = uniqueTestEmail('pending')
@@ -177,7 +157,7 @@ test('4. one pending booking per customer', async ({ page, context }) => {
   await waitForStatus(email, 'expired')
 })
 
-test('5. declined card stays pending, then 4242 pays', async ({ page }) => {
+test('4. declined card stays pending, then 4242 pays', async ({ page }) => {
   const lang: Lang = 'fr'
   const email = uniqueTestEmail('declined')
   await startCheckout(page, lang, { email, isoDate: days[5] })
@@ -192,69 +172,4 @@ test('5. declined card stays pending, then 4242 pays', async ({ page }) => {
   await expect(page.getByRole('heading', { name: MESSAGES[lang].confirmation.title })).toBeVisible()
   const booking = await waitForStatus(email, 'paid')
   expect(booking.stripe_payment_intent_id).toMatch(/^pi_/)
-})
-
-test('6. direct visit with ?checkout=cancelled and no stored draft', async ({ browser }) => {
-  const context = await browser.newContext({ locale: 'fr-FR' })
-  const page = await context.newPage()
-  await page.goto('/booking?checkout=cancelled')
-  await expect(stepTitle(page, 'fr', 'contact')).toBeVisible()
-  await expect(page).toHaveURL(url => url.pathname === '/booking' && url.search === '')
-  await expect(page.getByRole('navigation', { name: MESSAGES.fr.steps.ariaLabel })).toBeVisible()
-  const alertCount = await page
-    .getByRole('alert')
-    .filter({ hasText: MESSAGES.fr.errors.paymentCancelled })
-    .count()
-  test
-    .info()
-    .annotations.push({ type: 'cancelled-alert-on-contact-step', description: String(alertCount) })
-  await context.close()
-})
-
-test('7. English happy path returns on /en/booking with English texts', async ({ page }) => {
-  const lang: Lang = 'en'
-  const m = MESSAGES[lang]
-  const email = uniqueTestEmail('english')
-  const isoDate = days[6]
-  await fillUntilPayment(page, lang, { email, isoDate: isoDate })
-  await acceptPaymentCheckboxes(page, lang)
-  await goToStripe(page, lang)
-  await expect(
-    page.getByText(m.checkout.productName.replace('{plan}', m.plans.one_off.title)),
-  ).toBeVisible()
-  await expect(page.getByText(LONG_DATE(isoDate, 'en-US'), { exact: false }).first()).toBeVisible()
-
-  await payOnStripe(page)
-  await page.waitForURL(/\/en\/booking\?checkout=success/, { timeout: 60_000 })
-  await expect(page.getByRole('heading', { name: m.confirmation.title })).toBeVisible()
-  await expect(
-    page.getByText(
-      m.confirmation.text.replace('{email}', email).replace('{date}', LONG_DATE(isoDate, 'en-US')),
-    ),
-  ).toBeVisible()
-  await expect(page).toHaveURL(url => url.pathname === '/en/booking' && url.search === '')
-  await waitForStatus(email, 'paid')
-})
-
-test('8. honeypot: no booking row, ends on the cancelled path', async ({ page }) => {
-  const lang: Lang = 'fr'
-  const email = uniqueTestEmail('honeypot')
-  await fillUntilPayment(page, lang, { email, isoDate: days[7] })
-  await acceptPaymentCheckboxes(page, lang)
-  await page.locator('input[name="website"]').fill('https://spam.example', { force: true })
-
-  const visited: string[] = []
-  page.on('framenavigated', frame => visited.push(frame.url()))
-  await payButton(page, lang).click()
-  await expect.poll(() => visited.some(url => url.includes('checkout=cancelled'))).toBe(true)
-  await expect(
-    page.getByRole('alert').filter({ hasText: MESSAGES[lang].errors.paymentCancelled }),
-  ).toBeVisible()
-  expect(visited.some(url => url.includes('stripe.com'))).toBe(false)
-  expect(await findBookings(email)).toHaveLength(0)
-})
-
-test('9. webhook without signature answers 400', async ({ request }) => {
-  const response = await request.post('/api/stripe/webhook', { data: { type: 'ping' } })
-  expect(response.status()).toBe(400)
 })

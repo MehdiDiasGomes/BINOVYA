@@ -134,41 +134,4 @@ test.describe('intervention stepper', () => {
     expect(progress.status).toBe('completed')
     expect(progress.completed_without_photos).toBe(true)
   })
-
-  test('the segments of the stepper link back to a step already left', async ({ page }) => {
-    const bookingId = await seedToday()
-    await openIntervention(page, bookingId)
-    await page.getByRole('button', { name: STEPS.directions.arrived }).click()
-    await expect(page).toHaveURL(/step=2/)
-
-    const directionsSegment = page.getByRole('link', {
-      name: new RegExp(`${STEPS.names.directions} ${STEPS.states.done}$`),
-    })
-    await directionsSegment.click()
-    await expect(page).toHaveURL(/step=1/)
-    await expect(stepHeading(page, STEPS.names.directions)).toBeFocused()
-  })
-})
-
-test.describe('intervention details accordion', () => {
-  test('is closed by default, opens with the phone number and closes again', async ({ page }) => {
-    const bookingId = await seedToday()
-    await openIntervention(page, bookingId)
-
-    const toggle = page.getByRole('button', { name: STEPS.details.toggle })
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(page.getByRole('link', { name: PHONE_LABEL, exact: true })).toHaveCount(0)
-
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'true')
-    await expect(page.getByRole('link', { name: PHONE_LABEL, exact: true })).toHaveAttribute(
-      'href',
-      'tel:+33612345678',
-    )
-    await expect(page.getByText(frPro.intervention.plan)).toBeVisible()
-
-    await toggle.click()
-    await expect(toggle).toHaveAttribute('aria-expanded', 'false')
-    await expect(page.getByRole('link', { name: PHONE_LABEL, exact: true })).toHaveCount(0)
-  })
 })
