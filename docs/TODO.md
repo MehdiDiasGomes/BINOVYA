@@ -37,8 +37,22 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
      défaut dans `@nuxtjs/supabase`, aucun `cookieOptions` dans `nuxt.config.ts`) : l'espace Pro
      est inutilisable dans Safari de bureau en local. Poser `cookieOptions.secure` seulement en
      production, puis rétablir le projet Playwright WebKit (étape 10)
-- [ ] 8. Chore e2e : test instable du détail de `customer-area-bookings` (squelette encore
-     affiché après 5 s sur un serveur de dev lent)
+- [x] 8. Chore e2e : test instable du détail de `customer-area-bookings` (suite e2e refaite,
+     le test attend la réponse réseau, vert à chaque run complet)
+- [ ] 8. Chore UI (ui-stylist) : le header sticky masque la case « bacs prêts » à l'étape de
+     paiement de la réservation. L'aide e2e `acceptPaymentCheckboxes` la centre avant de la
+     cocher, mais la page a besoin d'un `scroll-margin` ou `scroll-padding`
+- [ ] 8. À vérifier à la main : lenteur possible de `POST /api/pro/bookings/[id]/payment-link`
+     (renvoi parfois > 20 s sous charge, `tests/e2e/pro/pro-create.spec.ts:156` instable 1 fois
+     sur 3), de la carte « lien déjà utilisé » du lien magique (7,4 s en run complet contre 3,4 s
+     seule, `tests/e2e/customer-area.spec.ts:54`), et un résultat intermittent à 0 mail dans
+     `tests/integration/pro/pro-complete.test.ts:89` (vert 4 fois sur 4 seul)
+- [ ] 8. À vérifier à la main (plus couvert par l'e2e) : mise en page à 375 px, survol, anneau de
+     focus et squelettes de l'espace client, accordéon des détails Pro (`aria-expanded`), feuille
+     mobile du dialogue de déplacement, `href` des liens du pied de page Pro, branche 401 de
+     `AccountDeletionRequest.vue`, retour à la dernière page de `/pro/interventions` quand
+     `?page=` dépasse la fin, alerte de délai du dialogue de déplacement et rechargement de la
+     liste à la fermeture
 - [ ] 8. Hors code : facture française réelle avec les mentions légales, à décider avec le
      client (le reçu Stripe n'en tient pas lieu)
 
@@ -78,7 +92,11 @@ Tout se prépare et se teste en local. La mise en place sur le VPS est à l'éta
 
 - [ ] Ajouter `vue-tsc` en devDependency et un script `typecheck`, puis corriger les 5 erreurs
       (`HeroSection`, `ServicesSection`, `TrustStripSection`, `LanguageSwitcherDesktop`,
-      `LanguageSwitcherMobile`)
+      `LanguageSwitcherMobile`). Le typecheck doit aussi couvrir `tests/` (aucun tsconfig ne
+      l'inclut aujourd'hui ; erreurs connues, par exemple `tests/support/pro-fixtures.ts:65`,
+      `tests/unit/pro/pro-intervention.test.ts:19`,
+      `tests/integration/booking/booking-create.test.ts:50` et
+      `tests/integration/pro/pro-reschedule.test.ts`)
 - [ ] CI : lint, formatage, typecheck, tests unitaires, build
 - [ ] CI : image vers GHCR (tags SHA + `latest` sur `main`)
 - [ ] CD : SSH, `docker compose pull && up -d`

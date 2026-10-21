@@ -940,7 +940,8 @@ unitaires, build Nuxt, puis, si tout est vert, build de l'image Docker et push v
 
 Les tests d'intégration et e2e restent en local avant chaque fusion (ils utilisent la base et le
 compte Stripe de test). Typecheck : `vue-tsc` n'est pas encore en devDependency et le projet n'a
-pas de script `typecheck` ; 5 erreurs existent (`TODO.md`, étape 11). `bunx nuxi typecheck` échoue
+pas de script `typecheck` ; 5 erreurs existent (`TODO.md`, étape 11), et aucun tsconfig n'inclut
+`tests/` (des erreurs de type y existent aussi). `bunx nuxi typecheck` échoue
 sur cette machine (`npx` récupère vue-tsc 3.3.13 avec TypeScript 7).
 
 ## Tâches planifiées
@@ -999,7 +1000,18 @@ sur cette machine (`npx` récupère vue-tsc 3.3.13 avec TypeScript 7).
 
 Pyramide : beaucoup de tests unitaires, quelques tests d'intégration, peu de tests e2e. Unitaires
 et intégration tournent en CI cible ; l'e2e (vraie page Stripe) reste local avant chaque fusion.
-Dernier relevé : unitaires 1043 sur 1043 verts le 2026-10-20.
+Dernier relevé (2026-10-21) : unitaires 1 432, intégration environ 479, e2e 29 tests (run complet
+d'environ 5,3 min, `workers: 1`).
+
+L'e2e ne couvre que les parcours critiques : réservation publique payée par la vraie page Stripe
+Checkout (annulation et expiration, une réservation en attente par client, carte refusée), lien
+magique, réservations et suppression du compte (avec un test de focus clavier), accès Pro,
+planning, déplacement (clavier et état d'attente compris), fin d'intervention avec photos,
+création Pro (paiement hors ligne, lien de paiement et renvoi, recréation préremplie), une
+sauvegarde de disponibilités, envoi du contact, brouillon par jeton d'adresse. Le reste (mise en
+page, survol, détails d'interface) relève des tests unitaires, d'intégration et des vérifications
+à la main (`TODO.md`, étape 8). Une suite plus large (129 tests) a été réduite : trop lente et
+trop instable.
 
 ### Commandes
 
@@ -1101,9 +1113,12 @@ Dernier relevé : unitaires 1043 sur 1043 verts le 2026-10-20.
   (`BeforeAfterSection`, `OffersSection`, `ServicesSection`, `TrustStripSection`, `layouts/footer`,
   `pages/about`, `i18n/locales/fr/solutions.ts`, `README.md`) : chore dédié.
 - Tests instables : `booking-payment.spec.ts` n° 2 (le bouton « Payer » sort de la fenêtre sur la
-  page Stripe) et n° 8 (délai de l'API d'adresse externe), détail de `customer-area-bookings` (le
-  squelette reste affiché après 5 s sur un serveur de dev lent), délai ponctuel du nettoyage dans
-  `account-deletion.test.ts`. `tests/e2e/customer-area.spec.ts` approche 350 lignes (310).
+  page Stripe) et n° 8 (délai de l'API d'adresse externe), délai ponctuel du nettoyage dans
+  `account-deletion.test.ts`. Le détail de `customer-area-bookings` est stable depuis que le test
+  attend la réponse réseau. À surveiller (`TODO.md`, étape 8) : `pro-create.spec.ts:156` (renvoi du
+  lien de paiement parfois > 20 s sous charge), `customer-area.spec.ts:54` (7,4 s en run complet) et
+  `pro-complete.test.ts:89` (0 mail une fois, vert 4 fois sur 4 seul). `tests/e2e/customer-area.spec.ts`
+  approche 350 lignes (310).
 - La branche « développement » de `isMailConfigured()` n'est testable qu'en intégration
   (`import.meta.dev` est figé à la construction).
 

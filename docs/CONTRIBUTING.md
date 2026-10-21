@@ -109,6 +109,11 @@ git checkout -b feat/my-new-feature
 git checkout -b fix/bug-fix
 ```
 
+Exception, while the end-of-feature tester runs: the next step may start in a git worktree
+outside the repo (`../BINOVYA-<branch>`), branched from the finished branch, touching neither
+`tests/` nor `supabase/`. Once the finished branch is in `dev`, merge `dev` into it. See
+`CLAUDE.md` (Git Workflow).
+
 2. **Make your changes** following the conventions above
 
 3. **Commit your changes** with gitmoji:
