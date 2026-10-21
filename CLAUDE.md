@@ -211,6 +211,14 @@ helpers in `tests/support/`.
 - One branch per step of `docs/TODO.md` (e.g. `feat/booking-quote`), created from `dev`
 - Merge the finished branch into `dev` (`--no-ff`) before creating the next step's branch, never
   stack branches
+- Exception, while the end-of-feature tester runs: the next step may start in a git worktree
+  outside the repo (`../BINOVYA-<branch>`, own `bun install`, `.env*` copied from the main
+  folder), branched from the finished branch (its app code is frozen, only tests and docs remain)
+  so it builds on the current pages. Its `bun run dev` uses port 3000 (stop the main folder's
+  one); the tester keeps port 3001 and the main folder. The next step touches neither `tests/`
+  nor `supabase/`. Any app fix landing on the finished branch is merged into the next one. Once
+  the finished branch is in `dev`, merge `dev` into the next branch; the worktree is removed once
+  the next branch is merged
 - Commits follow gitmoji, see `docs/CONTRIBUTING.md`
 
 ## Important Patterns
