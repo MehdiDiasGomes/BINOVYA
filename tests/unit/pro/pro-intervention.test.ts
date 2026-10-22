@@ -36,6 +36,8 @@ const intervention = (status: ProBookingStatus): ProIntervention => ({
   paymentMethod: 'stripe',
   createdByAdmin: false,
   paymentDueAt: null,
+  priceSource: 'grid',
+  adminNote: null,
 })
 
 describe('proInterventionView', () => {

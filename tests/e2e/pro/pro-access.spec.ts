@@ -8,6 +8,7 @@ import { createAdmin, readDepot, removeE2eAdmins } from '../../support/admin'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { uniqueTestEmail } from '../../support/env'
 import { findLink, waitForOneMail } from '../../support/outbox'
+import { requireValue } from '../../support/require'
 import { confirmPath } from '../support/account'
 import { signInAdmin } from '../support/pro'
 
@@ -66,7 +67,9 @@ test.describe('admin journey', () => {
 
     await page.goto(`/pro?date=${DAY}`)
     await expect(page.getByRole('article')).toHaveCount(2)
-    const [paidCard, doneCard] = await page.getByRole('article').all()
+    const cards = await page.getByRole('article').all()
+    const paidCard = requireValue(cards[0], 'paid card')
+    const doneCard = requireValue(cards[1], 'done card')
     await expect(paidCard).toContainText(frPro.progress.todo)
     await expect(paidCard).toContainText('Compte Ada')
     await expect(paidCard).toContainText(THIONVILLE_ADDRESS.label)

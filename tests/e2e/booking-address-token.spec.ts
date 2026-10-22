@@ -5,6 +5,7 @@ import { signedAddress, THIONVILLE_ADDRESS } from '../support/address'
 import { pickFreeDates } from '../support/dates'
 import { assertTestStripeKey, cleanupE2eData, findBookings } from '../support/db'
 import { uniqueTestEmail } from '../support/env'
+import { requireValue } from '../support/require'
 import { acceptPaymentCheckboxes, clickPay, MESSAGES } from './support/booking'
 
 const m = MESSAGES.fr
@@ -22,7 +23,7 @@ test('a restored draft with a tampered address token sends the visitor back to t
   page,
 }) => {
   const email = uniqueTestEmail('addrtoken')
-  const [date] = await pickFreeDates(1)
+  const date = requireValue((await pickFreeDates(1))[0], 'free day')
   const address = signedAddress(THIONVILLE_ADDRESS)
   const draft = {
     address: { ...address, token: `${address.token.slice(0, -2)}AA` },
@@ -43,10 +44,10 @@ test('a restored draft with a tampered address token sends the visitor back to t
     hasConfirmedBinsReady: true,
     hasAcceptedTerms: true,
   }
-  await page.addInitScript(
-    ([key, value]) => sessionStorage.setItem(key, value),
-    [BOOKING_CHECKOUT_STORAGE_KEY, JSON.stringify({ bookingId: crypto.randomUUID(), draft })],
-  )
+  await page.addInitScript(({ key, value }) => sessionStorage.setItem(key, value), {
+    key: BOOKING_CHECKOUT_STORAGE_KEY,
+    value: JSON.stringify({ bookingId: crypto.randomUUID(), draft }),
+  })
 
   await page.goto('/booking?checkout=cancelled')
   await expect(page.getByRole('heading', { name: m.headings.payment.title })).toBeVisible()

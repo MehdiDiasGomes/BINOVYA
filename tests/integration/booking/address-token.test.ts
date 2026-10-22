@@ -16,6 +16,7 @@ import {
   findBookings,
 } from '../../support/db'
 import { BASE_URL, uniqueTestEmail } from '../../support/env'
+import { requireValue } from '../../support/require'
 
 const ONE_DAY_MS: number = 24 * 60 * 60 * 1000
 
@@ -123,7 +124,7 @@ let date: string
 beforeAll(async () => {
   assertTestStripeKey()
   await cleanupE2eData()
-  ;[date] = await pickFreeDates(1)
+  date = requireValue((await pickFreeDates(1))[0], 'free day')
 })
 
 afterAll(async () => {

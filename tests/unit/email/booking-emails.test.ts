@@ -16,7 +16,13 @@ describe('toBookingEmailData', () => {
           large_bin_count: 2,
           amount_total_cents: 1990,
         },
-        { email: 'a@b.test', first_name: 'Ada', last_name: 'Lovelace', phone: '+33612345678' },
+        {
+          id: 'c1',
+          email: 'a@b.test',
+          first_name: 'Ada',
+          last_name: 'Lovelace',
+          phone: '+33612345678',
+        },
       ),
     ).toEqual({
       id: 'b1',

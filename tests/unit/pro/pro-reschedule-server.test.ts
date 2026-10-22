@@ -15,6 +15,9 @@ import {
   type HttpError,
 } from '../../support/pro-fixtures'
 
+import type { Database } from '../../../app/types/database.types'
+import type { SupabaseClient } from '@supabase/supabase-js'
+
 vi.mock('#supabase/server', () => ({ serverSupabaseServiceRole: vi.fn() }))
 
 beforeEach(() => {

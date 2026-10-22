@@ -82,6 +82,8 @@ export const intervention = (
   paymentMethod: 'stripe',
   createdByAdmin: false,
   paymentDueAt: null,
+  priceSource: 'grid',
+  adminNote: null,
 })
 
 export const caught = async (action: () => Promise<unknown>): Promise<HttpError> => {
