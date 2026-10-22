@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs'
+import { resolve as resolvePath } from 'node:path'
+
 import { describe, expect, it } from 'vitest'
 
 import { buttonClass } from '../../../app/constants/buttons'
@@ -5,16 +8,10 @@ import { buttonClass } from '../../../app/constants/buttons'
 import type { ButtonClassOptions, ButtonSize, ButtonVariant } from '../../../app/types/button'
 
 const VARIANTS: ButtonVariant[] = [
-  'primary',
-  'secondary',
-  'destructive',
-  'warning',
-  'onDark',
-  'onDarkWarning',
-  'onDarkGhost',
-  'onDarkOutline',
-  'ghost',
-]
+  ...readFileSync(resolvePath(process.cwd(), 'app/types/button.ts'), 'utf8')
+    .split('export type ButtonSize')[0]!
+    .matchAll(/'(\w+)'/g),
+].map(match => match[1] as ButtonVariant)
 
 const SIZES: ButtonSize[] = ['md', 'sm', 'icon']
 
@@ -67,6 +64,11 @@ describe('buttonClass', () => {
     VARIANTS.forEach(variant => {
       expect(buttonClass({ variant, size: 'md' })).toContain('motion-reduce:transition-none')
     })
+  })
+
+  it('derives the variant list from the source type, destructiveSolid included', () => {
+    expect(VARIANTS).toContain('destructiveSolid')
+    expect(VARIANTS).toHaveLength(10)
   })
 
   it('uses the destructive colour for the destructive variant', () => {
