@@ -22,6 +22,7 @@ import {
   readPrice,
   waitForStatus,
 } from '../support/db'
+import { requireValue } from '../support/require'
 
 const LONG_DATE = (isoDate: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(
@@ -64,8 +65,8 @@ test('1. happy path FR: busy button, Stripe page, success page, paid booking', a
   const lang: Lang = 'fr'
   const m = MESSAGES[lang]
   const email = uniqueTestEmail('happy')
-  const isoDate = days[0]
-  await fillUntilPayment(page, lang, { email, isoDate: isoDate })
+  const isoDate = requireValue(days[0], 'free day 0')
+  await fillUntilPayment(page, lang, { email, isoDate })
   await acceptPaymentCheckboxes(page, lang)
 
   await page.route('**/api/booking', async route => {
@@ -114,7 +115,7 @@ test('2. cancel on Stripe: draft restored, alert, focus, booking expired, repay 
   const lang: Lang = 'fr'
   const m = MESSAGES[lang]
   const email = uniqueTestEmail('cancel')
-  await startCheckout(page, lang, { email, isoDate: days[1] })
+  await startCheckout(page, lang, { email, isoDate: requireValue(days[1], 'free day 1') })
   const firstBooking = (await findBookings(email))[0]
   expect(firstBooking?.status).toBe('pending_payment')
 
@@ -140,10 +141,10 @@ test('3. one pending booking per customer', async ({ page, context }) => {
   const lang: Lang = 'fr'
   const m = MESSAGES[lang]
   const email = uniqueTestEmail('pending')
-  await startCheckout(page, lang, { email, isoDate: days[3] })
+  await startCheckout(page, lang, { email, isoDate: requireValue(days[3], 'free day 3') })
 
   const second = await context.newPage()
-  await fillUntilPayment(second, lang, { email, isoDate: days[4] })
+  await fillUntilPayment(second, lang, { email, isoDate: requireValue(days[4], 'free day 4') })
   await acceptPaymentCheckboxes(second, lang)
   await payButton(second, lang).click()
   await expect(second.getByRole('alert').filter({ hasText: m.errors.pendingPayment })).toBeVisible()
@@ -160,7 +161,7 @@ test('3. one pending booking per customer', async ({ page, context }) => {
 test('4. declined card stays pending, then 4242 pays', async ({ page }) => {
   const lang: Lang = 'fr'
   const email = uniqueTestEmail('declined')
-  await startCheckout(page, lang, { email, isoDate: days[5] })
+  await startCheckout(page, lang, { email, isoDate: requireValue(days[5], 'free day 5') })
 
   await payOnStripe(page, '4000000000000002')
   await expect(page.getByText(/refusée|declined/i).first()).toBeVisible({ timeout: 30_000 })

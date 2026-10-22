@@ -10,9 +10,12 @@ const NOW = 1_800_000_000
 
 const DAY = 24 * 3600
 
-const withAmr = (method: string, timestamp: number): { amr: unknown } => ({
-  amr: [{ method, timestamp }],
-})
+type Claims = Parameters<typeof signInTimestamp>[0]
+
+const malformedClaims = (value: unknown): Claims => value as Claims
+
+const withAmr = (method: string, timestamp: number): Claims =>
+  malformedClaims({ amr: [{ method, timestamp }] })
 
 const encode = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString('base64url')
 
@@ -50,7 +53,7 @@ describe('isSignInExpired', () => {
     ['an infinite timestamp', withAmr('otp', Number.POSITIVE_INFINITY)],
     ['a NaN timestamp', withAmr('otp', Number.NaN)],
   ])('treats %s as expired', (_label, claims) => {
-    expect(isSignInExpired(claims as never, NOW)).toBe(true)
+    expect(isSignInExpired(malformedClaims(claims), NOW)).toBe(true)
   })
 })
 
@@ -66,29 +69,31 @@ describe('isSignInExpired with a max age', () => {
   })
 
   it('still ends a session without sign-in time', () => {
-    expect(isSignInExpired({ amr: [] }, NOW, 30 * DAY)).toBe(true)
+    expect(isSignInExpired(malformedClaims({ amr: [] }), NOW, 30 * DAY)).toBe(true)
   })
 })
 
 describe('signInTimestamp', () => {
   it('returns the oldest valid entry', () => {
-    const claims = {
+    const claims = malformedClaims({
       amr: [
         { method: 'otp', timestamp: 300 },
         { method: 'magiclink', timestamp: 100 },
         { method: 'password', timestamp: 1 },
       ],
-    }
+    })
     expect(signInTimestamp(claims)).toBe(100)
   })
 
   it('ignores invalid entries', () => {
-    expect(signInTimestamp({ amr: [{ method: 'otp', timestamp: 'x' }, 'otp', null] })).toBeNull()
+    expect(
+      signInTimestamp(malformedClaims({ amr: [{ method: 'otp', timestamp: 'x' }, 'otp', null] })),
+    ).toBeNull()
   })
 
   it('returns null without claims or amr', () => {
     expect(signInTimestamp(null)).toBeNull()
-    expect(signInTimestamp({})).toBeNull()
+    expect(signInTimestamp(malformedClaims({}))).toBeNull()
   })
 })
 

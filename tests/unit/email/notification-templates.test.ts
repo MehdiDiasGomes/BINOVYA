@@ -68,7 +68,7 @@ const renderers: [string, () => string][] = [
     'photos',
     () =>
       generatePhotosAvailableEmail(
-        { ...BOOKING, loginUrl: 'https://binovya.fr/x', siteUrl: 'https://binovya.fr' },
+        { ...BOOKING, accountUrl: 'https://binovya.fr/x', siteUrl: 'https://binovya.fr' },
         escapeHtml,
       ).html,
   ],

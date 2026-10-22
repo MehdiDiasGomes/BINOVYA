@@ -15,6 +15,7 @@ import { createAdmin, readDepot, removeE2eAdmins, type DepotRow } from '../../su
 import { getApi } from '../../support/api'
 import { assertTestStripeKey, cleanupE2eData } from '../../support/db'
 import { uniqueTestEmail } from '../../support/env'
+import { requireValue } from '../../support/require'
 
 import type { AddressDetails } from '../../../app/types/booking'
 import type { ProPlanning } from '../../../app/types/pro'
@@ -54,9 +55,15 @@ beforeAll(async () => {
       createCustomer({ email: uniqueTestEmail(`plan-${tag}`), firstName: tag.toUpperCase() }),
     ),
   )
-  const [a, b, c, d, e, f, g] = customers as [AccountCustomer, ...AccountCustomer[]] & {
-    length: 7
-  }
+  const customerAt = (index: number): AccountCustomer =>
+    requireValue(customers[index], `customer ${index}`)
+  const a = customerAt(0)
+  const b = customerAt(1)
+  const c = customerAt(2)
+  const d = customerAt(3)
+  const e = customerAt(4)
+  const f = customerAt(5)
+  const g = customerAt(6)
   const seed = (
     customer: AccountCustomer,
     booking: Pick<AccountBookingSeed, 'status' | 'address'> & { date: string },

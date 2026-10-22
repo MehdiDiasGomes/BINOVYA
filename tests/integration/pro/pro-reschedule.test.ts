@@ -56,7 +56,7 @@ type Seeded = { id: string; email: string }
 const seedPaid = async (
   tag: string,
   date: string,
-  options: Pick<AccountBookingSeed, 'address' | 'status' | 'reminderSentAt'> = {},
+  options: Partial<Pick<AccountBookingSeed, 'address' | 'status' | 'reminderSentAt'>> = {},
 ): Promise<Seeded> => {
   const customer: AccountCustomer = await createCustomer({
     email: uniqueTestEmail(`resched-${tag}`),

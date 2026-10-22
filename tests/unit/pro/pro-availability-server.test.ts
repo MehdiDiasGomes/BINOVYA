@@ -106,10 +106,10 @@ describe('loadDayOverview', () => {
 
 describe('loadDayOverviewsOfDates', () => {
   const rangesOf = (rpc: ReturnType<typeof vi.fn>): [string, string][] =>
-    rpc.mock.calls.map(([, args]: [string, { p_from: string; p_to: string }]) => [
-      args.p_from,
-      args.p_to,
-    ])
+    rpc.mock.calls.map(call => {
+      const args = call[1] as { p_from: string; p_to: string }
+      return [args.p_from, args.p_to]
+    })
 
   const rpcEchoing = (): ReturnType<typeof vi.fn> =>
     vi.fn().mockImplementation(async (_name: string, args: { p_from: string; p_to: string }) => ({

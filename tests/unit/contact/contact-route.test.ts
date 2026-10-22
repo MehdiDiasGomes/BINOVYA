@@ -1,5 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { requireValue } from '../../support/require'
+
 type Handler = (event: { body: unknown }) => Promise<{ success: boolean }>
 
 type HttpError = Error & { statusCode: number }
@@ -19,10 +21,15 @@ const VALID_BODY = {
   website: '',
 }
 
+const captured: { handler?: Handler } = {}
+
+const capturedHandler = (): Handler | undefined => captured.handler
+
 const loadHandler = async (): Promise<Handler> => {
   vi.resetModules()
-  const module = (await import('../../../server/api/contact.post')) as { default: Handler }
-  return module.default
+  delete captured.handler
+  await import('../../../server/api/contact.post')
+  return requireValue(capturedHandler(), 'contact handler')
 }
 
 const statusOf = async (call: Promise<unknown>): Promise<number | undefined> =>
@@ -33,7 +40,10 @@ const statusOf = async (call: Promise<unknown>): Promise<number | undefined> =>
 
 beforeEach(() => {
   configMock.mockReturnValue({ resendApiKey: 're_test', contactEmailTo: 'team@binovya.test' })
-  vi.stubGlobal('defineEventHandler', (handler: Handler) => handler)
+  vi.stubGlobal('defineEventHandler', (handler: Handler) => {
+    captured.handler = handler
+    return handler
+  })
   vi.stubGlobal('assertBodySize', () => undefined)
   vi.stubGlobal(
     'readValidatedBody',
