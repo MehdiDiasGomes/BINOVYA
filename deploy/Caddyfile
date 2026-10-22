@@ -1,0 +1,48 @@
+{
+	email contact@binovya.fr
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age={$HSTS_MAX_AGE}; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'unsafe-hashes' 'sha256-bwK6T5wZVTANitXbrTsel7kl/PyCjCd/Dq5Qoz3imjM='; style-src 'self' 'unsafe-inline'; connect-src 'self' {$SUPABASE_URL}; img-src 'self' data: blob: {$SUPABASE_URL}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+		-Server
+		-Via
+		-X-Powered-By
+	}
+}
+
+http://{$SITE_DOMAIN}, http://www.{$SITE_DOMAIN} {
+	import security_headers
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+www.{$SITE_DOMAIN} {
+	import security_headers
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+{$SITE_DOMAIN} {
+	import security_headers
+	encode zstd gzip
+	reverse_proxy nuxt:3000
+
+	log {
+		output stdout
+		format filter {
+			request>uri query {
+				delete q
+			}
+			request>remote_ip ip_mask 24 48
+			request>client_ip ip_mask 24 48
+			request>headers>X-Forwarded-For ip_mask 24 48
+			request>headers>Cf-Connecting-Ip ip_mask 24 48
+			wrap json
+		}
+	}
+}
