@@ -118,6 +118,7 @@
 import { LOGIN_LINK_LIFETIME_HOURS, SESSION_EXPIRED_QUERY } from '@/constants/account'
 import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { HERO_ENTER_CLASS, POP_SPRING, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 
 definePageMeta({
   layout: 'default',
@@ -160,10 +161,6 @@ onMounted(() => {
 
 useSeoMeta({
   title: () => t('account.login.seo.title'),
-  description: () => t('account.login.seo.description'),
-  ogTitle: () => t('account.login.seo.title'),
-  ogDescription: () => t('account.login.seo.description'),
-  ogType: 'website',
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

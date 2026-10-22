@@ -25,8 +25,7 @@
               <Icon name="Mail" :size="14" aria-hidden="true" class="shrink-0 text-turquoise" />
               <a
                 :href="`mailto:${contactEmail}`"
-                class="min-w-0 [overflow-wrap:anywhere]"
-                :class="FOOTER_LINK_CLASS"
+                :class="cn(FOOTER_LINK_CLASS, 'min-w-0 [overflow-wrap:anywhere]')"
                 >{{ contactEmail }}</a
               >
             </li>
@@ -70,6 +69,7 @@
 
 <script setup lang="ts">
 import { FOOTER_INFO_LINKS, FOOTER_LINK_CLASS } from '@/constants/footer'
+import { cn } from '@/lib/utils'
 
 const { t } = useI18n()
 const localePath = useLocalePath()

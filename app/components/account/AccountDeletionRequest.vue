@@ -86,7 +86,12 @@
               : $t('account.deletion.confirm')
           }}
         </AppButton>
-        <AppButton variant="secondary" size="sm" @click="cancelConfirmation">
+        <AppButton
+          variant="secondary"
+          size="sm"
+          :is-disabled="step === 'submitting'"
+          @click="cancelConfirmation"
+        >
           {{ $t('account.deletion.cancel') }}
         </AppButton>
       </div>

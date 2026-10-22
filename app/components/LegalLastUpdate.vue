@@ -1,19 +1,21 @@
 <template>
-  <p>
-    {{ label }}
-    <time :datetime="LEGAL_PAGES_UPDATED_ON">{{ formattedDate }}</time>
-  </p>
+  <I18nT keypath="common.lastUpdate" tag="p" scope="global">
+    <template #date>
+      <time :datetime="props.date">{{ formattedDate }}</time>
+    </template>
+  </I18nT>
 </template>
 
 <script setup lang="ts">
-import { LEGAL_PAGES_UPDATED_ON } from '@/constants/legal'
 import { formatMediumDate } from '@/utils/date'
 
-defineProps<{
-  label: string
+const props = defineProps<{
+  date: string
 }>()
 
 const { locale } = useI18n()
 
-const formattedDate = computed((): string => formatMediumDate(LEGAL_PAGES_UPDATED_ON, locale.value))
+const formattedDate: ComputedRef<string> = computed((): string =>
+  formatMediumDate(props.date, locale.value),
+)
 </script>

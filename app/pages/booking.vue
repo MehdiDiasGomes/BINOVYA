@@ -171,7 +171,7 @@ definePageMeta({
   layout: 'default',
 })
 
-const { t, locale } = useI18n()
+const { locale } = useI18n()
 const localePath = useLocalePath()
 const route = useRoute()
 const { draft, totalQuantity, resetDraft } = useBookingDraft()
@@ -187,14 +187,7 @@ const {
 const checkout: BookingCheckoutState = useBookingCheckout()
 const { rememberCheckout, readOutcome, waitForRelease, readErrorCode } = checkout
 
-useSeoMeta({
-  title: () => t('booking.seo.title'),
-  description: () => t('booking.seo.description'),
-  ogTitle: () => t('booking.seo.title'),
-  ogDescription: () => t('booking.seo.description'),
-  ogType: 'website',
-  twitterCard: 'summary_large_image',
-})
+usePageSeo('booking.seo.title', 'booking.seo.description')
 
 const currentStep: Ref<BookingStepId> = ref('contact')
 const hasAttempted: Ref<boolean> = ref(false)

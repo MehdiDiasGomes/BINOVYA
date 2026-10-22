@@ -17,6 +17,19 @@ export const localizedPagePath = (locale: BookingLocale, path: string): string =
 }
 
 /**
+ * Builds the absolute URL of a page in a given locale, the French home page being the bare site
+ * URL, as in the canonical link.
+ * @param siteUrl - Site URL without trailing slash
+ * @param locale - Locale of the page
+ * @param path - Path of the page without locale prefix, starting with a slash
+ * @returns Absolute page URL
+ */
+export const localizedPageUrl = (siteUrl: string, locale: BookingLocale, path: string): string => {
+  const localizedPath: string = localizedPagePath(locale, path)
+  return localizedPath === '/' ? siteUrl : `${siteUrl}${localizedPath}`
+}
+
+/**
  * Removes the locale prefix of a localized path.
  * @param path - Path of the current route
  * @returns Path without locale prefix, `/` for a home page
@@ -41,6 +54,7 @@ export const pathWithoutLocalePrefix = (path: string): string => {
 export const isPrivatePagePath = (path: string): boolean => {
   const unprefixedPath: string = pathWithoutLocalePrefix(path)
   return PRIVATE_PAGE_PATHS.some(
-    privatePath => unprefixedPath === privatePath || unprefixedPath.startsWith(`${privatePath}/`),
+    (privatePath: string): boolean =>
+      unprefixedPath === privatePath || unprefixedPath.startsWith(`${privatePath}/`),
   )
 }

@@ -10,5 +10,4 @@ export type LanguageLink = {
   language: string
   path: string
   isCurrent: boolean
-  isCodeInName: boolean
 }

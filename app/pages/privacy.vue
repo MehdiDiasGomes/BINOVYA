@@ -1,12 +1,12 @@
 <template>
   <div class="page-padding-x min-h-screen bg-background py-16 md:py-24">
-    <div ref="elementRef" :class="['mx-auto max-w-4xl scroll-animate', isVisible && 'is-visible']">
+    <div class="mx-auto max-w-4xl">
       <div class="space-y-12">
-        <div class="space-y-4 text-center">
+        <div :class="HERO_ENTER_CLASS" class="space-y-4 text-center">
           <h1 class="font-heading text-3xl text-foreground sm:text-4xl md:text-5xl">
             {{ $t('privacy.title') }}
           </h1>
-          <LegalLastUpdate :label="$t('privacy.lastUpdate')" class="text-sm text-ink/80" />
+          <LegalLastUpdate :date="PRIVACY_POLICY_UPDATED_ON" class="text-sm text-ink/80" />
         </div>
 
         <div class="space-y-8">
@@ -132,42 +132,28 @@
 
 <script setup lang="ts">
 import type { RawLocaleMessage } from '@/types/i18n'
+import type { ComputedRef } from 'vue'
 
 import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
+import { PRIVACY_POLICY_UPDATED_ON } from '@/constants/legal'
+import { HERO_ENTER_CLASS } from '@/constants/motion'
 
-const { t, tm, rt } = useI18n()
-const { elementRef, isVisible } = useScrollAnimation(0.1)
+const { tm, rt } = useI18n()
 
-const dataCollectedItems = computed((): string[] =>
-  (tm('privacy.dataCollected.items') as RawLocaleMessage[]).map(item => rt(item)),
+const dataCollectedItems: ComputedRef<string[]> = computed((): string[] =>
+  (tm('privacy.dataCollected.items') as RawLocaleMessage[]).map((item: RawLocaleMessage): string =>
+    rt(item),
+  ),
 )
-const dataUsageItems = computed((): string[] =>
-  (tm('privacy.dataUsage.items') as RawLocaleMessage[]).map(item => rt(item)),
+const dataUsageItems: ComputedRef<string[]> = computed((): string[] =>
+  (tm('privacy.dataUsage.items') as RawLocaleMessage[]).map((item: RawLocaleMessage): string =>
+    rt(item),
+  ),
 )
 
 definePageMeta({
   layout: 'default',
 })
 
-useSeoMeta({
-  title: () => t('seo.privacy.title'),
-  description: () => t('seo.privacy.description'),
-  ogTitle: () => t('seo.privacy.title'),
-  ogDescription: () => t('seo.privacy.description'),
-  ogType: 'website',
-  twitterCard: 'summary_large_image',
-})
+usePageSeo('seo.privacy.title', 'seo.privacy.description')
 </script>
-
-<style scoped>
-.scroll-animate {
-  opacity: 0;
-  transform: translateY(20px);
-  transition: all 1s cubic-bezier(0.22, 1, 0.36, 1);
-}
-
-.scroll-animate.is-visible {
-  opacity: 1;
-  transform: translateY(0);
-}
-</style>

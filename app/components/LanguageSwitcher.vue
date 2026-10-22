@@ -24,15 +24,11 @@
           "
           @click="emit('navigate', link.path)"
         >
-          <span
-            v-if="variant === 'desktop'"
-            class="uppercase lg:sr-only"
-            :aria-hidden="link.isCodeInName ? 'true' : undefined"
-            >{{ link.code }}</span
-          >
-          <span :class="cn(variant === 'desktop' && 'sr-only lg:not-sr-only')">{{
-            link.name
-          }}</span>
+          <template v-if="variant === 'desktop'">
+            <span class="lg:hidden">{{ `${link.code.toUpperCase()} ` }}</span>
+            <span class="sr-only lg:not-sr-only">{{ link.name }}</span>
+          </template>
+          <span v-else>{{ link.name }}</span>
         </NuxtLink>
       </li>
     </ul>
@@ -56,7 +52,7 @@ const { locale, locales } = useI18n()
 const switchLocalePath = useSwitchLocalePath()
 const localePath = useLocalePath()
 
-const languageLinks: ComputedRef<LanguageLink[]> = computed(() =>
+const languageLinks: ComputedRef<LanguageLink[]> = computed((): LanguageLink[] =>
   locales.value.map((item: LocaleObject): LanguageLink => {
     const name: string = item.name ?? item.code
     const language: string = item.language ?? item.code
@@ -66,9 +62,6 @@ const languageLinks: ComputedRef<LanguageLink[]> = computed(() =>
       language,
       path: switchLocalePath(item.code) || localePath('/', item.code),
       isCurrent: item.code === locale.value,
-      isCodeInName: name
-        .toLocaleLowerCase(language)
-        .includes(item.code.toLocaleLowerCase(language)),
     }
   }),
 )

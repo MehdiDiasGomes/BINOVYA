@@ -4,8 +4,6 @@ export default {
   login: {
     seo: {
       title: 'Customer area - BINOVYA',
-      description:
-        'Access your BINOVYA bookings and the before/after photos of your bins with a login link sent by email.',
     },
     eyebrow: 'Customer area',
     title: 'Access my area',

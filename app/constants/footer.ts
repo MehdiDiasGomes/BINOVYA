@@ -1,4 +1,4 @@
-import type { NavItem } from '@/constants/navbar'
+import type { NavItem } from '@/types/navbar'
 
 export const FOOTER_INFO_LINKS: readonly NavItem[] = [
   { labelKey: 'footer.info.booking', path: '/booking' },
@@ -9,4 +9,4 @@ export const FOOTER_INFO_LINKS: readonly NavItem[] = [
 ]
 
 export const FOOTER_LINK_CLASS: string =
-  'flex min-h-11 items-center rounded-md transition-colors duration-press ease-brand hover:text-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none lg:min-h-8'
+  '-mx-1 flex min-h-11 items-center rounded-md px-1 transition-colors duration-press ease-brand hover:text-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none lg:min-h-8'

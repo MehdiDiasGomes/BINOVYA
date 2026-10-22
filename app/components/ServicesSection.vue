@@ -12,7 +12,7 @@
         >
           {{ $t('services.title') }}
         </h2>
-        <p class="mx-auto mt-3 max-w-[560px] text-[15px] leading-relaxed text-muted-foreground">
+        <p class="mx-auto mt-3 max-w-[560px] text-[15px] leading-relaxed text-ink/70">
           {{ $t('services.subtitle') }}
         </p>
       </Reveal>
@@ -30,27 +30,21 @@
               class="relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900 to-navy-800"
             >
               <NuxtImg
-                v-if="service.image"
                 :src="service.image"
                 alt=""
                 class="h-full w-full object-cover transition-transform duration-400 group-hover:scale-105"
                 width="300"
                 :height="service.imageHeight"
                 sizes="sm:50vw lg:300px"
+                format="webp"
                 loading="lazy"
-              />
-              <Icon
-                v-else
-                :name="service.icon"
-                class="h-12 w-12 text-turquoise"
-                aria-hidden="true"
               />
             </div>
             <div class="p-4">
               <h3 class="mb-1.5 text-[14px] font-black leading-snug text-ink">
                 {{ $t(service.titleKey) }}
               </h3>
-              <p class="text-[12.5px] leading-snug text-muted-foreground">
+              <p class="text-[12.5px] leading-snug text-ink/70">
                 {{ $t(service.descKey) }}
               </p>
             </div>
@@ -62,16 +56,13 @@
 </template>
 
 <script setup lang="ts">
-import type { LucideIconName } from '@/types/icon'
-
 import { REVEAL_STAGGER } from '@/constants/motion'
 import { SERVICES_HEADING_ID } from '@/constants/navbar'
 
 type ServiceItem = {
   key: string
-  icon: LucideIconName
-  image?: string
-  imageHeight?: number
+  image: string
+  imageHeight: number
   titleKey: string
   descKey: string
 }
@@ -79,7 +70,6 @@ type ServiceItem = {
 const serviceItems: ServiceItem[] = [
   {
     key: 'bins',
-    icon: 'Trash2',
     image: '/images/services/bins.png',
     imageHeight: 200,
     titleKey: 'services.items.bins.title',
@@ -87,7 +77,6 @@ const serviceItems: ServiceItem[] = [
   },
   {
     key: 'pav',
-    icon: 'Package',
     image: '/images/services/pav.png',
     imageHeight: 225,
     titleKey: 'services.items.pav.title',
@@ -95,7 +84,6 @@ const serviceItems: ServiceItem[] = [
   },
   {
     key: 'urban',
-    icon: 'Landmark',
     image: '/images/services/urban.png',
     imageHeight: 200,
     titleKey: 'services.items.urban.title',
@@ -103,7 +91,6 @@ const serviceItems: ServiceItem[] = [
   },
   {
     key: 'signage',
-    icon: 'SignpostBig',
     image: '/images/services/signage.png',
     imageHeight: 200,
     titleKey: 'services.items.signage.title',

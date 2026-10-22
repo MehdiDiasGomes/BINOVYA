@@ -1,6 +1,5 @@
 export default {
   title: 'Politique de confidentialité',
-  lastUpdate: 'Dernière mise à jour :',
   introduction: {
     title: 'Introduction',
     content:

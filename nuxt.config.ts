@@ -1,14 +1,20 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from '@tailwindcss/vite'
 
-import { PRIVATE_PAGE_ROBOTS, PRIVATE_PAGE_ROUTE_PATTERNS } from './app/constants/seo'
+import {
+  DEFAULT_SEO_LOCALE,
+  PRIVATE_PAGE_ROBOTS,
+  PRIVATE_PAGE_ROUTE_PATTERNS,
+} from './app/constants/seo'
 
 import type { NuxtConfig } from 'nuxt/schema'
 
 const isTestServer: boolean = process.env.BINOVYA_TEST_SERVER === '1'
 
-const privatePageRouteRules: NonNullable<NuxtConfig['routeRules']> = Object.fromEntries(
-  PRIVATE_PAGE_ROUTE_PATTERNS.map(pattern => [
+type RouteRules = NonNullable<NuxtConfig['routeRules']>
+
+const privatePageRouteRules: RouteRules = Object.fromEntries(
+  PRIVATE_PAGE_ROUTE_PATTERNS.map((pattern: string): [string, RouteRules[string]] => [
     pattern,
     { headers: { 'X-Robots-Tag': PRIVATE_PAGE_ROBOTS } },
   ]),
@@ -97,10 +103,11 @@ export default defineNuxtConfig({
   },
   i18n: {
     locales: [
-      { code: 'fr', language: 'fr-FR', name: 'Français', file: 'fr.ts' },
+      { code: 'fr', language: 'fr', name: 'Français', file: 'fr.ts' },
       { code: 'en', language: 'en', name: 'English', file: 'en.ts' },
     ],
-    defaultLocale: 'fr',
+    defaultLocale: DEFAULT_SEO_LOCALE,
+    baseUrl: process.env.NUXT_PUBLIC_SITE_URL ?? '',
     strategy: 'prefix_except_default',
     langDir: 'locales',
     detectBrowserLanguage: {

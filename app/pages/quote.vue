@@ -1,5 +1,8 @@
 <template>
   <div class="bg-paper">
+    <p class="sr-only" role="status">
+      {{ isSubmitting ? $t('quote.actions.submitting') : '' }}
+    </p>
     <section class="bg-navy-950 pb-10 pt-12">
       <div class="mx-auto max-w-[1180px] px-4 sm:px-8">
         <span
@@ -196,14 +199,7 @@ const {
 
 const hasBins: ComputedRef<boolean> = computed(() => form.value.equipment.includes('bins'))
 
-useSeoMeta({
-  title: () => t('quote.seo.title'),
-  description: () => t('quote.seo.description'),
-  ogTitle: () => t('quote.seo.title'),
-  ogDescription: () => t('quote.seo.description'),
-  ogType: 'website',
-  twitterCard: 'summary_large_image',
-})
+usePageSeo('quote.seo.title', 'quote.seo.description')
 
 const visibleError = (field: QuoteField): string => {
   const key: string | undefined = hasAttempted.value ? errors.value[field] : undefined

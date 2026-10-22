@@ -1,1 +1,3 @@
-export const LEGAL_PAGES_UPDATED_ON: string = '2025-01-04'
+export const LEGAL_NOTICE_UPDATED_ON: string = '2026-10-22'
+
+export const PRIVACY_POLICY_UPDATED_ON: string = '2026-10-22'

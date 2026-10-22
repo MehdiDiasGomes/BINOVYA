@@ -1,33 +1,41 @@
-import type { BookingLocale } from '@/types/booking'
+import { escapeXml } from '../utils/xml'
 
-import { DEFAULT_SEO_LOCALE, PUBLIC_PAGE_PATHS, SEO_LOCALE_PATH_PREFIXES } from '@/constants/seo'
-import { localizedPagePath } from '@/utils/seo'
+import type { BookingLocale } from '@/types/booking'
+import type { H3Event } from 'h3'
+
+import {
+  DEFAULT_SEO_LOCALE,
+  PUBLIC_PAGE_PATHS,
+  SEO_FILE_CACHE_CONTROL,
+  SEO_LOCALE_PATH_PREFIXES,
+} from '@/constants/seo'
+import { localizedPageUrl } from '@/utils/seo'
 
 const SITEMAP_LOCALES: BookingLocale[] = Object.keys(SEO_LOCALE_PATH_PREFIXES) as BookingLocale[]
 
 const alternateLink = (hreflang: string, href: string): string =>
-  `    <xhtml:link rel="alternate" hreflang="${hreflang}" href="${escapeHtml(href)}"/>`
+  `    <xhtml:link rel="alternate" hreflang="${hreflang}" href="${escapeXml(href)}"/>`
 
 const sitemapEntry = (siteUrl: string, locale: BookingLocale, path: string): string => {
-  const alternates: string[] = SITEMAP_LOCALES.map(alternateLocale =>
-    alternateLink(alternateLocale, `${siteUrl}${localizedPagePath(alternateLocale, path)}`),
+  const alternates: string[] = SITEMAP_LOCALES.map((alternateLocale: BookingLocale): string =>
+    alternateLink(alternateLocale, localizedPageUrl(siteUrl, alternateLocale, path)),
   )
-  alternates.push(
-    alternateLink('x-default', `${siteUrl}${localizedPagePath(DEFAULT_SEO_LOCALE, path)}`),
-  )
-  const location: string = `${siteUrl}${localizedPagePath(locale, path)}`
-  return ['  <url>', `    <loc>${escapeHtml(location)}</loc>`, ...alternates, '  </url>'].join('\n')
+  alternates.push(alternateLink('x-default', localizedPageUrl(siteUrl, DEFAULT_SEO_LOCALE, path)))
+  const location: string = localizedPageUrl(siteUrl, locale, path)
+  return ['  <url>', `    <loc>${escapeXml(location)}</loc>`, ...alternates, '  </url>'].join('\n')
 }
 
-export default defineEventHandler((event): string => {
+export default defineEventHandler((event: H3Event): string => {
   const siteUrl: string = resolvePublicSiteUrl(event)
   if (!siteUrl) {
-    console.error('Sitemap unavailable: NUXT_PUBLIC_SITE_URL is missing or not https')
     throw createError({ statusCode: 503, statusMessage: 'Sitemap unavailable' })
   }
-  setResponseHeader(event, 'Content-Type', 'application/xml; charset=utf-8')
-  const entries: string[] = PUBLIC_PAGE_PATHS.flatMap(path =>
-    SITEMAP_LOCALES.map(locale => sitemapEntry(siteUrl, locale, path)),
+  setResponseHeaders(event, {
+    'Content-Type': 'application/xml; charset=utf-8',
+    'Cache-Control': SEO_FILE_CACHE_CONTROL,
+  })
+  const entries: string[] = PUBLIC_PAGE_PATHS.flatMap((path: string): string[] =>
+    SITEMAP_LOCALES.map((locale: BookingLocale): string => sitemapEntry(siteUrl, locale, path)),
   )
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',

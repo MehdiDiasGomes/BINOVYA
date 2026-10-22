@@ -131,6 +131,8 @@ const buildTestEnv = (outboxDir: string, secret: string): NodeJS.ProcessEnv => (
   ...process.env,
   TEST_BASE_URL: BASE_URL,
   NUXT_SITE_URL: BASE_URL,
+  NUXT_PUBLIC_SITE_URL: BASE_URL,
+  NUXT_PUBLIC_I18N_BASE_URL: BASE_URL,
   NUXT_MAIL_TRANSPORT: 'outbox',
   NUXT_MAIL_OUTBOX_DIR: outboxDir,
   NUXT_CONTACT_EMAIL_TO: TEST_ADMIN_MAILBOX,

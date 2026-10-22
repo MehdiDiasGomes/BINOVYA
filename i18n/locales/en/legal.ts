@@ -1,12 +1,10 @@
 export default {
   title: 'Legal Notice',
-  lastUpdate: 'Last updated:',
   publisher: {
     title: 'Site Publisher',
-    company: 'Company name',
-    address: 'Address',
-    email: 'Email',
-    phone: 'Phone',
+    company: 'Company name:',
+    address: 'Address:',
+    email: 'Email:',
   },
   hosting: {
     title: 'Hosting',

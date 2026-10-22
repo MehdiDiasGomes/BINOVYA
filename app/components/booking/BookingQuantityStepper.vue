@@ -3,7 +3,7 @@
     <AppButton
       variant="secondary"
       size="icon"
-      :aria-disabled="props.modelValue <= 0"
+      :is-disabled="props.modelValue <= 0"
       :aria-label="$t('booking.bins.decrease', { service: props.serviceName })"
       @click="update(-1)"
     >
@@ -31,7 +31,7 @@
     <AppButton
       variant="secondary"
       size="icon"
-      :aria-disabled="props.modelValue >= props.max"
+      :is-disabled="props.modelValue >= props.max"
       :aria-label="$t('booking.bins.increase', { service: props.serviceName })"
       @click="update(1)"
     >
@@ -62,6 +62,8 @@ const emit = defineEmits<{
 
 const update = (delta: number): void => {
   const next: number = Math.min(props.max, Math.max(0, props.modelValue + delta))
-  emit('update:modelValue', next)
+  if (next !== props.modelValue) {
+    emit('update:modelValue', next)
+  }
 }
 </script>

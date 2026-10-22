@@ -56,6 +56,7 @@ import { LOGIN_LINK_LIFETIME_HOURS } from '@/constants/account'
 import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION } from '@/constants/motion'
 import { PRO_HOME_PATH, PRO_LOGIN_PATH } from '@/constants/pro'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { cn } from '@/lib/utils'
 
 definePageMeta({
@@ -76,7 +77,7 @@ const { hasFailed, isVerifying } = useLoginLinkConfirm({
 
 useSeoMeta({
   title: () => t('pro.confirm.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
   referrer: 'no-referrer',
 })
 </script>

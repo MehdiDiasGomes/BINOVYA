@@ -1,11 +1,5 @@
+import type { NavItem } from '@/types/navbar'
 import type { TransitionProps } from 'vue'
-
-export type NavItem = {
-  labelKey: string
-  path: string
-  hash?: string
-  focusId?: string
-}
 
 export const MOBILE_MENU_PANEL_CLASS: string =
   'absolute inset-x-0 top-full z-40 flex flex-col border-t border-white/8 bg-navy-900 pb-5 pt-2.5 shadow-lg'

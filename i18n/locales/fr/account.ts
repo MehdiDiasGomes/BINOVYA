@@ -4,8 +4,6 @@ export default {
   login: {
     seo: {
       title: 'Espace client - BINOVYA',
-      description:
-        'Accédez à vos réservations BINOVYA et aux photos avant/après de vos bacs grâce à un lien de connexion envoyé par mail.',
     },
     eyebrow: 'Espace client',
     title: 'Accéder à mon espace',

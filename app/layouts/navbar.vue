@@ -15,6 +15,7 @@
           class="h-10 w-auto object-contain"
           width="48"
           height="40"
+          format="webp"
           loading="eager"
         />
       </NuxtLink>
@@ -102,6 +103,7 @@
 
 <script setup lang="ts">
 import type { AccountNavIcon } from '@/types/account'
+import type { NavItem } from '@/types/navbar'
 
 import { ACCOUNT_NAV_ICONS, ACCOUNT_NAV_LABEL_KEYS, ACCOUNT_NAV_PATHS } from '@/constants/account'
 import {
@@ -109,7 +111,6 @@ import {
   MOBILE_MENU_PANEL_CLASS,
   MOBILE_MENU_TRANSITION,
   navigationItems,
-  type NavItem,
 } from '@/constants/navbar'
 import { cn } from '@/lib/utils'
 

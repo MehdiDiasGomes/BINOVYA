@@ -141,6 +141,7 @@ import {
   PRO_CREATE_ID_PREFIX,
   PRO_CREATE_SECTIONS,
 } from '@/constants/proCreate'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { addDaysToIsoDate } from '@/utils/date'
 
 definePageMeta({
@@ -173,6 +174,6 @@ const maxDate: ComputedRef<string> = computed(() =>
 
 useSeoMeta({
   title: () => t('pro.create.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

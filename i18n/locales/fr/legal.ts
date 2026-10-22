@@ -1,12 +1,10 @@
 export default {
   title: 'Mentions légales',
-  lastUpdate: 'Dernière mise à jour :',
   publisher: {
     title: 'Éditeur du site',
-    company: 'Raison sociale',
-    address: 'Adresse',
-    email: 'Email',
-    phone: 'Téléphone',
+    company: 'Raison sociale\u00A0:',
+    address: 'Adresse\u00A0:',
+    email: 'Email\u00A0:',
   },
   hosting: {
     title: 'Hébergement',

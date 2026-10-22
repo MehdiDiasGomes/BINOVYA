@@ -1,6 +1,5 @@
 export default {
   title: 'Privacy Policy',
-  lastUpdate: 'Last updated:',
   introduction: {
     title: 'Introduction',
     content:

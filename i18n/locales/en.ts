@@ -8,9 +8,7 @@ import quote from './en/quote'
 
 export default {
   nav: {
-    home: 'Home',
     services: 'Our services',
-    particuliers: 'Individuals',
     quote: 'Quote',
     contact: 'Contact',
     reserver: 'Book',
@@ -19,7 +17,6 @@ export default {
     menu: 'Menu',
   },
   hero: {
-    tagline: 'Next-generation urban hygiene',
     eyebrow: 'Professional steam cleaning',
     titleMain: 'Urban hygiene',
     titleAccent: 'next generation',
@@ -46,7 +43,6 @@ export default {
     title: 'Our services',
     subtitle:
       'Four steam cleaning interventions to restore urban spaces to their full cleanliness.',
-    newBadge: 'NEW',
     items: {
       bins: {
         title: 'Wheeled bin cleaning',
@@ -86,13 +82,6 @@ export default {
       priceNote: 'per visit, with the annual plan',
       ctaAriaLabel: 'Book an intervention for large bins',
     },
-    features: {
-      cleaning: 'High-pressure cleaning',
-      disinfection: 'Complete disinfection',
-      deodorization: 'Odor neutralization',
-      eco: '100% natural products',
-      hightemp: 'High-temperature steam',
-    },
   },
   quoteCta: {
     eyebrow: 'Professionals & Local authorities',
@@ -110,11 +99,6 @@ export default {
     copyright: '© {year} BINOVYA — All rights reserved.',
     brand: {
       tagline: 'Next-generation urban hygiene.',
-    },
-    social: {
-      facebook: 'Follow us on Facebook',
-      instagram: 'Follow us on Instagram',
-      linkedin: 'Follow us on LinkedIn',
     },
     contact: {
       title: 'Contact us',
@@ -146,7 +130,7 @@ export default {
     logoAlt: 'BINOVYA Logo',
     backToHome: 'Back to home page',
     language: 'Language',
-    required: 'required',
+    lastUpdate: 'Last updated: {date}',
     skipToContent: 'Skip to main content',
     fieldValue: '{label}: {value}',
     datePicker: {
@@ -164,12 +148,12 @@ export default {
     home: {
       title: 'BINOVYA - Waste Bin Cleaning and Disinfection',
       description:
-        'BINOVYA, specialist in eco-friendly cleaning of wheeled bins, bio-waste shelters and containers. Professional, fast and 100% environmentally friendly service.',
+        'BINOVYA, specialist in eco-friendly cleaning of wheeled bins and containers. Professional and fast service.',
     },
     contact: {
       title: 'Contact Us - BINOVYA',
       description:
-        'Need a quote or information? Contact BINOVYA for professional cleaning of your waste bins. Fast response guaranteed.',
+        'Need a quote or information? Contact BINOVYA for professional cleaning of your waste bins.',
     },
     privacy: {
       title: 'Privacy Policy - BINOVYA',

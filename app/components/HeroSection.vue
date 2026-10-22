@@ -5,7 +5,6 @@
   >
     <div class="mx-auto max-w-[1180px] px-8">
       <div class="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
-        <!-- Texte -->
         <div>
           <span
             :class="HERO_ENTER_CLASS"
@@ -62,7 +61,6 @@
           </div>
         </div>
 
-        <!-- Image -->
         <div
           class="animate-in fade-in zoom-in-95 fill-mode-both delay-150 duration-1000 motion-reduce:animate-none relative"
         >
@@ -73,6 +71,7 @@
             width="600"
             height="400"
             sizes="sm:100vw lg:600px"
+            format="webp"
             loading="eager"
             fetchpriority="high"
           />
