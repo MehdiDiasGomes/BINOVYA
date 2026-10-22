@@ -320,9 +320,10 @@ describe('PUT /api/pro/availability/overrides/[date]', () => {
 
   it('answers 422 to a past date and writes nothing', async () => {
     const past = parisDateFromToday(-1)
+    const before: unknown = await readOverride(past)
     const result = await putOverride(past, { maxBookings: 0, note: null })
     expect(result.status).toBe(422)
-    expect(await readOverride(past)).toBeNull()
+    expect(await readOverride(past)).toEqual(before)
   })
 
   it('answers 400 to an impossible date and to a date beyond the horizon', async () => {
@@ -363,10 +364,10 @@ describe('DELETE /api/pro/availability/overrides/[date]', () => {
   })
 
   it('answers 422 to a past date, 400 to an impossible or distant date', async () => {
-    expect(
-      (await sendApi('DELETE', overrideUrl(parisDateFromToday(-1)), { cookie: adminCookie }))
-        .status,
-    ).toBe(422)
+    const past = parisDateFromToday(-1)
+    const before: unknown = await readOverride(past)
+    expect((await sendApi('DELETE', overrideUrl(past), { cookie: adminCookie })).status).toBe(422)
+    expect(await readOverride(past)).toEqual(before)
     expect(
       (await sendApi('DELETE', overrideUrl('2026-02-30'), { cookie: adminCookie })).status,
     ).toBe(400)

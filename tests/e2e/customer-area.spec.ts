@@ -6,6 +6,7 @@ import { createCustomer, readProfileState } from '../support/account'
 import { assertTestStripeKey, cleanupE2eData } from '../support/db'
 import { uniqueTestEmail } from '../support/env'
 import { findLink, waitForOneMail } from '../support/outbox'
+import { delayRoute } from './support/pro'
 
 const FR = ACCOUNT_MESSAGES.fr
 
@@ -134,6 +135,25 @@ test.describe('deletion request', () => {
     await page.reload()
     await expect(page.getByText(FR.deletion.doneTitle)).toBeVisible()
     await expect(page.getByRole('button', { name: FR.deletion.request })).toHaveCount(0)
+  })
+})
+
+test.describe('deletion request while sending', () => {
+  test('keeps the cancel button inert until the answer arrives', async ({ page }) => {
+    const area = await seedArea('deletion-busy')
+    await openArea(page, area)
+    await page.getByRole('button', { name: FR.deletion.request }).click()
+    const delayed = await delayRoute(page, /\/api\/account\/deletion-request$/)
+    await page.getByRole('button', { name: FR.deletion.confirm }).click()
+    await delayed.requestSeen
+
+    const cancel = page.getByRole('button', { name: FR.deletion.cancel })
+    await expect(cancel).toHaveAttribute('aria-disabled', 'true')
+    await cancel.click({ force: true })
+    await expect(page.getByRole('heading', { name: FR.deletion.confirmTitle })).toBeVisible()
+
+    delayed.release()
+    await expect(page.getByText(FR.deletion.doneTitle)).toBeVisible()
   })
 })
 

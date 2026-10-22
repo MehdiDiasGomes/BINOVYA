@@ -30,6 +30,9 @@ const listPageRoutes = (directory: string = PAGES_DIRECTORY): string[] =>
     return [route || '/']
   })
 
+const hasRouteUnderRoot = (routes: string[], root: string): boolean =>
+  routes.some(route => route === root || route.startsWith(`${root}/`))
+
 describe('page classification', () => {
   const pageRoutes: string[] = listPageRoutes()
 
@@ -50,7 +53,7 @@ describe('page classification', () => {
 
   it('lists no private root that has no page', () => {
     const missing: string[] = PRIVATE_PAGE_PATHS.filter(
-      root => !pageRoutes.some(route => route === root || route.startsWith(`${root}/`)),
+      root => !hasRouteUnderRoot(pageRoutes, root),
     )
     expect(missing).toEqual([])
   })
