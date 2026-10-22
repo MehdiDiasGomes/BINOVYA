@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { PARIS_ADDRESS } from '../../support/address'
+import { PARIS_ADDRESS, THIONVILLE_ADDRESS } from '../../support/address'
 import { bookingBody, createBooking, postJson, releaseBooking } from '../../support/api'
 import { pickFreeDates } from '../../support/dates'
 import { assertTestStripeKey, cleanupE2eData, findBookings } from '../../support/db'
@@ -47,7 +47,7 @@ describe('POST /api/booking', () => {
 
   it('rejects a Luxembourg postcode with 5 digits with 400', async () => {
     const result = await createBooking({
-      address: { ...(bookingBody().address as object), countryCode: 'LU', postcode: '57100' },
+      address: { ...THIONVILLE_ADDRESS, countryCode: 'LU', postcode: '57100' },
     })
     expect(result.status).toBe(400)
   })

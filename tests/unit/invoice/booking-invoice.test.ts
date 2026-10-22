@@ -11,6 +11,8 @@ import { FAILURE, OK, asClient, caught, stubCreateError } from '../../support/pr
 
 import type Stripe from 'stripe'
 
+type CustomField = Stripe.Checkout.SessionCreateParams.InvoiceCreation.InvoiceData.CustomField
+
 const BOOKING_ID = '11111111-2222-3333-4444-555555555555'
 
 const STRIPE_MAX_CUSTOM_FIELDS = 4
@@ -49,6 +51,11 @@ afterEach(() => {
 describe('bookingInvoiceCreation', () => {
   const creation = bookingInvoiceCreation(BOOKING_ID, 'Nettoyage le 19 octobre')
 
+  const customFieldsOf = (): CustomField[] => {
+    const fields = creation.invoice_data?.custom_fields
+    return Array.isArray(fields) ? fields : []
+  }
+
   it('enables the invoice with the booking description and metadata', () => {
     expect(creation.enabled).toBe(true)
     expect(creation.invoice_data?.description).toBe('Nettoyage le 19 octobre')
@@ -60,13 +67,13 @@ describe('bookingInvoiceCreation', () => {
   })
 
   it('sends at most 4 custom fields, the Stripe limit', () => {
-    const fields = creation.invoice_data?.custom_fields ?? []
+    const fields = customFieldsOf()
     expect(fields).toHaveLength(STRIPE_MAX_CUSTOM_FIELDS)
     expect(fields).toHaveLength(INVOICE_LEGAL_FIELDS.length)
   })
 
   it('keeps every custom field name and value within the Stripe limits', () => {
-    const fields = creation.invoice_data?.custom_fields ?? []
+    const fields = customFieldsOf()
     fields.forEach(field => {
       expect(field.name.length).toBeGreaterThan(0)
       expect(field.name.length).toBeLessThanOrEqual(STRIPE_MAX_FIELD_NAME)

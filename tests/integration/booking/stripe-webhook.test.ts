@@ -14,6 +14,7 @@ import {
 import { pickFreeDates } from '../../support/dates'
 import { assertTestStripeKey, cleanupE2eData, findBookings } from '../../support/db'
 import { waitForMails } from '../../support/outbox'
+import { requireValue } from '../../support/require'
 
 let days: string[] = []
 
@@ -78,7 +79,7 @@ describe('POST /api/stripe/webhook signature', () => {
 
 describe('checkout.session.completed', () => {
   it('marks the booking paid and stores the payment intent', async () => {
-    const booking = await newBooking('paid', days[0])
+    const booking = await newBooking('paid', requireValue(days[0], 'free day 0'))
     const event = sessionEvent('checkout.session.completed', booking, {
       paymentIntent: 'pi_test_paid_1',
     })
@@ -92,7 +93,7 @@ describe('checkout.session.completed', () => {
   })
 
   it('does not send a second confirmation when the event is redelivered', async () => {
-    const booking = await newBooking('mailredelivery', days[8])
+    const booking = await newBooking('mailredelivery', requireValue(days[8], 'free day 8'))
     const event = sessionEvent('checkout.session.completed', booking)
     expect((await postSignedWebhook(event)).status).toBe(200)
     expect((await postSignedWebhook(event)).status).toBe(200)
@@ -105,7 +106,7 @@ describe('checkout.session.completed', () => {
   })
 
   it('is idempotent when the same event is redelivered', async () => {
-    const booking = await newBooking('redelivery', days[0])
+    const booking = await newBooking('redelivery', requireValue(days[0], 'free day 0'))
     const event = sessionEvent('checkout.session.completed', booking, {
       paymentIntent: 'pi_test_redeliver',
     })
@@ -119,7 +120,7 @@ describe('checkout.session.completed', () => {
   })
 
   it('leaves the booking unchanged when the amount does not match', async () => {
-    const booking = await newBooking('amount', days[1])
+    const booking = await newBooking('amount', requireValue(days[1], 'free day 1'))
     const event = sessionEvent('checkout.session.completed', booking, {
       amount: booking.amount + 100,
     })
@@ -132,7 +133,7 @@ describe('checkout.session.completed', () => {
   })
 
   it('leaves the booking unchanged when the session id does not match', async () => {
-    const booking = await newBooking('session', days[1])
+    const booking = await newBooking('session', requireValue(days[1], 'free day 1'))
     const event = sessionEvent('checkout.session.completed', {
       ...booking,
       sessionId: 'cs_test_other',
@@ -151,21 +152,21 @@ describe('checkout.session.completed', () => {
   })
 
   it('ignores a session that is not paid yet', async () => {
-    const booking = await newBooking('unpaid', days[1])
+    const booking = await newBooking('unpaid', requireValue(days[1], 'free day 1'))
     const event = sessionEvent('checkout.session.completed', booking, { paymentStatus: 'unpaid' })
     expect((await postSignedWebhook(event)).status).toBe(200)
     expect((await lastRow(booking)).status).toBe('pending_payment')
   })
 
   it('ignores a payment in a currency other than eur', async () => {
-    const booking = await newBooking('currency', days[2])
+    const booking = await newBooking('currency', requireValue(days[2], 'free day 2'))
     const event = sessionEvent('checkout.session.completed', booking, { currency: 'usd' })
     expect((await postSignedWebhook(event)).status).toBe(200)
     expect((await lastRow(booking)).status).toBe('pending_payment')
   })
 
   it('ignores a paid session that carries no payment intent', async () => {
-    const booking = await newBooking('nointent', days[2])
+    const booking = await newBooking('nointent', requireValue(days[2], 'free day 2'))
     const event = sessionEvent('checkout.session.completed', booking, { paymentIntent: null })
     expect((await postSignedWebhook(event)).status).toBe(200)
     expect((await lastRow(booking)).status).toBe('pending_payment')
@@ -174,13 +175,13 @@ describe('checkout.session.completed', () => {
 
 describe('checkout.session.expired', () => {
   it('marks a pending booking expired', async () => {
-    const booking = await newBooking('expired', days[3])
+    const booking = await newBooking('expired', requireValue(days[3], 'free day 3'))
     await expire(booking)
     expect((await lastRow(booking)).status).toBe('expired')
   })
 
   it('does not touch a booking that is already paid', async () => {
-    const booking = await newBooking('paidthenexpired', days[3])
+    const booking = await newBooking('paidthenexpired', requireValue(days[3], 'free day 3'))
     await postSignedWebhook(sessionEvent('checkout.session.completed', booking))
     expect((await lastRow(booking)).status).toBe('paid')
 
@@ -192,7 +193,7 @@ describe('checkout.session.expired', () => {
 
 describe('late payment on an expired booking', () => {
   it('confirms the booking when its day is still available', async () => {
-    const booking = await newBooking('late', days[4])
+    const booking = await newBooking('late', requireValue(days[4], 'free day 4'))
     await expire(booking)
 
     const result = await postSignedWebhook(
@@ -205,7 +206,7 @@ describe('late payment on an expired booking', () => {
   })
 
   it('cancels the booking and answers 500 when the refund fails (unknown payment intent)', async () => {
-    const date = days[5]
+    const date = requireValue(days[5], 'free day 5')
     const late = await newBooking('fullfake', date)
     await expire(late)
     await fillDay(date, 'fullfake')
@@ -218,7 +219,7 @@ describe('late payment on an expired booking', () => {
   })
 
   it('cancels the booking and really refunds the payment when its day is now full', async () => {
-    const date = days[6]
+    const date = requireValue(days[6], 'free day 6')
     const late = await newBooking('fullreal', date)
     await expire(late)
     await fillDay(date, 'fullreal')
@@ -252,7 +253,7 @@ describe('late payment on an expired booking', () => {
   })
 
   it('answers 200 and refunds only once when the payment was already refunded', async () => {
-    const date = days[7]
+    const date = requireValue(days[7], 'free day 7')
     const late = await newBooking('alreadyrefunded', date)
     await expire(late)
     await fillDay(date, 'alreadyrefunded')
