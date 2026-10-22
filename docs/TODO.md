@@ -22,6 +22,12 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
   d'adresse signé, voir `specs/booking-system.md`
 - ✅ 8. Espace BINOVYA Pro : accès admin, planning, liste, disponibilités, déplacement, photos,
   fin d'intervention, photos côté client, voir `specs/technical.md` et `specs/booking-system.md`
+- ✅ 10. Infrastructure : Dockerfile (`node-server`), `deploy/docker-compose.yml` (Caddy et Nuxt),
+  `deploy/Caddyfile`, CSP testée en local derrière Caddy (14 pages publiques, réservation et
+  retour Stripe Checkout, espace client, espace Pro), connexion par lien magique, connexion admin
+  Pro et paiement confirmé par webhook derrière Caddy vérifiés à la main dans la pile locale
+  (2026-10-22), garde de démarrage `productionConfigCheck`, projet Playwright WebKit,
+  voir `specs/technical.md`
 
 ## V1
 
@@ -35,10 +41,9 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
      (hors envoi, déjà fait) et de `AccountDeletionRequest.vue` vers `AppButton` (variante
      `destructiveSolid` ; restent natifs : date suggérée, « Réessayer » de l'adresse, pastille
      de retrait d'une photo du devis, faute de variante, voir `specs/technical.md`)
-- [ ] 8. Chore : WebKit perd la session Supabase sur `http://localhost` (cookie `Secure` par
-     défaut dans `@nuxtjs/supabase`, aucun `cookieOptions` dans `nuxt.config.ts`) : l'espace Pro
-     est inutilisable dans Safari de bureau en local. Poser `cookieOptions.secure` seulement en
-     production, puis rétablir le projet Playwright WebKit (étape 10)
+- [x] 8. Chore : WebKit perd la session Supabase sur `http://localhost` (cookie `Secure` par
+     défaut dans `@nuxtjs/supabase`) : `cookieOptions.secure` posé seulement en production et
+     projet Playwright WebKit rétabli (étape 10), voir `specs/technical.md`
 - [x] 8. Chore e2e : test instable du détail de `customer-area-bookings` (suite e2e refaite,
      le test attend la réponse réseau, vert à chaque run complet)
 - [ ] 8. Chore UI (ui-stylist) : le header sticky masque la case « bacs prêts » à l'étape de
@@ -82,30 +87,19 @@ constats qui attendent le client (#10, #11, #12, #16, #17, #18).
 - [x] Dates « Dernière mise à jour » pilotées par `app/constants/legal.ts` (#28) ; la révélation
       au scroll de `/formulas` (#25) est sans objet
 
-### 10. Infrastructure
-
-Tout se prépare et se teste en local. La mise en place sur le VPS est à l'étape 12.
-
-- [ ] Dockerfile Nuxt (preset `node-server`)
-- [ ] `docker-compose.yml` : Caddy et Nuxt seulement
-- [ ] `Caddyfile` : redirection `www`, en-têtes de sécurité, logs JSON
-- [ ] CSP simple, écrite une fois, testée en local sur la réservation et Stripe Checkout,
-      l'espace client et l'espace Pro (avec `blob:` dans `img-src` pour les aperçus de photos),
-      appliquée dès le lancement (pas de phase Report-Only)
-- [ ] Projet Playwright WebKit (voir le chore de l'étape 8)
-
 ### 11. CI/CD
 
-- [ ] Ajouter `vue-tsc` en devDependency et un script `typecheck`, puis corriger les 5 erreurs
-      (`HeroSection`, `ServicesSection`, `TrustStripSection`, `LanguageSwitcherDesktop`,
-      `LanguageSwitcherMobile`). Le typecheck doit aussi couvrir `tests/` (aucun tsconfig ne
-      l'inclut aujourd'hui ; erreurs connues, par exemple `tests/support/pro-fixtures.ts:65`,
-      `tests/unit/pro/pro-intervention.test.ts:19`,
-      `tests/integration/booking/booking-create.test.ts:50` et
-      `tests/integration/pro/pro-reschedule.test.ts`)
+- [x] `vue-tsc` en devDependency et script `typecheck` qui couvre aussi `tests/` (branche
+      `chore/typecheck`, fusionnée dans `dev`)
 - [ ] CI : lint, formatage, typecheck, tests unitaires, build
-- [ ] CI : image vers GHCR (tags SHA + `latest` sur `main`)
-- [ ] CD : SSH, `docker compose pull && up -d`
+- [ ] CI : image vers GHCR (tags SHA + `latest` sur `main`), construite en `linux/amd64`
+- [ ] CI : le job de build ne reçoit aucun secret applicatif (toute variable `NUXT_*` présente
+      au `nuxt build` est cuite dans `.output`)
+- [ ] CI : images de base épinglées par tag (`oven/bun`, `node`, `caddy`) ; le digest avec
+      Renovate ou Dependabot est facultatif
+- [ ] Revoir le garde de démarrage (`productionConfigCheck`) si un prérendu est ajouté
+- [ ] CD : SSH, écrire `IMAGE_TAG` dans `deploy/.env`, puis `docker compose pull && up -d` depuis
+      `deploy/` (le VPS ne reçoit que `deploy/` et son `.env`)
 - Les tests d'intégration et e2e restent en local avant chaque fusion.
 
 ### 12. Mise en production
@@ -123,6 +117,13 @@ Tout se prépare et se teste en local. La mise en place sur le VPS est à l'éta
       nombre de règles du plan gratuit
 - [ ] Caddy : `trusted_proxies` sur les plages Cloudflare, IP réelle dans `CF-Connecting-IP`,
       volume `/data` persisté (certificats, limite Let's Encrypt)
+- [ ] Caddy : masquer aussi `Cf-Connecting-Ipv6` et `True-Client-Ip` dans les journaux, vérifier
+      `ip_mask` sur un `X-Forwarded-For` à plusieurs IP
+- [ ] Docker publie les ports par ses propres règles iptables, avant `ufw` (seul `caddy` publie
+      80 et 443 aujourd'hui) : restreindre à Cloudflare par `DOCKER-USER`, ou par `remote_ip` /
+      Authenticated Origin Pulls dans Caddy
+- [ ] Cloudflare : désactiver Rocket Loader et l'injection Web Analytics (bloqués par la CSP) ;
+      pas de HSTS preload en V1 ; créer l'enregistrement DNS `www`
 - [ ] Resend : vérifier le domaine `binovya.com`, puis renseigner `NUXT_MAIL_FROM`
 - [ ] Supabase de production dans l'organisation du client : check-list de `technical.md`,
       migrations par `supabase db push`
@@ -133,7 +134,8 @@ Tout se prépare et se teste en local. La mise en place sur le VPS est à l'éta
       client (remplace les scripts de sauvegarde maison)
 - [ ] Variables de production dans le `.env` du VPS : `NUXT_SITE_URL`, `NUXT_PUBLIC_SITE_URL` et
       `NUXT_PUBLIC_I18N_BASE_URL` à `https://binovya.com` (même origine, sinon le plugin
-      `siteUrlCheck` journalise au démarrage), `NUXT_ADDRESS_TOKEN_SECRET`, clés Stripe LIVE et endpoint webhook du Dashboard
+      `productionConfigCheck` refuse de démarrer), `NUXT_ADDRESS_TOKEN_SECRET`, clés Stripe LIVE
+      et endpoint webhook du Dashboard
       (`checkout.session.completed`, `checkout.session.expired`), `NUXT_MAIL_FROM`,
       `NUXT_CONTACT_EMAIL_TO`, clés Supabase. `NUXT_MAIL_TRANSPORT` absent. Copie dans un
       gestionnaire de mots de passe
@@ -151,12 +153,19 @@ Tout se prépare et se teste en local. La mise en place sur le VPS est à l'éta
       manque)
 - [ ] Politique de confidentialité : Cloudflare comme sous-traitant (société américaine,
       déchiffre le trafic), avec son DPA
+- [ ] Politique de confidentialité : journaux d'accès Caddy (IP tronquée, User-Agent, URL),
+      rotation 10 Mo × 5 fichiers par service : durée de conservation à indiquer (bornée par la
+      taille, pas par le temps)
 - [ ] Décider du sort des réservations abandonnées et de leurs comptes (purge ou anonymisation)
 - [ ] Décider de la durée de conservation des photos avant/après (RGPD), à citer dans la
       politique de confidentialité et à appliquer au bucket `intervention-photos`
 - [ ] Masquer les formules trimestrielle et annuelle en V1 (devis uniquement)
 
 ## V2 (après le lancement)
+
+- CSP avec nonce par requête et `'strict-dynamic'` (retire `script-src 'unsafe-inline'`, la CSP
+  passe de Caddy à Nitro) ; contrôle de présence au démarrage de `NUXT_SUPABASE_SECRET_KEY`,
+  `NUXT_STRIPE_WEBHOOK_SECRET` et `NUXT_ADDRESS_TOKEN_SECRET`
 
 - 9. Tournées : extraits Geofabrik Lorraine + Luxembourg, fusion `osmium`, prétraitement OSRM,
      conteneurs OSRM et VROOM, endpoint d'optimisation, ordre optimisé dans le planning, GitHub

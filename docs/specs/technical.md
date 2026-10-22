@@ -497,9 +497,17 @@ Audit et décisions : [seo.md](./seo.md).
   Au build, `i18n.baseUrl` prend `NUXT_PUBLIC_SITE_URL` ; à l'exécution, la variable
   `NUXT_PUBLIC_I18N_BASE_URL` la remplace.
 - `describeSiteUrlProblem` (`server/utils/siteUrl.ts`) compare les valeurs reçues : invalides ou
-  d'origines différentes. Le plugin `server/plugins/siteUrlCheck.ts` l'appelle hors dev et
-  journalise une fois au démarrage (noms de variables seulement, jamais les valeurs).
-  Pourquoi : un canonical vers un autre domaine ferait désindexer le site, sans erreur visible.
+  d'origines différentes. `listProductionConfigProblems` (`server/utils/productionConfig.ts`,
+  type `ProductionConfigSettings` dans `app/types/config.ts`) l'appelle et ajoute le contrôle du
+  cookie de session. Le plugin `server/plugins/productionConfigCheck.ts` l'exécute hors dev et
+  lève une erreur : le serveur refuse de démarrer (code 1) si les trois URL manquent, ne sont
+  pas en https ou ont des origines différentes, ou si le cookie n'est pas Secure
+  (`NUXT_PUBLIC_SUPABASE_COOKIE_OPTIONS_SECURE=false`). Le message nomme les variables, jamais
+  leurs valeurs.
+  Pourquoi : un canonical vers un autre domaine ferait désindexer le site, sans erreur visible,
+  et un cookie de session sans `Secure` partirait en clair.
+- Conséquence : `bun run preview` exige des URL https cohérentes. À revoir si un prérendu est
+  un jour ajouté.
 
 ### Liens et contenu
 
@@ -967,47 +975,188 @@ Stripe sont rejetés au-delà de 5 min d'écart).
 
 ### Caddyfile et CSP
 
-Écrit et testé en local à l'étape 10, posé sur le serveur à l'étape 12. Sans bloc `rate_limit`,
-pas besoin d'une version de Caddy compilée sur mesure.
+Écrit et testé en local à l'étape 10 (`deploy/Caddyfile`), posé sur le serveur à l'étape 12.
+Sans bloc `rate_limit`, pas besoin d'une version de Caddy compilée sur mesure.
 
 ```
 {
-	email contact@binovya.com
+	email contact@binovya.fr
 }
 
-www.binovya.com {
-	redir https://binovya.com{uri} permanent
-}
-
-binovya.com {
-	encode zstd gzip
-
+(security_headers) {
 	header {
-		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Strict-Transport-Security "max-age={$HSTS_MAX_AGE}; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		X-Frame-Options "DENY"
 		Referrer-Policy "strict-origin-when-cross-origin"
-		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://<ref>.supabase.co; img-src 'self' data: blob: https://<ref>.supabase.co; frame-ancestors 'none'"
+		Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=()"
+		Cross-Origin-Opener-Policy "same-origin"
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'; script-src-attr 'unsafe-hashes' 'sha256-bwK6T5wZVTANitXbrTsel7kl/PyCjCd/Dq5Qoz3imjM='; style-src 'self' 'unsafe-inline'; connect-src 'self' {$SUPABASE_URL}; img-src 'self' data: blob: {$SUPABASE_URL}; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
 		-Server
+		-Via
+		-X-Powered-By
 	}
+}
 
+http://{$SITE_DOMAIN}, http://www.{$SITE_DOMAIN} {
+	import security_headers
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+www.{$SITE_DOMAIN} {
+	import security_headers
+	redir https://{$SITE_DOMAIN}{uri} permanent
+}
+
+{$SITE_DOMAIN} {
+	import security_headers
+	encode zstd gzip
 	reverse_proxy nuxt:3000
 
 	log {
 		output stdout
-		format json
+		format filter {
+			request>uri query {
+				delete q
+			}
+			request>remote_ip ip_mask 24 48
+			request>client_ip ip_mask 24 48
+			request>headers>X-Forwarded-For ip_mask 24 48
+			request>headers>Cf-Connecting-Ip ip_mask 24 48
+			wrap json
+		}
 	}
 }
 ```
 
-- Cible, à confirmer par le test local : la CSP est écrite une fois, testée sur la réservation et
-  Stripe Checkout (redirection), l'espace client et l'espace Pro, puis appliquée dès le lancement
-  (pas de phase Report-Only). `blob:` dans `img-src` pour les aperçus de photos. Le cookie de
-  session est lisible par le JavaScript : la CSP est la principale parade au vol de session par XSS.
-- HSTS force HTTPS ; les autres en-têtes bloquent le sniffing de type, l'iframe et les fuites de
-  `Referer`.
+- Variables injectées par `deploy/docker-compose.yml` : `SITE_DOMAIN`, `SUPABASE_URL` (reprise de
+  `NUXT_PUBLIC_SUPABASE_URL`) et `HSTS_MAX_AGE`. L'e-mail ACME reste `contact@binovya.fr` : la
+  boîte est en `.fr`, le domaine du site en `.com`.
+- Le snippet `(security_headers)` est importé par les trois blocs : la CSP est écrite une seule
+  fois. `http://` (apex et `www`) et `https://www` mènent en une seule redirection 301 vers
+  l'apex en https.
+- La CSP est appliquée dès le lancement (pas de phase Report-Only). Le cookie de session est
+  lisible par le JavaScript : la CSP est la principale parade au vol de session par XSS.
+- Ajouts à la CSP minimale et pourquoi :
+  - `style-src 'self' 'unsafe-inline'` : styles en ligne rendus côté serveur par `motion-v` et
+    balises `<style>` de Nuxt, `@nuxt/fonts` et `vue-sonner`.
+  - `script-src-attr 'unsafe-hashes' 'sha256-…'` : seul le gestionnaire SSR de `@nuxt/image`
+    2.0.0 (`onerror="this.setAttribute('data-error', 1)"`) en a besoin ; `'none'` le cassait. À
+    recalculer à chaque mise à jour de `@nuxt/image` :
+    `printf '%s' "<gestionnaire>" | openssl dgst -sha256 -binary | base64`.
+  - `object-src 'none'`, `base-uri 'self'`, `form-action 'self'` : les formulaires sont en
+    `@submit.prevent` avec un `$fetch` de même origine, et Stripe Checkout est une navigation de
+    premier niveau, donc aucune origine Stripe n'est nécessaire.
+  - Pas de `font-src` ni de `wss:` : polices auto-hébergées (`/_fonts`), images servies par ipx
+    (`/_ipx`), pas de Supabase realtime. `blob:` dans `img-src` : aperçus de photos.
+- `Permissions-Policy` coupe caméra, micro, géolocalisation et paiement (l'envoi de photos Pro
+  est un champ fichier simple). `Cross-Origin-Opener-Policy: same-origin`. `-Via` et
+  `-X-Powered-By` s'ajoutent à `-Server`.
+- Journaux d'accès : le filtre `format filter` retire le paramètre `q` (adresse saisie sur
+  `/api/address/search`) et masque les IP en /24 et /48 (`remote_ip`, `client_ip`,
+  `X-Forwarded-For`, `Cf-Connecting-Ip`). Caddy masque déjà `Cookie` et `Authorization`.
+- **La CSP n'existe que derrière Caddy** : `bun run dev` et la suite e2e normale ne la voient
+  jamais. Toute nouvelle origine tierce se déclare dans `deploy/Caddyfile`, puis on rejoue
+  `CADDY_BASE_URL=https://localhost:8443 bun run test:e2e -- tests/e2e/infra` contre la pile
+  Docker locale. Le test couvre la réservation avec le retour de Stripe Checkout, l'espace client
+  et l'espace Pro.
+- Risque résiduel accepté en V1 : voir « Points ouverts » (`script-src 'unsafe-inline'`).
 - Le volume `/data` de Caddy doit être persisté (certificats ; Let's Encrypt limite à 5
   certificats identiques par semaine).
+
+### Image Docker et Compose
+
+- `Dockerfile` en trois étapes. Le binaire `bun` vient de `oven/bun:1.2.14-slim` et est copié dans
+  `node:24.22.1-trixie-slim` : le build tourne ainsi sur le Node d'exécution. `COPY . .` précède
+  `bun install --frozen-lockfile` car `postinstall` lance `nuxt prepare` ; le cache de bun est un
+  cache mount. Build avec `NODE_ENV=production` et `NITRO_PRESET=node-server`. L'étape finale ne
+  copie que `.output` et tourne en `USER node`.
+- `Dockerfile` et `.dockerignore` restent à la racine : le contexte de build est tout le dépôt, et
+  Docker lit `.dockerignore` à la racine du contexte.
+- `.dockerignore` exclut notamment `.env*`, `tests`, `docs`, `supabase`, `.git` et le dossier
+  `deploy` entier, mais garde `!tests/tsconfig.json` : le `tsconfig` racine le référence. Les
+  motifs sont relatifs à la racine : les lignes `.env` et `.env.*` n'excluraient pas
+  `deploy/.env`, d'où l'exclusion de tout `deploy`. Vérifié : un `deploy/.env` n'entre jamais dans
+  le contexte de build. `deploy/.env` est aussi ignoré par Git (`.gitignore`, `.env` vaut à toute
+  profondeur).
+- Aucune valeur `NUXT_*` n'est figée dans l'image : tout se surcharge à l'exécution.
+  `i18n.baseUrl` vaut `""` dans l'image et vient de `NUXT_PUBLIC_I18N_BASE_URL`. Toute variable
+  présente au `nuxt build` serait cuite dans `.output` (voir étape 11 du `TODO.md`).
+- Image à construire en `linux/amd64` pour un VPS amd64 : les binaires natifs de `sharp` suivent
+  la plateforme du build (le Mac de développement est en arm64).
+- `deploy/docker-compose.yml` : `name: binovya` fixe le nom du projet. Sans lui, Compose prendrait
+  le nom du dossier : déplacer ou renommer `deploy/` créerait des volumes vides et obligerait
+  Caddy à redemander des certificats Let's Encrypt. Volumes et conteneurs gardent donc
+  `binovya_caddy_data`, `binovya_caddy_config`, `binovya-nuxt-1`… où que soit le dossier.
+  `IMAGE_TAG` obligatoire (`:?`), `pull_policy: missing`, pas de `build:`
+  (le VPS ne construit jamais). `nuxt` a un healthcheck sur `/robots.txt` ; `caddy` attend
+  `service_healthy`. `nuxt` tourne en `read_only` avec `tmpfs /tmp`, `cap_drop: ALL` et
+  `no-new-privileges`. Seul `caddy` publie des ports (80, 443 et 443/udp).
+- Journaux : `json-file`, 10 Mo × 5 fichiers par service. La rétention est bornée par la taille,
+  pas par le temps : la durée est à indiquer dans la politique de confidentialité.
+- Variables propres à Compose : `IMAGE_TAG`, `SITE_DOMAIN` (défaut `binovya.com`), `HSTS_MAX_AGE`
+  (défaut 31536000), `CADDY_HTTP_PORT` (80), `CADDY_HTTPS_PORT` (443).
+- **Un seul fichier `deploy/.env`**, à côté de `docker-compose.yml`. Il porte les variables de
+  l'application (`NUXT_*`) et celles propres à Compose. Le `.env.example` de la racine les liste
+  toutes (une seule liste, gardée à la racine). Compose résout `./Caddyfile` et `env_file: .env`
+  depuis `deploy/` et lit `deploy/.env` pour ses propres `${…}`. `--env-file` ne nourrit que
+  cette interpolation : le conteneur `nuxt` lit toujours `deploy/.env` par `env_file`. Tout le
+  `.env` va donc à `nuxt`.
+- Sur le VPS : copier `deploy/` et créer `deploy/.env`, rien d'autre du dépôt (le code arrive par
+  l'image GHCR). `docker compose restart` ne relit pas `.env` ; `docker compose up -d` recrée le
+  conteneur.
+
+**Pile locale** (depuis `deploy/`, avec un `deploy/.env` temporaire) :
+
+1. Depuis la racine : `docker build -t ghcr.io/mehdidiasgomes/binovya:local .`
+2. Dans `deploy/.env`, `IMAGE_TAG=local`, `SITE_DOMAIN=localhost` (CA interne de
+   Caddy, `ignoreHTTPSErrors` côté Playwright), `HSTS_MAX_AGE=0` (sinon le navigateur peut
+   épingler HSTS sur `localhost` et casser `bun run dev`), `CADDY_HTTP_PORT=8080` et
+   `CADDY_HTTPS_PORT=8443` si 80 et 443 sont pris, et les trois URL du site sur
+   `https://localhost:8443`.
+3. En mode production, les mails partent vraiment par Resend (ni `NUXT_MAIL_REDIRECT_TO`, ni
+   outbox) : ne jamais soumettre un formulaire qui envoie un mail contre cette pile, sauf pour
+   tester un vrai mail vers sa propre adresse. Le testeur a utilisé une fausse
+   `NUXT_RESEND_API_KEY`.
+4. Lancer `cd deploy && docker compose up -d`. En fin de test : `docker compose down -v`, puis
+   supprimer `deploy/.env`.
+5. Limite locale connue : les redirections de Caddy perdent le port non standard
+   (`Location: https://localhost/`). Sans effet en production sur 443.
+6. Relais des webhooks Stripe vers le conteneur, depuis la racine du dépôt :
+
+   ```bash
+   STRIPE_API_KEY=$(grep '^NUXT_STRIPE_SECRET_KEY=' deploy/.env | cut -d= -f2-) \
+     stripe listen --forward-to https://localhost:8443/api/stripe/webhook --skip-verify
+   ```
+
+   Copier le `whsec_…` affiché dans `NUXT_STRIPE_WEBHOOK_SECRET` de `deploy/.env`, puis recréer
+   le conteneur (`cd deploy && docker compose up -d`). La clé passe par la variable
+   d'environnement `STRIPE_API_KEY`, jamais en argument (elle apparaîtrait dans `ps` et
+   l'historique du shell). `--skip-verify` : le certificat de Caddy pour `localhost` vient de sa
+   CA interne.
+
+7. Piège : un `stripe listen` sans `STRIPE_API_KEY` utilise le compte auquel le CLI est connecté,
+   qui peut ne pas être celui du site. Il ne voit alors aucun paiement et rien n'arrive à Caddy.
+   Contrôle : comparer le compte de la clé à `stripe config --list` (`account_id`), ou vérifier
+   que le `whsec_…` affiché change quand `STRIPE_API_KEY` est posée. Les scripts de test évitent
+   ce piège avec `scripts/stripe-key.ts` (`STRIPE_API_KEY`).
+8. Dans le conteneur (build de production), l'alerte admin « Nouvelle réservation payée » part à
+   `NUXT_CONTACT_EMAIL_TO` et le mail de confirmation au vrai destinataire, sans redirection :
+   n'utiliser que ses propres adresses.
+
+**Vérifié à la main (étape 10)** :
+
+- 2026-10 : le parcours de connexion complet dans la pile locale, avec une vraie clé Resend posée
+  temporairement dans le conteneur. Le mail du lien magique est arrivé, son lien pointait vers
+  `https://localhost:8443` et la session s'est ouverte à travers Caddy.
+- 2026-10-22 : la connexion admin de l'espace Pro dans le conteneur.
+- 2026-10-22 : le paiement complet dans la pile locale. Réservation, Stripe Checkout (mode test,
+  carte 4242…), `checkout.session.completed` relayé par le CLI Stripe jusqu'au conteneur à
+  travers Caddy, réservation passée à payée, mail de confirmation au client et alerte admin
+  envoyés par Resend.
+
+**Non prouvé à ce jour** : la valeur HSTS d'un an dans un navigateur (la pile locale la met à 0),
+l'image amd64 sur un vrai VPS, une vraie photo de téléphone, un vrai passage au lecteur d'écran.
 
 ## CI/CD
 
@@ -1020,15 +1169,16 @@ unitaires, build Nuxt, puis, si tout est vert, build de l'image Docker et push v
 | SHA du commit (ex. `1241c7d`) | Chaque build          | Immuable, seul tag utilisé pour déployer            |
 | `latest`                      | Sur `main` uniquement | Repère pour un humain, jamais utilisé pour déployer |
 
-**CD** (après la CI sur `main`) : SSH au VPS, écriture du SHA dans le `.env` (`IMAGE_TAG=<sha>`),
-`docker compose pull` puis `up -d`. **Rollback** : remettre le SHA précédent dans `IMAGE_TAG`.
-**Secrets** : GitHub Actions et `.env` du VPS, jamais dans l'image.
+**CD** (après la CI sur `main`) : SSH au VPS, écriture du SHA dans `deploy/.env` (`IMAGE_TAG=<sha>`),
+puis, depuis `deploy/`, `docker compose pull` et `up -d`. Le VPS ne reçoit que le dossier `deploy/`
+et son `.env`. **Rollback** : remettre le SHA précédent dans `IMAGE_TAG`.
+**Secrets** : GitHub Actions et `deploy/.env` du VPS, jamais dans l'image.
 
 Les tests d'intégration et e2e restent en local avant chaque fusion (ils utilisent la base et le
-compte Stripe de test). Typecheck : `vue-tsc` n'est pas encore en devDependency et le projet n'a
-pas de script `typecheck` ; 5 erreurs existent (`TODO.md`, étape 11), et aucun tsconfig n'inclut
-`tests/` (des erreurs de type y existent aussi). `bunx nuxi typecheck` échoue
-sur cette machine (`npx` récupère vue-tsc 3.3.13 avec TypeScript 7).
+compte Stripe de test). Typecheck : `vue-tsc` est en devDependency et le script `typecheck`
+(`nuxt typecheck`) vérifie l'app, le serveur et `tests/` : `tests/tsconfig.json`, référencé par
+le `tsconfig.json` racine, couvre aussi `scripts/`, `playwright.config.ts` et `vitest.config.ts`.
+La CI de l'étape 11 lance ce script (`bun run typecheck`).
 
 ## Tâches planifiées
 
@@ -1088,8 +1238,9 @@ sur cette machine (`npx` récupère vue-tsc 3.3.13 avec TypeScript 7).
 
 Pyramide : beaucoup de tests unitaires, quelques tests d'intégration, peu de tests e2e. Unitaires
 et intégration tournent en CI cible ; l'e2e (vraie page Stripe) reste local avant chaque fusion.
-Dernier relevé (2026-10-22, branche `chore/seo`) : unitaires 1 469 (93 fichiers), intégration 515
-(46 fichiers), e2e 32 tests (run complet d'environ 5,3 min le 2026-10-21, `workers: 1`).
+Dernier relevé (2026-10-22, branche `feat/infrastructure`) : unitaires 1 477, intégration 515
+(run complet précédent), e2e 64 réussis sur Chromium et WebKit, soit 32 par projet, 36 tests Caddy
+ignorés sans `CADDY_BASE_URL` (8,6 min, `workers: 1`).
 
 L'e2e ne couvre que les parcours critiques : réservation publique payée par la vraie page Stripe
 Checkout (annulation et expiration, une réservation en attente par client, carte refusée), lien
@@ -1167,9 +1318,28 @@ trop instable.
 - Session admin partagée en e2e : le setup global crée `e2e+pro-shared-admin@binovya.test`,
   enregistre `tests/e2e/.auth/admin.json`, et `signInAdmin(page)` la réutilise ; le teardown
   supprime le compte. Les tests qui visent l'accès ou la déconnexion créent leur propre session.
-- WebKit : pas de projet Playwright pour l'instant. WebKit perd la session Supabase sur
-  `http://localhost` (cookie `Secure` par défaut, aucun `cookieOptions` dans `nuxt.config.ts`) ;
-  voir `TODO.md`.
+- Cookie de session : `supabase.cookieOptions.secure = process.env.NODE_ENV === 'production'`
+  dans `nuxt.config.ts`, évalué au build (`nuxi` force `production` au build et `development` en
+  dev ; `sameSite: 'lax'` et `maxAge` de 8 h inchangés). Pourquoi : WebKit refuse un cookie
+  `Secure` sur `http://localhost` et perdait la session. Le démarrage en production refuse un
+  cookie non Secure (voir « URL du site »).
+- WebKit : projet Playwright `webkit` rétabli. WebKit applique le réglage par défaut de Safari où
+  Tab saute les boutons et les liens : les tests clavier sur WebKit utilisent `Alt+Tab` et
+  `Alt+Shift+Tab` (voir `tests/e2e/pro/pro-reschedule.spec.ts`) ; `body` est toléré,
+  mais le focus doit se trouver au moins une fois dans le dialogue pour chaque touche.
+- Volume au 2026-10-22 : 1477 tests unitaires, 515 d'intégration, 64 e2e réussis sur deux projets
+  (32 par projet) plus 36 tests Caddy ignorés sans `CADDY_BASE_URL`. L'e2e complet dure environ
+  8,6 min.
+- CSP derrière Caddy : `tests/e2e/infra/csp-caddy.spec.ts` (18 tests par projet, ignorés sans
+  `CADDY_BASE_URL`) et `tests/e2e/support/csp-monitor.ts` (relève les violations CSP, les erreurs
+  de page et les requêtes bloquées). La liste des pages vient de `PUBLIC_PAGE_PATHS` ×
+  `SEO_LOCALE_PATH_PREFIXES` plus `/login` et `/pro/login` (14 pages par projet), pour ne pas
+  dériver des pages publiques ; s'y ajoutent le test du moniteur et trois parcours (réservation
+  avec retour de Stripe Checkout, espace client, espace Pro). Passe du 2026-10-22 : 36/36, aucune
+  violation CSP, 3,3 min. Lancement : voir « Caddyfile et CSP ».
+- Aides e2e partagées : `STRIPE_BACK_LINK` (`tests/e2e/support/booking.ts`), `moreActions` et
+  `waitForHydration` (`tests/e2e/support/pro.ts`, attend `$nuxt.isHydrating === false`, utilisé
+  par `signInAdmin` et le test CSP), `CADDY_ORIGIN` (`tests/support/env.ts`).
 - Limites connues : `bun run test:server` lancé pendant qu'un run à froid démarre encore Nuxt
   affiche le message « autre `stripe listen` » au lieu de celui du verrou ; course très rare sur un
   verrou périmé ; `TEST_PORT` au-dessus de 65535 ou vide non traité.
@@ -1197,6 +1367,13 @@ trop instable.
 - Environ 81 durées de survol et d'appui ne passent pas encore par `duration-press` et
   `duration-lift`. Les anciens `STEP_OFFSET / 2` du site restent à migrer vers `FEEDBACK_OFFSET`.
 - `NuxtImg` : ajouter `sizes` dès qu'une `MediaCard` affiche une image.
+- `/contact/` (slash final) répond 200 sans redirection ; le canonical est sans slash. Faible.
+- Safari avec Option+Tab peut sortir du dialogue de déplacement vers l'interface du navigateur
+  après le dernier bouton (comportement voulu de reka-ui). Faible.
+- Pas de contrôle de présence au démarrage pour `NUXT_SUPABASE_SECRET_KEY`,
+  `NUXT_STRIPE_WEBHOOK_SECRET` et `NUXT_ADDRESS_TOKEN_SECRET` (V2).
+- CSP : `script-src 'unsafe-inline'` laisse exécuter un `<script>` injecté. Risque accepté en V1.
+  V2 : nonce par requête + `'strict-dynamic'`, la CSP passe alors de Caddy à Nitro.
 - Textes qui promettent des « photos avant/après » (description SEO de `/login`, sous-titre du
   tableau de bord) : à relire avec le client.
 - `@unhead/vue` est importé (types) dans `app/app.vue` sans figurer dans `package.json`.
@@ -1233,7 +1410,7 @@ Pas de détail ici tant que ces sujets ne sont pas planifiés (voir `TODO.md`).
 - **Sauvegardes** : V1 s'appuie sur les sauvegardes automatiques du plan Supabase Pro (25 $/mois),
   à convenir avec le client. Scripts maison (`pg_dump`, copie du bucket `intervention-photos`,
   chiffrement, envoi hors site, rétention, test de restauration) seulement si le client refuse
-  Pro. Le VPS se reconstruit depuis Git et GHCR ; seul le `.env` est à conserver à part.
+  Pro. Le VPS se reconstruit depuis Git et GHCR ; seul `deploy/.env` est à conserver à part.
 - **Supabase reproductible** : script de provisionnement, `config.toml` et `config push`,
   `migration repair`, `rls_auto_enable` en migration.
 - **Projet Supabase de test dédié à la CI** : intégration et e2e en CI, garde sur l'URL de test,

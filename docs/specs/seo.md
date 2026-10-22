@@ -112,4 +112,5 @@ Numéros de l'audit. Tous attendent une réponse du client.
 - `@unhead/vue` importé dans `app/app.vue` sans être déclaré dans `package.json`.
 - Clés de `usePageSeo` typées `string`.
 - Configuration : garder `NUXT_SITE_URL`, `NUXT_PUBLIC_SITE_URL` et `NUXT_PUBLIC_I18N_BASE_URL`
-  sur la même origine (le plugin `server/plugins/siteUrlCheck.ts` le signale au démarrage).
+  sur la même origine (le plugin `server/plugins/productionConfigCheck.ts` refuse de démarrer sinon, hors dev).
+  `/contact/` (slash final) répond 200 sans redirection, le canonical est sans slash (faible).

@@ -7,6 +7,8 @@ export type Lang = 'fr' | 'en'
 
 export const MESSAGES = { fr: frBooking, en: enBooking }
 
+export const STRIPE_BACK_LINK = /Retour à|Return to|Back to/
+
 export const bookingPath = (lang: Lang): string => (lang === 'fr' ? '/booking' : '/en/booking')
 
 const monthOf = (isoDate: string): string => isoDate.slice(0, 7)

@@ -5,6 +5,7 @@ import { expect, type BrowserContextOptions, type Locator, type Page } from '@pl
 import { PRO_CONFIRM_PATH, PRO_HOME_PATH } from '../../../app/constants/pro'
 import { formatFullDate } from '../../../app/utils/date'
 import SITE_FR from '../../../i18n/locales/fr'
+import frPro from '../../../i18n/locales/fr/pro'
 import { generateTokenHash } from '../../support/account'
 
 import type { Lang } from './account'
@@ -190,13 +191,25 @@ export const readAnnouncement = (page: Page): Promise<AnnouncementRecord | undef
   )
 
 /**
- * Waits until Vue has mounted the Nuxt app, so that a click is not lost on server-rendered markup
- * that has no handler yet.
+ * Waits until Nuxt has finished hydrating the page, so that a click is not lost on
+ * server-rendered markup that has no handler yet.
  * @param page - Page of the test
  */
 export const waitForHydration = async (page: Page): Promise<void> => {
   await page.waitForFunction(() => {
-    const root = document.querySelector('#__nuxt') as (Element & { __vue_app__?: unknown }) | null
-    return Boolean(root?.__vue_app__)
+    const root = document.querySelector('#__nuxt') as
+      | (Element & {
+          __vue_app__?: { config: { globalProperties: { $nuxt?: { isHydrating?: boolean } } } }
+        })
+      | null
+    return root?.__vue_app__?.config.globalProperties.$nuxt?.isHydrating === false
   })
 }
+
+/**
+ * Locates the "more actions" button of the first intervention card.
+ * @param page - Page of the test
+ * @returns Locator of the button
+ */
+export const moreActions = (page: Page): Locator =>
+  page.getByRole('button', { name: new RegExp(`^${frPro.card.moreName.split('{subject}')[0]}`) })

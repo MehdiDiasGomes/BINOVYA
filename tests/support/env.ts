@@ -29,6 +29,10 @@ export const BASE_URL: string = process.env.TEST_BASE_URL ?? localBaseUrl(TEST_P
 
 export const ORIGIN: string = new URL(BASE_URL).origin
 
+export const CADDY_ORIGIN: string = process.env.CADDY_BASE_URL
+  ? new URL(process.env.CADDY_BASE_URL).origin
+  : ''
+
 /**
  * Returns the mailbox that receives the alerts for BINOVYA on the test server.
  * @returns Address set by `NUXT_CONTACT_EMAIL_TO`, the test script exports `admin@binovya.test`
