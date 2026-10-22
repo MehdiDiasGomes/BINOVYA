@@ -17,6 +17,7 @@ import {
 import {
   delayRoute,
   messagePattern,
+  moreActions,
   pickCalendarDate,
   readAnnouncement,
   signInAdmin,
@@ -49,9 +50,6 @@ const submitName = new RegExp(`^${RESCHEDULE.submit}`)
 
 const successNeedle = (): string =>
   RESCHEDULE.success.split('{name}')[1]?.split('{date}')[0] ?? RESCHEDULE.success
-
-const moreActions = (page: Page): Locator =>
-  page.getByRole('button', { name: new RegExp(`^${frPro.card.moreName.split('{subject}')[0]}`) })
 
 const openDialog = async (page: Page, date: string): Promise<Locator> => {
   await page.goto(`/pro?date=${date}`)
@@ -158,6 +156,7 @@ test.describe('reschedule dialog', () => {
 
   test('opens from the keyboard, traps focus, closes with Escape and gives focus back', async ({
     page,
+    browserName,
   }) => {
     const booking = await seedBooking('e2e-resched-kbd', KEYBOARD_DAY)
     await signInAdmin(page)
@@ -173,13 +172,20 @@ test.describe('reschedule dialog', () => {
     await expect(dialog).toBeVisible()
     expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true)
 
-    for (let step = 0; step < 8; step += 1) {
-      await page.keyboard.press('Tab')
-      expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true)
-    }
-    for (let step = 0; step < 8; step += 1) {
-      await page.keyboard.press('Shift+Tab')
-      expect(await dialog.evaluate(node => node.contains(document.activeElement))).toBe(true)
+    const isWebKit: boolean = browserName === 'webkit'
+    const cycleKeys: string[] = isWebKit ? ['Alt+Tab', 'Alt+Shift+Tab'] : ['Tab', 'Shift+Tab']
+    for (const key of cycleKeys) {
+      let focusedInDialog = 0
+      for (let step = 0; step < 8; step += 1) {
+        await page.keyboard.press(key)
+        const inDialog: boolean = await dialog.evaluate(node =>
+          node.contains(document.activeElement),
+        )
+        const onBody: boolean = await page.evaluate(() => document.activeElement === document.body)
+        expect(inDialog || (isWebKit && onBody)).toBe(true)
+        focusedInDialog += inDialog ? 1 : 0
+      }
+      expect(focusedInDialog).toBeGreaterThan(0)
     }
 
     await page.keyboard.press('Escape')

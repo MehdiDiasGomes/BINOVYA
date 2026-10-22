@@ -10,6 +10,7 @@ import {
   payButton,
   payOnStripe,
   restoreViewport,
+  STRIPE_BACK_LINK,
   type BookingInput,
   type Lang,
 } from './support/booking'
@@ -28,8 +29,6 @@ const LONG_DATE = (isoDate: string, locale: string): string =>
   new Intl.DateTimeFormat(locale, { weekday: 'long', day: 'numeric', month: 'long' }).format(
     new Date(`${isoDate}T12:00:00`),
   )
-
-const STRIPE_BACK_LINK = /Retour à|Return to|Back to/
 
 const stepTitle = (page: Page, lang: Lang, step: 'contact' | 'payment'): Locator =>
   page.getByRole('heading', { name: MESSAGES[lang].headings[step].title })
