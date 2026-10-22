@@ -42,12 +42,13 @@
 
 <script setup lang="ts">
 import { HERO_ENTER_CLASS } from '@/constants/motion'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
 
 useSeoMeta({
   title: () => t('booking.paymentLink.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

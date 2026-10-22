@@ -13,7 +13,7 @@
 </template>
 
 <script setup lang="ts">
-import type { LucideIconName } from '@/constants/clients'
+import type { LucideIconName } from '@/types/icon'
 
 import { cn } from '@/lib/utils'
 

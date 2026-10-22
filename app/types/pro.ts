@@ -1,6 +1,6 @@
-import type { LucideIconName } from '@/constants/clients'
 import type { AccountBookingStatus, AccountPhotoKind } from '@/types/account'
 import type { BookingPlan, GeoPoint } from '@/types/booking'
+import type { LucideIconName } from '@/types/icon'
 import type { MediaCardTone } from '@/types/mediaCard'
 import type { ProDayOverview } from '@/types/proAvailability'
 import type { ProPaymentMethod, ProPriceSource } from '@/types/proCreate'

@@ -141,6 +141,7 @@ import { PAGE_DATA_TIMEOUT_MS } from '@/constants/account'
 import { FIELD_INPUT_CLASS, FLOATING_PANEL_CLASS, SELECT_ITEM_CLASS } from '@/constants/form'
 import { HERO_ENTER_CLASS } from '@/constants/motion'
 import { PRO_STATUS_FILTERS } from '@/constants/pro'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { cn } from '@/lib/utils'
 
 definePageMeta({
@@ -274,6 +275,6 @@ watch(result, async (page: ProInterventionsPage | undefined): Promise<void> => {
 
 useSeoMeta({
   title: () => t('pro.list.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

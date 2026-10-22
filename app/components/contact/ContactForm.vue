@@ -5,6 +5,9 @@
     class="min-w-0 space-y-5 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-8"
     @submit.prevent="handleSubmit"
   >
+    <p class="sr-only" role="status">
+      {{ props.isSubmitting ? $t('contact.form.submitting') : '' }}
+    </p>
     <div class="grid gap-5 sm:grid-cols-2">
       <BookingField
         id="contact-first-name"

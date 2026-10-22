@@ -35,15 +35,16 @@
 
     <div v-else-if="step === 'idle'" class="mt-2">
       <p class="text-sm leading-relaxed text-ink/80">{{ $t('account.deletion.text') }}</p>
-      <button
+      <AppButton
         ref="requestButtonRef"
-        type="button"
-        class="mt-4 flex h-11 items-center justify-center gap-2 rounded-lg border border-destructive px-5 text-sm font-bold text-red-700 transition-all duration-press ease-brand hover:bg-red-50 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+        variant="destructive"
+        size="sm"
+        icon="Trash2"
+        class="mt-4"
         @click="askConfirmation"
       >
-        <Icon name="Trash2" :size="16" aria-hidden="true" />
         {{ $t('account.deletion.request') }}
-      </button>
+      </AppButton>
     </div>
 
     <Motion
@@ -71,32 +72,28 @@
         {{ $t('account.deletion.error') }}
       </p>
       <div class="mt-4 flex flex-col gap-3 sm:flex-row">
-        <button
-          type="button"
-          :aria-disabled="step === 'submitting'"
+        <AppButton
+          variant="destructiveSolid"
+          size="sm"
+          icon="Trash2"
+          :is-loading="step === 'submitting'"
           :aria-busy="step === 'submitting'"
-          class="flex h-11 items-center justify-center gap-2 rounded-lg bg-red-700 px-5 text-sm font-bold text-white transition-all duration-press ease-brand hover:bg-red-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:active:scale-100"
           @click="confirmDeletion"
         >
-          <Icon
-            :name="step === 'submitting' ? 'Loader2' : 'Trash2'"
-            :size="16"
-            aria-hidden="true"
-            :class="cn(step === 'submitting' && 'animate-spin')"
-          />
           {{
             step === 'submitting'
               ? $t('account.deletion.submitting')
               : $t('account.deletion.confirm')
           }}
-        </button>
-        <button
-          type="button"
-          class="flex h-11 items-center justify-center rounded-lg border border-ink/50 px-5 text-sm font-bold text-ink transition-all duration-press ease-brand hover:border-primary hover:bg-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100"
+        </AppButton>
+        <AppButton
+          variant="secondary"
+          size="sm"
+          :is-disabled="step === 'submitting'"
           @click="cancelConfirmation"
         >
           {{ $t('account.deletion.cancel') }}
-        </button>
+        </AppButton>
       </div>
     </Motion>
   </section>
@@ -106,6 +103,7 @@
 import { FetchError } from 'ofetch'
 
 import type { DeletionRequestResponse, DeletionStep } from '@/types/account'
+import type { FocusTarget } from '@/types/button'
 
 import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
@@ -128,7 +126,7 @@ const requestedAt: Ref<string | null> = ref(props.initialRequestedAt)
 const step: Ref<DeletionStep> = ref('idle')
 const hasFailed: Ref<boolean> = ref(false)
 const doneRef: Ref<HTMLElement | null> = ref(null)
-const requestButtonRef: Ref<HTMLElement | null> = ref(null)
+const requestButtonRef: Ref<FocusTarget | null> = ref(null)
 const confirmTitleRef: Ref<HTMLElement | null> = ref(null)
 
 const requestedDateLabel: ComputedRef<string> = computed(() =>

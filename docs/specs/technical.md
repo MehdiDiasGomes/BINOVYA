@@ -1,6 +1,6 @@
 # Spec technique
 
-> Référence du fonctionnement actuel. Dernière mise à jour : 2026-10-20 (branche `feat/pro-space`).
+> Référence du fonctionnement actuel. Dernière mise à jour : 2026-10-22 (branche `chore/seo`).
 > Périmètre : V1 = ce qu'il faut pour lancer, le reste est marqué « V2 » (voir `TODO.md`).
 > Spec fonctionnelle associée : [booking-system.md](./booking-system.md).
 
@@ -370,9 +370,14 @@ Règles métier : [booking-system.md](./booking-system.md).
   puis `<site>/account/confirm#token_hash=…`. Ne lève jamais d'erreur, renvoie `null`.
 - `assertSameOrigin` (`server/utils/requestOrigin.ts`) : garde CSRF des routes à cookie ; `Origin`
   doit être celui de `NUXT_SITE_URL` (en dev, aussi celui de la requête), sinon 403.
-- `resolveSiteUrl` et `localizedSiteUrl` (`server/utils/siteUrl.ts`) : URL publique sans `/` final
-  et URL d'une page dans une langue (préfixe `/en`). Sans `NUXT_SITE_URL`, ou sans https hors
-  développement : 503.
+- URL du site (`server/utils/siteUrl.ts`, voir aussi « SEO ») :
+  - `parseSiteUrl` : https, ou en dev `http://localhost` et `http://127.0.0.1` seulement (avant :
+    tout http en dev). Elle repose sur `parseSecureUrl`. Renvoie `null` sinon.
+  - `resolveSiteUrl` : origine plus chemin, sans `/` final, sans query ni fragment. Sans
+    `NUXT_SITE_URL` valide : 503 « Site URL unavailable ».
+  - `localizedSiteUrl` : URL d'une page dans une langue (préfixe `/en`).
+  - `resolvePublicSiteUrl` : même calcul sur `NUXT_PUBLIC_SITE_URL`, pour le sitemap et le
+    `robots.txt`. Renvoie une chaîne vide si l'URL est invalide, sans lever d'erreur.
 - `loadAccountBookings` et `loadAccountBooking` (`server/utils/accountBookings.ts`). La seconde
   renvoie aussi `stripe_payment_intent_id`, qui ne sort jamais du serveur.
 - `loadAccountBookingDocuments` (`server/utils/accountDocuments.ts`) : ne lève jamais d'erreur.
@@ -415,9 +420,14 @@ no-preference`.
   déplacement.
 - Un bouton bloqué porte `aria-disabled` (pas `disabled`) pour garder focus et lecture ; son clic
   est annulé ; un lien bloqué devient un `a` `role="link"` sans `href`.
-- Utilisé par les pages Pro, la connexion, l'espace client et `DatePicker`. Les boutons natifs de
-  la réservation, du devis, du contact (hors envoi) et de `AccountDeletionRequest.vue` restent à
-  migrer (`TODO.md`).
+- `destructiveSolid` : fond rouge plein, pour la confirmation de suppression du compte
+  (`AccountDeletionRequest.vue`). « Annuler » y est bloqué pendant l'envoi. Le stepper du nombre
+  de bacs en butée porte `is-disabled` et reste focusable.
+- Utilisé par les pages Pro, la connexion, l'espace client, la réservation, le devis, le contact
+  et `DatePicker`.
+- Restent natifs, faute de variante adaptée : `BookingDateStep.vue` (date suggérée, turquoise sur
+  fond sombre), `BookingAddressStep.vue` (« Réessayer », aspect lien) et `QuotePhotoPicker.vue`
+  (pastille de retrait d'une photo). Ajouter une variante seulement si un second usage apparaît.
 
 ### Règles d'accessibilité
 
@@ -434,6 +444,82 @@ no-preference`.
 La CLI shadcn-vue actuelle ne convient pas : son registre déclare un paquet npm `cn` et
 `@lucide/vue`, et relève `reka-ui` et `@vueuse`. Ajouter les composants à la main, avec les
 transformations de la CLI (alias, imports), sans se fier aux dépendances qu'elle installe.
+
+### Contraste
+
+- Thème clair (`app/assets/css/tailwind.css`) : `--secondary-foreground` et `--accent-foreground`
+  valent `#050d18`. Texte navy sur turquoise : environ 8,9:1 (AA).
+- `OffersSection` : badge et CTA sur `bg-accent text-accent-foreground`, avec focus visible.
+- Textes secondaires sur fond clair : `text-ink/70` à `/80`, jamais plus pâle.
+- Les formulaires du devis et du contact ont une région `role="status"` réservée aux lecteurs
+  d'écran (`sr-only`).
+
+## SEO
+
+Audit et décisions : [seo.md](./seo.md).
+
+### En-têtes et balises
+
+- `app/app.vue` : `useLocaleHead` de `@nuxtjs/i18n`. Il pose `<html lang="fr|en">`. Les balises
+  `canonical`, `hreflang` (fr, en, `x-default`) et `og:url` sortent seulement si
+  `i18n.baseUrl` est renseigné (`seo: hasI18nBaseUrl`) : sans URL, pas de canonical faux. Le
+  canonical n'a pas de query (`/booking?service=…` ne crée pas de doublon).
+- Langues `language: 'fr'` et `'en'` (avant `en-US`). `og:locale` vaut `fr_FR` ou `en_GB`, avec
+  l'autre en `og:locale:alternate`. Ajoutés en dur : `og:site_name` et `twitter:card=summary`.
+  Constantes dans `app/constants/seo.ts`.
+- Pages privées (`isPrivatePagePath`) : seul `<html lang>` est posé, ni lien alternatif ni balise
+  Open Graph.
+- `usePageSeo(titleKey, descriptionKey)` (`app/composables/usePageSeo.ts`) : titre, description,
+  `og:title`, `og:description` et `og:type=website`, traduits. Utilisé par les 6 pages publiques
+  (`/`, `/contact`, `/booking`, `/quote`, `/legal`, `/privacy`).
+- Pages privées : `PRIVATE_PAGE_ROBOTS` (`noindex, nofollow`) dans les 12 pages, et en-tête HTTP
+  `X-Robots-Tag` via `routeRules` de `nuxt.config.ts` sur `PRIVATE_PAGE_ROUTE_PATTERNS`
+  (`/login`, `/account(/**)`, `/pro(/**)`, `/payment-link`, et leurs variantes `/en`). Pourquoi
+  les deux : l'en-tête est un filet HTTP qui ne dépend pas du rendu de la page.
+- Les pages privées ne sont pas en `Disallow` : le robot doit lire le `noindex`.
+
+### Sitemap et robots
+
+- Routes maison, pas de module `@nuxtjs/sitemap` ni `@nuxtjs/robots` : six pages, deux langues,
+  rien à générer dynamiquement.
+- `server/routes/sitemap.xml.ts` : 6 pages × 2 langues (`PUBLIC_PAGE_PATHS`), chaque entrée avec
+  ses `xhtml:link` alternates et `x-default`. L'accueil s'écrit sans slash final. 503 « Sitemap
+  unavailable » si `NUXT_PUBLIC_SITE_URL` est invalide. Valeurs échappées par `escapeXml`
+  (`server/utils/xml.ts`).
+- `server/routes/robots.txt.ts` : `Disallow: /api/` et `Sitemap:` seulement si l'URL est valide.
+  Remplace `public/robots.txt`, supprimé.
+- Les deux routes répondent avec `Cache-Control: public, max-age=3600` (`SEO_FILE_CACHE_CONTROL`).
+
+### URL du site
+
+- Trois variables, même origine https : `NUXT_SITE_URL` (serveur : mails, Stripe, `Origin`),
+  `NUXT_PUBLIC_SITE_URL` (sitemap, robots) et `NUXT_PUBLIC_I18N_BASE_URL` (canonical, hreflang).
+  Au build, `i18n.baseUrl` prend `NUXT_PUBLIC_SITE_URL` ; à l'exécution, la variable
+  `NUXT_PUBLIC_I18N_BASE_URL` la remplace.
+- `describeSiteUrlProblem` (`server/utils/siteUrl.ts`) compare les valeurs reçues : invalides ou
+  d'origines différentes. Le plugin `server/plugins/siteUrlCheck.ts` l'appelle hors dev et
+  journalise une fois au démarrage (noms de variables seulement, jamais les valeurs).
+  Pourquoi : un canonical vers un autre domaine ferait désindexer le site, sans erreur visible.
+
+### Liens et contenu
+
+- `LanguageSwitcher.vue` (navbar desktop et menu mobile) : liens `switchLocalePath` que les
+  robots suivent, `lang` et `hreflang` sur chaque lien, `aria-current` sur la langue active.
+  Entre `md` et `lg`, « FR » seul est visible, le nom accessible reste « FR Français ».
+- Footer : `h2` réservé aux lecteurs d'écran, e-mail lu dans `contact.info.email.address`, liens
+  localisés vers `/booking`, `/quote`, `/contact`, `/legal` et `/privacy`. Logo localisé. Plus de
+  lien `binovya.com` ni de lien « CGV ».
+- Dates « Dernière mise à jour » : `LEGAL_NOTICE_UPDATED_ON` et `PRIVACY_POLICY_UPDATED_ON`
+  (`app/constants/legal.ts`, `2026-10-22`), rendues par `LegalLastUpdate.vue` en `<time datetime>`
+  (clé `common.lastUpdate`). À mettre à jour à la main quand le texte change.
+- Images : `NuxtImg` en webp avec `width`, `height` et `sizes`. Le hero a `fetchpriority="high"`,
+  sans `preload` : avec `sizes`, `@nuxt/image` 2.0 télécharge alors l'image deux fois. Images
+  décoratives en `alt=""`.
+- Pages supprimées (orphelines, contenu contraire à l'offre, pas de redirection car le site n'est
+  pas en production) : `/formulas`, `/about`, `/faq`, `/solutions/*`. Code mort retiré :
+  `ClientsSection`, `CtaFreeDemo`, `ButtonCta`, `PageContainer`, `UnderlinedText`, `services.ts`,
+  `clients.ts`, `useScrollAnimation`. Le type `LucideIconName` est dans `app/types/icon.ts`.
+- Pas de données structurées (JSON-LD) : en attente des réponses du client (seo.md, #10).
 
 ## Base de données et Supabase
 
@@ -983,6 +1069,8 @@ sur cette machine (`npx` récupère vue-tsc 3.3.13 avec TypeScript 7).
 | `NUXT_STRIPE_SECRET_KEY`     | Paiement                                                  |
 | `NUXT_STRIPE_WEBHOOK_SECRET` | Vérification des webhooks Stripe                          |
 | `NUXT_SITE_URL`              | URL publique : Stripe, liens des mails, `Origin` (https)  |
+| `NUXT_PUBLIC_SITE_URL`       | Sitemap et robots, même origine que `NUXT_SITE_URL`       |
+| `NUXT_PUBLIC_I18N_BASE_URL`  | Canonical et hreflang, même origine que `NUXT_SITE_URL`   |
 | `NUXT_ADDRESS_TOKEN_SECRET`  | Signature des adresses (32 caractères minimum)            |
 
 - Les secrets serveur portent le préfixe `NUXT_` et sont lus à l'exécution (`runtimeConfig`) : rien
@@ -990,7 +1078,7 @@ sur cette machine (`npx` récupère vue-tsc 3.3.13 avec TypeScript 7).
 - `NUXT_ADDRESS_TOKEN_SECRET` : `openssl rand -base64 48`. Absent ou trop court, la recherche
   d'adresse, les disponibilités, la réservation et le devis répondent 500 (le journal nomme la
   variable, jamais sa valeur).
-- Production : `NUXT_SITE_URL` en https, clés Stripe LIVE, `NUXT_MAIL_FROM` une fois le domaine
+- Production : les trois variables d'URL à `https://binovya.com`, clés Stripe LIVE, `NUXT_MAIL_FROM` une fois le domaine
   vérifié, clés Supabase de production, `NUXT_MAIL_TRANSPORT` absent.
 - Stripe en local : `stripe listen --forward-to localhost:3000/api/stripe/webhook`, `whsec_` dans
   `NUXT_STRIPE_WEBHOOK_SECRET`. En production : endpoint du Dashboard vers `/api/stripe/webhook`
@@ -1000,15 +1088,16 @@ sur cette machine (`npx` récupère vue-tsc 3.3.13 avec TypeScript 7).
 
 Pyramide : beaucoup de tests unitaires, quelques tests d'intégration, peu de tests e2e. Unitaires
 et intégration tournent en CI cible ; l'e2e (vraie page Stripe) reste local avant chaque fusion.
-Dernier relevé (2026-10-21) : unitaires 1 432, intégration environ 479, e2e 29 tests (run complet
-d'environ 5,3 min, `workers: 1`).
+Dernier relevé (2026-10-22, branche `chore/seo`) : unitaires 1 469 (93 fichiers), intégration 515
+(46 fichiers), e2e 32 tests (run complet d'environ 5,3 min le 2026-10-21, `workers: 1`).
 
 L'e2e ne couvre que les parcours critiques : réservation publique payée par la vraie page Stripe
 Checkout (annulation et expiration, une réservation en attente par client, carte refusée), lien
 magique, réservations et suppression du compte (avec un test de focus clavier), accès Pro,
 planning, déplacement (clavier et état d'attente compris), fin d'intervention avec photos,
 création Pro (paiement hors ligne, lien de paiement et renvoi, recréation préremplie), une
-sauvegarde de disponibilités, envoi du contact, brouillon par jeton d'adresse. Le reste (mise en
+sauvegarde de disponibilités, envoi du contact, brouillon par jeton d'adresse, sélecteur de langue
+(`language-switcher.spec.ts`). Le reste (mise en
 page, survol, détails d'interface) relève des tests unitaires, d'intégration et des vérifications
 à la main (`TODO.md`, étape 8). Une suite plus large (129 tests) a été réduite : trop lente et
 trop instable.
@@ -1059,7 +1148,9 @@ trop instable.
 ### Organisation
 
 - `tests/{unit,integration,e2e}/<domaine>/` (domaines `account`, `booking`, `contact`, `email`,
-  `pro`, `shared`, `scripts`), kebab-case. Aides dans `tests/support/` ; e2e dans
+  `pro`, `seo`, `shared`, `scripts`), kebab-case. Le domaine `seo` couvre les chemins, le XML, les
+  pages privées en `noindex`, le sitemap, le `robots.txt` et le `<head>` des pages
+  (`tests/unit/seo/`, `tests/integration/seo/`). Aides dans `tests/support/` ; e2e dans
   `tests/e2e/support/`.
 - Un test d'intégration par gabarit de mail (`tests/integration/email/`), lisant l'outbox. Un seul
   appel à Resend : `resend-smoke.test.ts` (`GET /domains`, lecture seule, ignoré sans clé).
@@ -1094,8 +1185,9 @@ trop instable.
 - Choix du VPS et du fournisseur ; environnement de préproduction (branche `dev`) : oui ou non ?
 - Conditions d'usage de l'API geoportail.lu (contacter support@geoportail.lu).
 - Domaine `binovya.com` à vérifier sur Resend ; en attendant, repli `contact@dg-zenith.com`.
-- `parseSecureUrl` accepte `http://localhost` même en production, alors que `resolveSiteUrl`
-  n'accepte http qu'en développement. Assumé pour `emailSitePageUrl`, à trancher.
+- `resolveSiteUrl` repose sur `parseSecureUrl` via `parseSiteUrl` et n'accepte http qu'en
+  développement. Le seul écart restant : `emailSitePageUrl` accepte `http://localhost` en
+  production. Assumé, à trancher.
 - `has_recent_sign_in()` et `is_admin()` acceptent un timestamp d'`amr` en chaîne numérique (la
   regex de `oldest_link_sign_in_at()` ne vérifie pas le type JSON), alors que l'application exige
   un nombre. À trancher dans une migration.
@@ -1107,7 +1199,14 @@ trop instable.
 - `NuxtImg` : ajouter `sizes` dès qu'une `MediaCard` affiche une image.
 - Textes qui promettent des « photos avant/après » (description SEO de `/login`, sous-titre du
   tableau de bord) : à relire avec le client.
-- Aucun `<html lang>` (WCAG 3.1.1) : branche SEO (`TODO.md`).
+- `@unhead/vue` est importé (types) dans `app/app.vue` sans figurer dans `package.json`.
+  À déclarer ou à remplacer par un type fourni par Nuxt.
+- `usePageSeo` type ses clés en `string` : une clé i18n erronée n'est pas détectée à la
+  compilation.
+- Contraste hors usage : le thème `.dark` donne `--secondary #0b7fb8` (environ 4,4:1 quel que soit
+  le texte) et `app/components/ui/button/index.ts:18` met `hover:text-secondary` (environ 2,2:1).
+  Aucun des deux n'est actif : le site n'active jamais `dark` et ce bouton shadcn n'est pas
+  utilisé.
 - Photos d'intervention : aucune purge, durée de conservation à décider (`TODO.md`, étapes 10 et 13).
 - `prettier --check` échoue sur 8 fichiers de `dev` sans lien avec les étapes en cours
   (`BeforeAfterSection`, `OffersSection`, `ServicesSection`, `TrustStripSection`, `layouts/footer`,

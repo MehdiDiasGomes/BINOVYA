@@ -46,9 +46,6 @@ export default {
       line1: "Les Portes de l'Orne, Rue André Marie Ampère",
       line2: '57360 Amnéville, France',
     },
-    phone: {
-      display: '00 00 00 00 00',
-    },
     email: {
       address: "contact{'@'}binovya.fr",
     },

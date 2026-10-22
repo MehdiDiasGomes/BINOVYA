@@ -201,6 +201,7 @@ import {
   STEP_TRANSITION,
 } from '@/constants/motion'
 import { PRO_PROGRESS_VIEWS } from '@/constants/proSteps'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { formatFullDate } from '@/utils/date'
 import { proCustomerName } from '@/utils/proIntervention'
 import { interventionMode, interventionProgressStatus } from '@/utils/proSteps'
@@ -380,6 +381,6 @@ const handleCompleted = async (result: ProCompletedEvent): Promise<void> => {
 
 useSeoMeta({
   title: () => t('pro.steps.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

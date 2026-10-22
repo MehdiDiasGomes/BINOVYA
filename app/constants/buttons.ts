@@ -14,6 +14,8 @@ const BUTTON_VARIANT_CLASSES: Record<ButtonVariant, string> = {
     'rounded-lg border-ink/50 bg-white text-sm text-ink hover:border-primary hover:bg-paper-2 focus-visible:ring-primary',
   destructive:
     'rounded-lg border-destructive bg-white text-sm text-destructive hover:bg-red-50 hover:text-red-700 focus-visible:ring-destructive',
+  destructiveSolid:
+    'rounded-lg border-transparent bg-red-700 text-sm text-white hover:bg-red-800 focus-visible:ring-primary aria-disabled:hover:bg-red-700',
   warning: `${BUTTON_LIFT_CLASS} rounded-lg border-amber-500 bg-amber-300 text-sm text-navy-950 hover:bg-amber-200 focus-visible:ring-amber-700`,
   onDark: `${BUTTON_LIFT_CLASS} rounded-full border-transparent bg-white font-heading text-base text-ink hover:bg-paper-2 focus-visible:ring-turquoise focus-visible:ring-offset-navy-900`,
   onDarkWarning: `${BUTTON_LIFT_CLASS} rounded-full border-transparent bg-amber-300 font-heading text-base text-navy-950 hover:bg-amber-200 focus-visible:ring-turquoise focus-visible:ring-offset-navy-900`,

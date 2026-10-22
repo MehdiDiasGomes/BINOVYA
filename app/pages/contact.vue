@@ -110,16 +110,8 @@ definePageMeta({
   layout: 'default',
 })
 
-const { t } = useI18n()
 const localePath = useLocalePath()
 const { form, errors, hasAttempted, isSubmitting, isSent, hasFailed, submit } = useContactForm()
 
-useSeoMeta({
-  title: () => t('seo.contact.title'),
-  description: () => t('seo.contact.description'),
-  ogTitle: () => t('seo.contact.title'),
-  ogDescription: () => t('seo.contact.description'),
-  ogType: 'website',
-  twitterCard: 'summary_large_image',
-})
+usePageSeo('seo.contact.title', 'seo.contact.description')
 </script>

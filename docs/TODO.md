@@ -31,8 +31,10 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
      jours de collecte, « bacs vides et accessibles », devis, pros, Luxembourg)
 - [ ] 7. Vérifier dans le dashboard Supabase : Auth Hook « Send Email » vers
      `public.suppress_auth_emails`, OTP e-mail à 86 400 s, inscriptions désactivées
-- [ ] 8. Chore : migrer les boutons natifs de la réservation, du devis, de la page contact
-     (hors envoi, déjà fait) et de `AccountDeletionRequest.vue` vers `AppButton`
+- [x] 8. Chore : migrer les boutons natifs de la réservation, du devis, de la page contact
+     (hors envoi, déjà fait) et de `AccountDeletionRequest.vue` vers `AppButton` (variante
+     `destructiveSolid` ; restent natifs : date suggérée, « Réessayer » de l'adresse, pastille
+     de retrait d'une photo du devis, faute de variante, voir `specs/technical.md`)
 - [ ] 8. Chore : WebKit perd la session Supabase sur `http://localhost` (cookie `Secure` par
      défaut dans `@nuxtjs/supabase`, aucun `cookieOptions` dans `nuxt.config.ts`) : l'espace Pro
      est inutilisable dans Safari de bureau en local. Poser `cookieOptions.secure` seulement en
@@ -58,23 +60,27 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
 
 ### SEO (branche `chore/seo`, après la fusion de l'étape 8 dans `dev`)
 
-Audit du 2026-10-17, 25 constats ouverts sur 29 (recontrôle du 2026-10-20) : voir
-`specs/seo.md`. `/login` est déjà en `noindex` (#1).
+Audit du 2026-10-17 (29 constats), code livré le 2026-10-22 : voir `specs/seo.md`. Restent les
+constats qui attendent le client (#10, #11, #12, #16, #17, #18).
 
-- [ ] Répondre aux questions client de `specs/seo.md` (adresse, téléphone, domaine, engagements)
-- [ ] `<html lang>` absent sur tout le site (WCAG 3.1.1), `canonical`, `hreflang` avec
-      `x-default`, langue `en` au lieu de `en-US` : `useLocaleHead` dans `app.vue` (#5, #6, #15)
-- [ ] Pages privées : en-têtes `X-Robots-Tag` via `routeRules` (#2)
-- [ ] Sitemap, robots, URL publique `NUXT_PUBLIC_SITE_URL` (#3, #4)
-- [ ] Données structurées : `LocalBusiness`, `Service`, `FAQPage`, `BreadcrumbList` (#10)
-- [ ] Page `/formulas` (clés i18n brutes, #7), clés `alt` et `aria-label` absentes (#13) et images
-      manquantes (#14)
-- [ ] Maillage interne, sélecteur de langue, liens localisés, footer (#8, #9, #23, #24)
-- [ ] Adresse et téléphone cohérents, après réponse du client (#11, #12)
-- [ ] Titres, descriptions, promesses des meta, images OG, dimensions, `alt` (#16, #17, #18, #21,
-      #22)
-- [ ] FAQ rendue côté serveur et `$tm` / `$rt` (#19, #20)
-- [ ] Révélation au scroll sur `/formulas` et dates « Dernière mise à jour » en dur (#25, #28)
+- [ ] Répondre aux questions client de `specs/seo.md` (adresse, téléphone, villes ciblées, image
+      OG, engagements restants, mentions légales LCEN : téléphone, SIRET/RCS, hébergeur).
+      Domaine et e-mail tranchés : `binovya.com`, `contact@binovya.fr`
+- [x] `<html lang>`, `canonical`, `hreflang` avec `x-default`, langue `en` au lieu de `en-US` :
+      `useLocaleHead` dans `app.vue` (#5, #6, #15)
+- [x] Pages privées : en-têtes `X-Robots-Tag` via `routeRules` (#2)
+- [x] Sitemap, robots, URL publique `NUXT_PUBLIC_SITE_URL` (#3, #4)
+- [ ] Données structurées : `LocalBusiness`, `Service` (#10), après les réponses du client
+- [x] Page `/formulas`, clés `alt` et `aria-label` absentes, images manquantes : pages supprimées
+      (`/formulas`, `/about`, `/faq`, `/solutions/*`) (#7, #13, #14)
+- [x] Maillage interne, sélecteur de langue, liens localisés, footer (#8, #9, #23, #24)
+- [ ] Adresse et téléphone cohérents, après réponse du client (#11, #12 ; téléphone factice déjà
+      retiré de `/legal`)
+- [ ] Titres, descriptions, promesses restantes, image OG (#16, #17, #18) ; fait : dimensions,
+      `sizes`, `alt` (#21, #22)
+- [x] FAQ et `$tm` / `$rt` (#19, #20) : `/faq` supprimée, `privacy` corrigée
+- [x] Dates « Dernière mise à jour » pilotées par `app/constants/legal.ts` (#28) ; la révélation
+      au scroll de `/formulas` (#25) est sans objet
 
 ### 10. Infrastructure
 
@@ -125,8 +131,9 @@ Tout se prépare et se teste en local. La mise en place sur le VPS est à l'éta
 - [ ] RLS automatique (event trigger `ensure_rls`) en production : décider (option ou migration)
 - [ ] Plan Supabase Pro (25 $/mois) pour les sauvegardes automatiques : à convenir avec le
       client (remplace les scripts de sauvegarde maison)
-- [ ] Variables de production dans le `.env` du VPS : `NUXT_SITE_URL` en https,
-      `NUXT_ADDRESS_TOKEN_SECRET`, clés Stripe LIVE et endpoint webhook du Dashboard
+- [ ] Variables de production dans le `.env` du VPS : `NUXT_SITE_URL`, `NUXT_PUBLIC_SITE_URL` et
+      `NUXT_PUBLIC_I18N_BASE_URL` à `https://binovya.com` (même origine, sinon le plugin
+      `siteUrlCheck` journalise au démarrage), `NUXT_ADDRESS_TOKEN_SECRET`, clés Stripe LIVE et endpoint webhook du Dashboard
       (`checkout.session.completed`, `checkout.session.expired`), `NUXT_MAIL_FROM`,
       `NUXT_CONTACT_EMAIL_TO`, clés Supabase. `NUXT_MAIL_TRANSPORT` absent. Copie dans un
       gestionnaire de mots de passe
@@ -136,10 +143,12 @@ Tout se prépare et se teste en local. La mise en place sur le VPS est à l'éta
 
 ### 13. Légal
 
-- [ ] Mentions légales (hébergeur VPS, Supabase)
+- [ ] Mentions légales (hébergeur VPS, Supabase ; LCEN : téléphone de l'éditeur, SIRET/RCS, nom
+      et adresse de l'hébergeur à la place de « sur demande »)
 - [ ] CGV : annulation, report, remboursement
 - [ ] Politique de confidentialité : données client, photos, durées de conservation (la date de
-      mise à jour est écrite en dur, la durée de conservation des réservations manque)
+      mise à jour est dans `app/constants/legal.ts`, la durée de conservation des réservations
+      manque)
 - [ ] Politique de confidentialité : Cloudflare comme sous-traitant (société américaine,
       déchiffre le trafic), avec son DPA
 - [ ] Décider du sort des réservations abandonnées et de leurs comptes (purge ou anonymisation)

@@ -169,6 +169,7 @@ import {
   HERO_ENTER_CLASS,
 } from '@/constants/motion'
 import { GOOGLE_MAPS_MAX_WAYPOINTS, PRO_CREATE_PATH } from '@/constants/pro'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { cn } from '@/lib/utils'
 import { addDaysToIsoDate, formatFullDate } from '@/utils/date'
 import { isIsoDate } from '@/utils/dateValidation'
@@ -288,6 +289,6 @@ const shiftDay = async (days: number): Promise<void> => {
 
 useSeoMeta({
   title: () => t('pro.planning.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

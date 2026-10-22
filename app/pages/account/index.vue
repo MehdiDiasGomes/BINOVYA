@@ -124,6 +124,7 @@ import {
   REVEAL_MAX_STAGGER_STEPS,
   REVEAL_STAGGER,
 } from '@/constants/motion'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { cn } from '@/lib/utils'
 
 definePageMeta({
@@ -198,6 +199,6 @@ const signOut = async (): Promise<void> => {
 
 useSeoMeta({
   title: () => t('account.dashboard.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

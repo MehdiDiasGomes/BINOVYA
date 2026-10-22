@@ -10,10 +10,11 @@
 <script setup lang="ts">
 import * as icons from 'lucide-vue-next'
 
+import type { LucideIconName } from '@/types/icon'
 import type { Component } from 'vue'
 
 interface Props {
-  name: keyof typeof icons
+  name: LucideIconName
   size?: number
   color?: string
   strokeWidth?: number
@@ -25,8 +26,7 @@ const props = withDefaults(defineProps<Props>(), {
   strokeWidth: 2,
 })
 
-const iconComponent = computed((): Component => {
-  const icon = icons[props.name]
-  return icon as unknown as Component
-})
+const iconComponent: ComputedRef<Component> = computed(
+  (): Component => icons[props.name] as unknown as Component,
+)
 </script>

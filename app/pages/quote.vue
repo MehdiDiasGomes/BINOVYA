@@ -1,5 +1,8 @@
 <template>
   <div class="bg-paper">
+    <p class="sr-only" role="status">
+      {{ isSubmitting ? $t('quote.actions.submitting') : '' }}
+    </p>
     <section class="bg-navy-950 pb-10 pt-12">
       <div class="mx-auto max-w-[1180px] px-4 sm:px-8">
         <span
@@ -129,21 +132,15 @@
                   <Icon name="CircleAlert" :size="16" aria-hidden="true" />
                   {{ $t('quote.errors.submit') }}
                 </p>
-                <button
+                <AppButton
                   type="submit"
-                  :aria-disabled="isSubmitting"
+                  icon="Send"
+                  :is-loading="isSubmitting"
                   :aria-busy="isSubmitting"
-                  class="flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-md shadow-primary/30 transition-all duration-press ease-brand hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 aria-disabled:cursor-not-allowed aria-disabled:opacity-60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 sm:w-auto"
+                  class="w-full shadow-md shadow-primary/30 sm:w-auto"
                 >
-                  <template v-if="isSubmitting">
-                    <Icon name="Loader2" :size="16" aria-hidden="true" class="animate-spin" />
-                    {{ $t('quote.actions.submitting') }}
-                  </template>
-                  <template v-else>
-                    <Icon name="Send" :size="16" aria-hidden="true" />
-                    {{ $t('quote.actions.submit') }}
-                  </template>
-                </button>
+                  {{ isSubmitting ? $t('quote.actions.submitting') : $t('quote.actions.submit') }}
+                </AppButton>
               </div>
             </form>
           </Motion>
@@ -202,14 +199,7 @@ const {
 
 const hasBins: ComputedRef<boolean> = computed(() => form.value.equipment.includes('bins'))
 
-useSeoMeta({
-  title: () => t('quote.seo.title'),
-  description: () => t('quote.seo.description'),
-  ogTitle: () => t('quote.seo.title'),
-  ogDescription: () => t('quote.seo.description'),
-  ogType: 'website',
-  twitterCard: 'summary_large_image',
-})
+usePageSeo('quote.seo.title', 'quote.seo.description')
 
 const visibleError = (field: QuoteField): string => {
   const key: string | undefined = hasAttempted.value ? errors.value[field] : undefined

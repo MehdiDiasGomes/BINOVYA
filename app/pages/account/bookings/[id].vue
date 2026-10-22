@@ -131,6 +131,7 @@ import { BACK_LINK_CLASS } from '@/constants/buttons'
 import { ERROR_MESSAGE_CLASS } from '@/constants/feedback'
 import { DETAIL_ROW_CLASS } from '@/constants/mediaCard'
 import { CONTENT_ENTER_OFFSET, CONTENT_ENTER_TRANSITION, REVEAL_STAGGER } from '@/constants/motion'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { bookingCardView, bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'
 import { formatFullDate } from '@/utils/date'
 import { formatPrice } from '@/utils/pricing'
@@ -249,6 +250,6 @@ const liveStatus: ComputedRef<string> = computed(() =>
 
 useSeoMeta({
   title: () => t('account.detail.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

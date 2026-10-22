@@ -200,6 +200,7 @@ import {
   CONTENT_ENTER_TRANSITION,
   HERO_ENTER_CLASS,
 } from '@/constants/motion'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 import { cn } from '@/lib/utils'
 import { isOverrideDateEditable } from '@/utils/proAvailability'
 
@@ -292,6 +293,6 @@ const editDay = async (date: string): Promise<void> => {
 
 useSeoMeta({
   title: () => t('pro.availability.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>

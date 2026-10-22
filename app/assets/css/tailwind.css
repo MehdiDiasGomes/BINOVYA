@@ -71,11 +71,11 @@
   --primary: #0975ab;
   --primary-foreground: #ffffff;
   --secondary: #22c0de;
-  --secondary-foreground: #ffffff;
+  --secondary-foreground: #050d18;
   --muted: #e8f4f8;
   --muted-foreground: #7d93a8;
   --accent: #22c0de;
-  --accent-foreground: #ffffff;
+  --accent-foreground: #050d18;
   --destructive: oklch(0.577 0.245 27.325);
   --border: #e6eef2;
   --input: #e6eef2;

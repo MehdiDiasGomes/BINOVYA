@@ -103,6 +103,7 @@ import {
 import { ERROR_MESSAGE_CLASS, ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import { HERO_ENTER_CLASS, POP_SPRING, STEP_OFFSET, STEP_TRANSITION } from '@/constants/motion'
 import { PRO_ACCESS_DENIED_QUERY } from '@/constants/pro'
+import { PRIVATE_PAGE_ROBOTS } from '@/constants/seo'
 
 definePageMeta({
   layout: 'pro',
@@ -158,6 +159,6 @@ onMounted(() => {
 
 useSeoMeta({
   title: () => t('pro.login.seo.title'),
-  robots: 'noindex, nofollow',
+  robots: PRIVATE_PAGE_ROBOTS,
 })
 </script>
