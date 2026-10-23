@@ -78,8 +78,10 @@ describe('POST /api/pro/bookings/[id]/complete mails', () => {
 
   it('answers 409 alreadyCompleted on a second call and sends no further mail', async () => {
     const booking = await seedPaidToday('twice')
-    await complete(booking.id, true)
-    await waitForMails({ to: booking.email, subjectIncludes: COMPLETED_SUBJECT })
+    const first = await complete(booking.id, true)
+    expect(first.status).toBe(200)
+    const sent = await waitForMails({ to: booking.email, subjectIncludes: COMPLETED_SUBJECT })
+    expect(sent).toHaveLength(1)
     const second = await complete(booking.id, true)
     expect(second.status).toBe(409)
     expect(second.body).toMatchObject({ data: { code: 'alreadyCompleted' } })

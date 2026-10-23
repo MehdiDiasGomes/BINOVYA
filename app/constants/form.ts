@@ -19,6 +19,10 @@ export const FIELD_HINT_CLASS: string = 'mt-1.5 block text-[13px] text-ink/70'
 
 export const FIELD_ERROR_CLASS: string = `mt-1.5 flex items-center gap-1.5 text-[13px] font-bold ${ERROR_TEXT_TONE_CLASS}`
 
+/** Native checkbox classes: size, brand accent and focus outline. */
+export const CHECKBOX_CLASS: string =
+  'h-5 w-5 shrink-0 accent-primary focus-visible:outline-[3px] focus-visible:outline-offset-2 focus-visible:outline-primary'
+
 export const NUMBER_FIELD_STEP_BUTTON_CLASS: string =
   'mx-0.5 flex size-11 cursor-pointer items-center justify-center rounded-md p-0 text-ink transition-colors duration-press ease-brand hover:bg-primary/10 hover:text-primary active:bg-primary/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary/60 disabled:cursor-not-allowed disabled:bg-transparent disabled:text-ink/40 disabled:opacity-100 motion-reduce:transition-none'
 

@@ -14,6 +14,8 @@ export const PRO_CREATE_TIMEOUT_MS: number = 25000
 
 export const PRO_PAYMENT_LINK_TIMEOUT_MS: number = 15000
 
+export const PRO_PAYMENT_LINK_STRIPE_TIMEOUT_MS: number = 5000
+
 export const PRO_MAX_BINS_PER_SERVICE: number = 2
 
 export const PRO_QUOTE_MAX_BINS_PER_SERVICE: number = 50

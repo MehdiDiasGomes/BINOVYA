@@ -8,7 +8,7 @@
         v-for="item in QUOTE_EQUIPMENT"
         :key="item"
         :for="`${props.id}-${item}`"
-        class="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-ink/50 bg-white px-4 py-2 text-sm font-bold text-ink transition-all duration-200 hover:border-primary hover:bg-paper active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 has-[:checked]:border-primary has-[:checked]:bg-paper-2 has-[:checked]:ring-2 has-[:checked]:ring-primary has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2"
+        class="flex min-h-12 cursor-pointer items-center gap-3 rounded-lg border border-ink/50 bg-white px-4 py-2 text-sm font-bold text-ink transition-all duration-200 hover:border-primary hover:bg-paper active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 has-[:checked]:border-primary has-[:checked]:bg-paper-2 has-[:checked]:ring-2 has-[:checked]:ring-primary"
       >
         <input
           :id="`${props.id}-${item}`"
@@ -16,7 +16,7 @@
           type="checkbox"
           :value="item"
           :aria-describedby="props.error ? `${props.id}-error` : undefined"
-          class="h-5 w-5 shrink-0 accent-primary"
+          :class="CHECKBOX_CLASS"
           @change="toggle(item)"
         />
         {{ $t(`quote.equipment.items.${item}`) }}
@@ -33,7 +33,7 @@
 <script setup lang="ts">
 import type { QuoteEquipment } from '@/types/quote'
 
-import { FIELD_ERROR_CLASS } from '@/constants/form'
+import { CHECKBOX_CLASS, FIELD_ERROR_CLASS } from '@/constants/form'
 import { QUOTE_EQUIPMENT } from '@/constants/quote'
 import { cn } from '@/lib/utils'
 

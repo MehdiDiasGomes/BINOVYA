@@ -1,6 +1,6 @@
 # Spec technique
 
-> Référence du fonctionnement actuel. Dernière mise à jour : 2026-10-22 (branche `chore/seo`).
+> Référence du fonctionnement actuel. Dernière mise à jour : 2026-10-23 (branche `chore/previous-steps`).
 > Périmètre : V1 = ce qu'il faut pour lancer, le reste est marqué « V2 » (voir `TODO.md`).
 > Spec fonctionnelle associée : [booking-system.md](./booking-system.md).
 
@@ -147,6 +147,12 @@ V2 : OSRM et VROOM (tournées), supervision, SMS Brevo (voir « V2 » en fin de 
   `FIELD_ERROR_CLASS`.
 - `app/constants/calendar.ts` : `CALENDAR_GRID_DAY_COUNT` (42) et classes du calendrier (cellules,
   boutons de navigation, points), partagées par `DatePicker` et `BookingCalendar`.
+- `CHECKBOX_CLASS` (`app/constants/form.ts`) : toute case à cocher native (`BookingPaymentStep.vue`
+  deux fois, `BookingCollectionField.vue` « je ne sais pas », `QuoteEquipmentField.vue`) : taille
+  `h-5 w-5`, `accent-primary` et un contour `focus-visible:outline-[3px] outline-offset-2
+outline-primary`. Pourquoi un `outline` et non un `ring` : un `ring` est une ombre (`box-shadow`)
+  que les navigateurs ne dessinent pas de façon fiable sur une case native. Un seul contour par
+  case : `QuoteEquipmentField.vue` n'a plus d'anneau de focus sur son libellé.
 - Ne pas recréer ces classes dans un composant : les importer.
 
 ## Formulaire de contact
@@ -178,27 +184,39 @@ V2 : OSRM et VROOM (tournées), supervision, SMS Brevo (voir « V2 » en fin de 
   `escapeHtml` échappe le corps, accolades comprises.
 - Gabarits dans `app/templates/email/` : `layout`, `labels`, `bookingDetails`,
   `bookingCustomerEmails` (confirmation, rappel, remboursement, changement de date),
-  `bookingAdminEmail`, `photosAvailableEmail`, `accountEmails`, `contactEmail`, `quoteEmail`.
-  Logique d'envoi dans `server/utils/bookingEmails.ts` et `server/utils/accountEmails.ts`.
+  `bookingAdminEmail`, `photosAvailableEmail`, `paymentLinkEmail`, `accountEmails`,
+  `contactEmail`, `quoteEmail`. Logique d'envoi dans `server/utils/bookingEmails.ts`,
+  `server/utils/bookingPaymentLinkEmails.ts` et `server/utils/accountEmails.ts`.
+- `loadBookingEmailData` (`server/utils/bookingEmails.ts`) charge la réservation et son client pour
+  un mail. Sur une erreur de lecture Supabase, elle journalise « Booking emails skipped: booking
+  <id> could not be read » et renvoie `null` ; une réservation ou un client absent a son propre
+  message (« … or its customer was not found »). Avant, une erreur de lecture passait pour un
+  « introuvable », sans trace. Le journal ne contient que l'identifiant de la réservation.
 
-| Mail                             | Déclencheur                                            |
-| -------------------------------- | ------------------------------------------------------ |
-| Confirmation au client           | Webhook, `confirm_booking_payment` renvoie `paid`      |
-| Lien de connexion                | `POST /api/auth/login`, adresse connue et sous plafond |
-| Lien de connexion admin          | `POST /api/pro/auth/login`, admin connu, sous plafond  |
-| Alerte de suppression (admin)    | `POST /api/account/deletion-request`                   |
-| Alerte admin (réservation payée) | Idem confirmation, à `NUXT_CONTACT_EMAIL_TO`           |
-| Annulation et remboursement      | Webhook, `refund_required` ou `not_payable`            |
-| Rappel                           | Tâche `booking:reminders` (voir « Tâches planifiées ») |
-| Changement de date               | `POST /api/pro/bookings/[id]/reschedule`, après succès |
-| Photos disponibles               | `POST /api/pro/bookings/[id]/complete`, avec 2 photos  |
+| Mail                               | Déclencheur                                            |
+| ---------------------------------- | ------------------------------------------------------ |
+| Confirmation au client             | Webhook, `confirm_booking_payment` renvoie `paid`      |
+| Lien de connexion                  | `POST /api/auth/login`, adresse connue et sous plafond |
+| Lien de connexion admin            | `POST /api/pro/auth/login`, admin connu, sous plafond  |
+| Alerte de suppression (admin)      | `POST /api/account/deletion-request`                   |
+| Alerte admin (réservation payée)   | Idem confirmation, à `NUXT_CONTACT_EMAIL_TO`           |
+| Annulation et remboursement        | Webhook, `refund_required` ou `not_payable`            |
+| Rappel                             | Tâche `booking:reminders` (voir « Tâches planifiées ») |
+| Changement de date                 | `POST /api/pro/bookings/[id]/reschedule`, après succès |
+| Photos disponibles                 | `POST /api/pro/bookings/[id]/complete`, avec 2 photos  |
+| Lien de paiement                   | `POST /api/pro/bookings` (mode lien) et son renvoi     |
+| Confirmation (paiement hors site)  | `POST /api/pro/bookings` (mode hors site)              |
+| Note de crédit à émettre à la main | Webhook, la note de crédit automatique a échoué        |
 
 - Pas de mail de remboursement si la charge était déjà remboursée (`charge_already_refunded`).
 - Clés d'idempotence Resend (gardées 24 h) : `booking-confirmation-<id>`,
   `booking-admin-alert-<id>`, `booking-refund-<id>`, `booking-reminder-<date>-<id>` (la date
   annoncée : une réservation déplacée reçoit un nouveau rappel), `booking-reschedule-<uuid>-<id>`
-  (uuid neuf par déplacement), `booking-photos-<id>`, `account-deletion-<id>-<heure de la
-demande>`. Le lien de connexion n'en a pas : chaque lien est unique.
+  (uuid neuf par déplacement), `booking-photos-<id>`, `booking-payment-link-<id>` (premier envoi
+  du lien ; chaque renvoi a un uuid neuf, `booking-payment-link-resend-<uuid>-<id>`, pour que
+  Resend n'avale pas un renvoi), `booking-credit-note-alert-<id>`, `account-deletion-<id>-<heure
+de la demande>`. Le lien de connexion n'en a pas : chaque lien est unique. La confirmation d'une
+  intervention payée hors site réutilise la clé de la confirmation, `booking-confirmation-<id>`.
 - `emailSitePageUrl` (`server/utils/bookingEmails.ts`) construit les liens vers `/booking` (mail de
   remboursement) et `/login` (« Suivre ma réservation », « Voir mes photos ») sur
   `NUXT_SITE_URL`. Elle ne lève jamais d'erreur : un mail part sans lien plutôt que pas du tout.
@@ -286,6 +304,41 @@ checkoutUrl }` ; le navigateur est redirigé vers `checkoutUrl`.
   (`booking-refund-<id>`) : un événement rejoué ne change rien. Un échec renvoie 500 pour que
   Stripe rejoue.
 
+### Facture, note de crédit et client Stripe
+
+- Chaque session Checkout est ouverte avec `invoice_creation` (`bookingInvoiceCreation`,
+  `server/utils/bookingInvoice.ts`) : Stripe crée la facture une fois le paiement réussi, avec
+  l'identifiant de la réservation en métadonnée, une description (formule, date, adresse de
+  l'intervention) et les mentions légales de `app/constants/invoice.ts` (4 champs personnalisés au
+  plus, limite Stripe, et un pied de page). Ces mentions sont **fictives** (« Lorem Ipsum ») tant
+  que le client n'a pas donné les vraies (`TODO.md`, étape 8). Adresse et logo du vendeur viennent
+  des réglages du compte Stripe, pas du code.
+- `bookings.stripe_invoice_id` (`in_…`, unique, nul avant la facturation) est rempli par le webhook
+  (`storeBookingInvoice`, `sessionInvoiceId`) après les mails de paiement, sur `paid` et sur
+  `already_paid`. Seule une colonne vide est écrite (`is null`) : un événement rejoué ne change
+  rien, et un lien qui avait échoué se refait au rejeu. Un échec d'écriture répond 500 pour que
+  Stripe rejoue.
+- Remboursement automatique (`refund_required`, `not_payable`) : si la session avait une facture,
+  `issueRefundCreditNote` crée la note de crédit (motif `order_change`, rattachée au
+  remboursement, clé `booking-credit-note-<id>`) avant le mail d'annulation. Elle ne lève jamais
+  d'erreur : un échec est journalisé et BINOVYA reçoit un mail « note de crédit à émettre à la
+  main » (`NUXT_CONTACT_EMAIL_TO`). Le remboursement reste valable.
+- Client Stripe unique par profil (`server/utils/stripeCustomer.ts`, `profiles.stripe_customer_id`
+  `cus_…`, unique) : `ensureStripeCustomer` le crée au premier paiement avec le nom et l'e-mail de
+  la fiche seulement, puis le réutilise. Pourquoi : les factures d'un même client se regroupent.
+  L'adresse de facturation n'est jamais prise de la requête de réservation, qui n'est pas
+  authentifiée : si le client Stripe n'en a pas, Checkout la demande
+  (`billing_address_collection: 'required'`) et l'enregistre. Si deux réservations créent un client
+  en même temps, la première écrite gagne et l'autre client Stripe est supprimé.
+  `deleteProfileStripeCustomer` supprime le client Stripe d'une fiche et remet
+  `stripe_customer_id` à zéro (factures et paiements restent chez Stripe pour la comptabilité),
+  mais aucune route ne l'appelle encore : la suppression d'un compte reste manuelle (voir
+  « Points ouverts »).
+- Les cartes ne sont pas proposées à l'enregistrement : n'importe qui peut ouvrir un paiement pour
+  une fiche.
+- Les réservations payées avant la facturation (`stripe_invoice_id` nul) gardent leur reçu Stripe
+  (voir « Espace client »).
+
 ### Libération d'une réservation abandonnée
 
 - `POST /api/booking/release` (`{ bookingId }`, 1 Ko, réponse `{ isReleased }`) expire la session
@@ -348,7 +401,8 @@ Règles métier : [booking-system.md](./booking-system.md).
   (sous RLS), sans photos, `Cache-Control: private, no-store`. 500 si le profil est illisible, 404
   si la fiche manque.
 - `GET /api/account/bookings/[id]` : `{ booking, documents }` (`photos` avant/après en URL
-  signées ou `null`, `receiptUrl`), `private, no-store`. 401 sans session (avant le 400 d'un
+  signées ou `null`, `invoice` `{ url, isPdf }`, `receiptUrl`, `isPaidOffline`), `private,
+no-store`. 401 sans session (avant le 400 d'un
   identifiant non uuid). 404 « Booking not found » identique pour une réservation inexistante,
   d'un autre client ou d'un statut hors espace.
 - `POST /api/account/deletion-request` : `assertSameOrigin`, session, pose
@@ -379,15 +433,20 @@ Règles métier : [booking-system.md](./booking-system.md).
   - `resolvePublicSiteUrl` : même calcul sur `NUXT_PUBLIC_SITE_URL`, pour le sitemap et le
     `robots.txt`. Renvoie une chaîne vide si l'URL est invalide, sans lever d'erreur.
 - `loadAccountBookings` et `loadAccountBooking` (`server/utils/accountBookings.ts`). La seconde
-  renvoie aussi `stripe_payment_intent_id`, qui ne sort jamais du serveur.
+  renvoie aussi `stripe_payment_intent_id`, `stripe_invoice_id` et `payment_method`, qui ne sortent
+  jamais du serveur (`AccountBookingRecord`).
 - `loadAccountBookingDocuments` (`server/utils/accountDocuments.ts`) : ne lève jamais d'erreur.
   - Photos : lues et signées avec le client de la session du client, donc sous RLS, seulement pour
     une réservation `completed`. Pas de service role : si la règle change, la base refuse.
-  - Reçu : `paymentIntents.retrieve` avec `expand: ['latest_charge']`, délai 4 s, aucun nouvel
-    essai, `receipt_url` gardée seulement si c'est une URL https `*.stripe.com`. Cache
-    (`memoryCache`) par réservation : 5 min avec l'URL, 30 s avec `null`, 500 entrées. Pourquoi :
-    recharger la page ne doit pas consommer la limite de débit Stripe partagée avec Checkout, ni
-    marteler Stripe pendant une panne.
+  - Document de paiement, un seul par réservation (`loadPaymentDocument`) : payée hors site
+    (`payment_method` `offline`) : `isPaidOffline`, aucun appel Stripe. Avec un `stripe_invoice_id` :
+    `invoices.retrieve`, lien `invoice_pdf` sinon `hosted_invoice_url`. Sans facture (réservation
+    payée avant la facturation) : le reçu, `paymentIntents.retrieve` avec
+    `expand: ['latest_charge']`, qui reflète un remboursement. Dans les deux cas : délai 4 s, aucun
+    nouvel essai, URL gardée seulement si elle est en https sur `*.stripe.com`. Cache
+    (`memoryCache`) par réservation, un pour les reçus et un pour les factures : 5 min avec l'URL,
+    30 s sans, 500 entrées. Pourquoi : recharger la page ne doit pas consommer la limite de débit
+    Stripe partagée avec Checkout, ni marteler Stripe pendant une panne.
 
 ## Composants communs et mouvement
 
@@ -435,6 +494,12 @@ no-preference`.
   Pourquoi : Safari et VoiceOver retirent la sémantique de liste sous le preflight Tailwind quand
   la liste est stylée (`list-style: none`). Toute `ul` ou `ol` stylée porte donc `role="list"`.
 - Cibles tactiles de 44 px au moins, focus visible, texte d'accessibilité traduit (i18n).
+- Ancres et focus sous le header sticky : la règle globale `[id] { scroll-margin-top: 6rem }`
+  (`app/assets/css/tailwind.css`, couche `base`) décale tout élément qui a un `id` quand le
+  navigateur le fait défiler (focus au clavier, `scrollIntoView`, ancre). Pourquoi 6 rem (96 px) :
+  le header fait 77 px, l'ancienne valeur de 60 px laissait les cases de l'étape de paiement
+  cachées dessous. Un nouvel élément à faire défiler doit donc avoir un `id`, pas son propre
+  `scroll-margin`. `tests/e2e/booking-payment-focus.spec.ts` le vérifie (Chromium et WebKit).
 - Mobile : `useMobileMenu` et `MenuToggleButton.vue` (nom fixe « Menu », `aria-expanded`, Échap et
   changement de route ferment le menu ; `isMorphing` à `false` dans le layout Pro, dont le
   panneau a sa propre croix).
@@ -545,6 +610,14 @@ Ordre d'application (SQL Editor), toutes appliquées et vérifiées sur le proje
   `…030000_pro_availability_hardening`
 - `20261019000000_pro_intervention_photos`, `…010000_pro_photos_rules`
 - `20261020000000_profiles_grants_hardening`
+- `20261021000000_booking_stripe_invoice` (`bookings.stripe_invoice_id`, format `in_…`, index
+  unique partiel)
+- `20261022000000_admin_create_booking` (`payment_method`, `created_by_admin`, colonnes de
+  limitation des renvois du lien, `booking_price_cents`, `admin_create_booking`,
+  `admin_claim_checkout_link_resend`)
+- `20261023000000_admin_quote_bookings_and_stripe_customer` (`profiles.stripe_customer_id`,
+  `bookings.admin_request_id`, `price_source`, `admin_note`, nouvelle signature de
+  `admin_create_booking`, droit `select` par colonne sur `bookings`)
 
 ### Sécurité de la base
 
@@ -569,6 +642,10 @@ Ordre d'application (SQL Editor), toutes appliquées et vérifiées sur le proje
   `bookings`, `availability_rules`, `availability_overrides` (appliquée et vérifiée). Il reste
   `references` et `trigger` sur `price_grid`, `booking_settings`, `quote_requests` : inoffensifs
   par PostgREST, durcissement en V2.
+- `bookings` : le droit `select` de `authenticated` est accordé colonne par colonne depuis
+  `20261023000000`, sans `admin_note` (note interne) ni `admin_request_id`. Toute nouvelle colonne
+  de `bookings` que le client doit lire doit être accordée explicitement, sinon sa lecture échoue.
+  Le serveur lit la note avec `service_role` (`loadAdminNote`).
 - Pourquoi une règle des 7 jours faite par nous : le cookie `@supabase/ssr` vaut 400 jours et son
   `maxAge` écrase celui de `@nuxtjs/supabase`. « Time-box user sessions » n'existe pas sur le plan
   Free. Une connexion par mot de passe donnerait `amr=password`, refusée par l'application et la RLS.
@@ -583,6 +660,9 @@ Ils ne sont dans aucune migration : s'ils sont oubliés, la sécurité de l'espa
 - Auth Hook « Send Email » (type Postgres) vers `public.suppress_auth_emails`.
 - « Allow new users to sign up » désactivé (aucun compte créé par un lien).
 - Email OTP Expiration = 86 400 s, égal à `LOGIN_LINK_LIFETIME_HOURS`.
+- Contrôlés dans le tableau de bord du projet de développement le 2026-10-23 : Auth Hook « Send
+  Email » vers `public.suppress_auth_emails` actif, Email OTP Expiration à 86 400 s, « Allow new
+  users to sign up » désactivé. Cette vérification ne couvre que ces trois réglages.
 - Secure email change et Secure password change activés, détection de réutilisation des jetons
   de renouvellement activée, limite d'e-mails au minimum.
 - Production : Site URL et Redirect URLs = `https://binovya.com` uniquement.
@@ -655,9 +735,14 @@ Règles métier : [booking-system.md](./booking-system.md).
 ### Pages et mise en page
 
 - Pages : `/pro/login`, `/pro/confirm` (comme `/account/confirm`), `/pro` (planning du jour),
-  `/pro/interventions` (liste filtrée), `/pro/interventions/[id]` (fiche en quatre étapes) et
-  `/pro/availability` (capacité par jour de semaine, exceptions, jours à signaler, `?date=`).
+  `/pro/interventions` (liste filtrée), `/pro/interventions/new` (création d'une intervention par
+  l'admin ; `?from=<id>` la préremplit depuis une intervention au lien expiré, `PRO_RECREATE_QUERY`),
+  `/pro/interventions/[id]` (fiche en quatre étapes) et `/pro/availability` (capacité par jour de
+  semaine, exceptions, jours à signaler, `?date=`).
   Toutes en `noindex, nofollow` ; `/pro/confirm` envoie `referrer: no-referrer`.
+- Retours de Stripe pour un lien de paiement créé par l'admin : paiement réussi vers
+  `/booking?checkout=success`, annulation vers `/payment-link` (`app/pages/payment-link.vue`, page
+  statique en `noindex` qui renvoie vers `/contact` et l'accueil).
 - Layout `pro` (`app/layouts/pro.vue`) : barre latérale fixe (`ProNavPanel`) à partir de
   `PRO_SIDEBAR_MIN_WIDTH` (1024 px), sinon en-tête sombre avec burger qui ouvre la même navigation
   dans un `Dialog` reka-ui (`PRO_NAV_SHEET_ID`) ; il se ferme au passage en mode barre latérale, le
@@ -680,14 +765,23 @@ taille du corps, uuid, Zod, puis écriture avec `service_role` (la RLS n'autoris
 - `GET /api/pro/planning?date=` : interventions `paid` et `completed` du jour (aujourd'hui en
   Europe/Paris par défaut), dépôt et `day` (`ProDayOverview`, ou `null` si `admin_day_overview`
   échoue : erreur journalisée, planning affiché). Chaque intervention porte `isToMove`.
-- `GET /api/pro/interventions?status&from&to&page` : 50 par page, `status` `all` par défaut, `page`
-  de 1 à 1000, `from` > `to` donne 400. Page au-delà du total (`PGRST103`) : la route compte et
+- `GET /api/pro/interventions?status&from&to&page` : 50 par page, `status` parmi `all` (défaut),
+  `pending_payment`, `paid`, `completed`, `cancelled`, `expired` (`PRO_STATUS_FILTERS`), `page` de
+  1 à 1000, `from` > `to` donne 400. Page au-delà du total (`PGRST103`) : la route compte et
   renvoie une page vide avec le total. `isToMove` posé par `admin_day_overview` (si l'appel
-  échoue, pas de badge).
-- `GET /api/pro/interventions/[id]` : intervention `paid`, `completed` ou `cancelled`
-  (`ProIntervention` : client, adresse, bacs, formule, `photos`, `completedWithoutPhotos`,
-  `isToMove`). Uuid invalide, inconnu ou d'un autre statut : même 404 `data.code = 'notFound'`
-  (`server/utils/proErrors.ts`).
+  échoue, pas de badge). `pending_payment` et `expired` sont réservés aux interventions créées
+  par l'admin (`created_by_admin`) : une réservation en ligne en attente ou abandonnée n'est
+  jamais listée, pas même sous `all`. Un lien expiré n'est listé que si sa session Checkout a été
+  ouverte (`stripe_checkout_session_id` non nul) : une réservation libérée avant l'ouverture du
+  lien n'a rien à renvoyer ni à recréer. Filtre posé par `ADMIN_ONLY_FILTER` sous RLS.
+- `GET /api/pro/interventions/[id]` : intervention `pending_payment`, `paid`, `completed`,
+  `cancelled` ou `expired`, avec les mêmes réserves que la liste (`PRO_LIST_STATUSES`,
+  `isShownInPro`). `ProIntervention` : client, adresse, bacs, formule, `photos`,
+  `completedWithoutPhotos`, `isToMove`, `paymentMethod`, `createdByAdmin`, `paymentDueAt` (fin du
+  lien, seulement en attente), `priceSource` et `adminNote`. La note vient d'une seconde lecture
+  avec `service_role` (`loadAdminNote`), car `authenticated` ne peut pas lire la colonne ; un échec
+  est journalisé et la note laissée de côté. Uuid invalide, inconnu ou d'un statut non montré :
+  même 404 `data.code = 'notFound'` (`server/utils/proErrors.ts`).
 - `GET /api/pro/interventions/days?from&to` : nombre d'interventions `paid` et `completed` par
   jour, pour les points des `DatePicker`. `from` et `to` obligatoires, `to` au plus 41 jours après
   `from` (grille de 42 jours), sinon 400. Lecture de `scheduled_date` par lots de 1 000 (le
@@ -722,6 +816,72 @@ newDate, overriddenCodes }`. Refus par `data.code` : `notFound` 404, `invalidDat
 customerNotified }`. Refus : `notFound` 404, `alreadyCompleted` 409, `notPaid` 422, `futureDate`
   422, `missingPhotos` 409 (une photo manque et `force` est faux). Le mail photos part après la
   réponse quand `customerNotified` est vrai.
+- `POST /api/pro/bookings` (8 Ko) : l'admin crée une intervention pour un client. Ordre :
+  `assertSameOrigin`, `requireAdminForWrite`, taille, Zod (`proCreateBookingSchema`), puis
+  `requireSignedAddress` (jeton d'adresse), et `assertCheckoutSiteUrl` en mode lien. Corps :
+  `requestId` (uuid), `contact`, `address` signée, `plan`, `smallBinCount` et `largeBinCount`,
+  jours de collecte, `date`, `mode` (`payment_link` ou `offline`), `quoteAmountCents` (nul = grille
+  tarifaire), `note` (500 caractères au plus), `force`. Réponse `ProCreateResponse` : `bookingId`,
+  `mode`, `scheduledDate`, `amountTotalCents`, `paymentDueAt`, `overriddenCodes`, `isEmailSent`,
+  `isReplay`.
+  - Client : `resolveAdminBookingCustomer` retrouve ou crée la fiche par e-mail
+    (`findOrCreateCustomer`), sans modifier un client existant. Un `requestId` déjà utilisé garde
+    le client de la réservation qu'il a créée ; un autre e-mail donne 400 `invalidInput`.
+  - Prix : sans `quoteAmountCents`, grille (`booking_price_cents`), 0 à 2 bacs par format
+    (`PRO_MAX_BINS_PER_SERVICE`) ; avec, prix libre de 1 à 1 000 000 centimes et jusqu'à 50 bacs par
+    format (`PRO_QUOTE_MAX_BINS_PER_SERVICE`), au moins un bac.
+  - Idempotence : `admin_request_id` (voir « Base de données »). Un rejeu renvoie la réservation
+    déjà créée avec `isReplay`, sans rien revérifier ni renvoyer de mail. Si la première requête
+    s'est arrêtée avant l'ouverture de la session Checkout, le rejeu l'ouvre et envoie le lien,
+    sauf si la réservation a moins de `PRO_CREATE_TIMEOUT_MS` (25 s) ou si Stripe traite encore la
+    même clé : 409 `requestInProgress`. Pourquoi : le navigateur réessaie après un délai dépassé
+    sans savoir si la première requête a abouti.
+  - Mode `payment_link` : la place est bloquée `PRO_PAYMENT_LINK_HOLD_MINUTES` (1 435 min) en
+    `pending_payment`, puis `attachBookingCheckout` ouvre la session Checkout, qui se ferme
+    `PRO_CHECKOUT_EXPIRY_MARGIN_SECONDS` (60 s) avant la fin de la place et au plus 24 h après sa
+    création (maximum de Stripe, `paymentLinkExpiresAt`). La place dure 5 minutes de moins que ces
+    24 h pour que la session se ferme toujours avant elle. Le mail part avec le lien. Un
+    échec de Stripe libère la réservation (`expired`) et répond 502 `paymentLinkFailed`.
+  - Mode `offline` : réservation `paid` tout de suite, sans expiration, sans identifiant Stripe ni
+    facture (contrainte `bookings_offline_has_no_stripe_ids`), mail de confirmation seul, sans
+    alerte à BINOVYA.
+  - Refus par `data.code` : 400 `invalidInput`, `invalidQuantities`, `invalidQuoteAmount`,
+    `tooFar` ; 422 `quoteRequired`, `customerNotFound`, `pastDate` ; 409 `customerPending` (une
+    seule réservation en attente par client, mode lien seulement) ; 409 forçables avec `force` :
+    `outOfArea`, `dayClosed`, `dayFull`, `outOfSector` (`overriddenCodes` liste ceux qui ont été
+    ignorés) ; 400 `invalidAddress` (jeton) ; 503 sans `NUXT_SITE_URL` valide en mode lien.
+- `POST /api/pro/bookings/[id]/payment-link` (sans corps) : renvoie le lien d'une intervention
+  `pending_payment` créée par l'admin (`resendPaymentLink`, `server/utils/proPaymentLink.ts`).
+  `assertSameOrigin`, `requireAdminForWrite`, uuid (sinon 404 `notFound`). Réponse `{ bookingId }`.
+  - Ordre : la session Checkout est d'abord lue chez Stripe, puis le renvoi est réservé par
+    `admin_claim_checkout_link_resend` (3 par heure au plus par réservation), puis le mail part
+    (clé d'idempotence neuve, échéance = fin de la session). Pourquoi lire Stripe avant de
+    réserver : un lien fermé ne doit pas consommer un des 3 renvois.
+  - Lecture Stripe (`openLink`) : `checkout.sessions.retrieve` avec
+    `{ timeout: PRO_PAYMENT_LINK_STRIPE_TIMEOUT_MS (5 s), maxNetworkRetries: 0 }` au lieu des
+    réglages par défaut du SDK (80 s, 2 nouveaux essais). Pourquoi : le renvoi dépassait 20 s
+    sous charge, alors que le panneau (`ProPaymentLinkPanel.vue`) abandonne à 15 s
+    (`PRO_PAYMENT_LINK_TIMEOUT_MS`). Au pire, 5 s de Stripe plus l'envoi du mail (5 s au plus) plus
+    les lectures de base, environ 11 s (estimation, non mesurée), sous les 15 s du panneau.
+  - Statuts : 409 `linkUnavailable` si Stripe répond `StripeInvalidRequestError` (session
+    introuvable) ou si la session n'est plus `open` ou n'a pas d'URL (expirée, payée). 422
+    `notPending`, `linkExpired`, `noLink` et 429 `tooFrequent` viennent de la réservation du
+    renvoi. 502 `emailFailed` si le mail échoue. Tout autre échec de Stripe (délai dépassé, 5xx,
+    429, authentification, erreur hors Stripe) : 502 « Payment provider unavailable » **sans**
+    `data.code`, et le journal `Checkout session unreachable for booking <id> (<type>)` ne garde
+    que le type d'erreur Stripe, jamais son message (il peut contenir la fin de la clé). Le panneau
+    affiche alors « Le lien n'a pas pu être renvoyé. Réessayez dans un instant. ».
+  - Dans les cas 409 et 502 sans code, aucun renvoi n'est consommé et aucun mail ne part. Aucun
+    plafond ne borne ces lectures de Stripe : seule la limite de débit de Cloudflare le fait (voir
+    « Hébergement » et `TODO.md`, étape 12).
+- `GET /api/pro/interventions/[id]/prefill` : données pour recréer une intervention dont le lien a
+  expiré (`loadRecreatePrefill`, `server/utils/proRecreate.ts`). `requireAdmin` seulement, lecture
+  avec `service_role` (le client de la session ne lit pas `admin_note`). Seule une réservation
+  `expired`, créée par l'admin et dont la session Checkout avait été ouverte est éligible ; sinon
+  404 `notFound`. Réponse `ProCreatePrefill` : client, adresse **re-signée** (nouveau jeton, comme
+  si elle venait d'être choisie dans la recherche d'adresse, pour passer `requireSignedAddress`),
+  formule, bacs, jours de collecte, prix du devis (nul si le prix vient de la grille) et note. La
+  date n'est pas reprise : l'admin en choisit une nouvelle.
 
 ### Fonctions serveur
 
@@ -760,6 +920,16 @@ customerNotified }`. Refus : `notFound` 404, `alreadyCompleted` 409, `notPaid` 4
   `loadInterventionPhotoFlags` lit quelles photos existent, sous RLS.
 - `server/utils/proCompletion.ts` : `completeBooking` traduit la ligne de refus de
   `admin_complete_booking`.
+- Création d'intervention : `server/utils/proCreateBooking.ts` (`createAdminBooking` appelle
+  `admin_create_booking` et traduit son refus en erreur codée ; `createAndNotifyAdminBooking`
+  termine : session Checkout et mail du lien, ou mail de confirmation ; `paymentLinkExpiresAt`),
+  `server/utils/proCreateCustomer.ts` (`resolveAdminBookingCustomer`),
+  `server/utils/bookingPaymentLinkEmails.ts` (`sendPaymentLinkEmail`,
+  `sendOfflineBookingConfirmation`, qui ne lèvent jamais d'erreur),
+  `server/utils/proPaymentLink.ts` (`resendPaymentLink`), `server/utils/proRecreate.ts`
+  (`loadRecreatePrefill`). La validation partagée avec le formulaire est dans
+  `app/utils/proCreateValidation.ts` ; constantes et codes d'erreur dans
+  `app/constants/proCreate.ts`.
 - `app/utils/image.ts` : `hasJpegSignature`, `stripJpegMetadata` (partagée avec le navigateur),
   `fitWithin`. `app/utils/proPhotos.ts` : `photoStatusRefusal`, `canCompleteIntervention`.
 
@@ -796,8 +966,33 @@ customerNotified }`. Refus : `notFound` 404, `alreadyCompleted` 409, `notPaid` 4
   `intervention_photos_storage_path_format`. `anon` et `authenticated` n'écrivent ni la table ni
   le bucket (seul le serveur, avec `service_role`) ; `authenticated` lit si la réservation est
   `completed` et que `has_recent_sign_in()` est vrai.
-- `day_check`, `admin_day_overview`, `admin_reschedule_booking`, `admin_set_intervention_photo` et
-  `admin_complete_booking` sont réservées à `service_role`.
+- `admin_create_booking(p_customer_id, p_request_id, p_mode, p_scheduled_date, …, p_force,
+p_hold_minutes, p_quote_amount_cents, p_note)` : crée une réservation sous le verrou du jour.
+  - Idempotente sur `p_request_id` (verrou `booking-request:<uuid>`, colonne unique
+    `bookings.admin_request_id`) : un rejeu renvoie la réservation existante avec `is_replay`
+    sans rien vérifier ; pour un autre client, `invalid_input`.
+  - Refus jamais forçables : `invalid_input`, `invalid_quote_amount`, `invalid_quantities`,
+    `quote_required`, `customer_not_found`, `past_date`, `too_far` (au-delà de 365 jours),
+    `customer_pending` (mode lien seulement). Forçables, comme `admin_reschedule_booking` :
+    `out_of_area`, puis ceux de `day_check` sans délai minimum ni horizon (`day_closed`,
+    `day_full`, `out_of_sector`) ; avec `p_force`, `overridden_reasons` les liste tous.
+  - `payment_link` : `pending_payment`, `expires_at` = maintenant + `p_hold_minutes` (30 à 1 440,
+    1 440 par défaut ; le serveur passe 1 435), `payment_method` `stripe`. `offline` : `paid`, sans
+    expiration, `payment_method` `offline`. Dans les deux cas `created_by_admin` est vrai.
+  - Prix : `p_quote_amount_cents` nul = `booking_price_cents` (grille, `price_source` `grid`, 0 à
+    2 bacs par format) ; sinon ce prix (1 à 1 000 000, `price_source` `quote`, 0 à 50 bacs par
+    format, au moins un bac). Contraintes : `bookings_bin_count_by_price_source`,
+    `bookings_quote_admin_only`, `bookings_admin_note_length` (1 à 500).
+  - `create_booking` (réservation en ligne) lit aussi le prix par `booking_price_cents`, source
+    unique de la grille.
+- `admin_claim_checkout_link_resend(p_booking_id)` : sous verrou de la ligne, refuse `not_found`,
+  `not_pending`, `expired` (place écoulée), `no_link` (pas de session Stripe), `too_frequent` (4e
+  renvoi dans l'heure) ; sinon `ok` et met à jour `checkout_link_resent_at`,
+  `checkout_link_resend_count` et `checkout_link_resend_window_start`. Le serveur n'envoie le mail
+  que sur `ok`.
+- `day_check`, `admin_day_overview`, `admin_reschedule_booking`, `admin_set_intervention_photo`,
+  `admin_complete_booking`, `admin_create_booking`, `admin_claim_checkout_link_resend` et
+  `booking_price_cents` sont réservées à `service_role`.
 
 ### Client
 
@@ -967,7 +1162,9 @@ Stripe sont rejetés au-delà de 5 min d'écart).
 - **Limite de débit (V1)** : UNE règle qui regroupe `/api/auth/login`, `/api/pro/auth/login`,
   `/api/booking*`, `/api/contact`, `/api/quote` et `/api/address/search`. Proposition : 30
   requêtes par 10 s et par IP, blocage 60 s. Le nombre de règles du plan gratuit est à vérifier à
-  la pose. Les limites applicatives (`claim_login_link`) restent : elles protègent même si
+  la pose. À vérifier : la règle couvre aussi `/api/pro/**`. Le renvoi du lien de paiement lit
+  Stripe même quand il répond 409 ou 502, sans consommer de quota de renvoi : seule cette limite
+  borne ces lectures (constat de l'audit de sécurité). Les limites applicatives (`claim_login_link`) restent : elles protègent même si
   Cloudflare est contourné. C'est la vraie protection des géocodeurs, le cache n'absorbe que les
   répétitions.
 - Caddy lit l'IP réelle dans `CF-Connecting-IP` grâce à `trusted_proxies` réglé sur les plages
@@ -1331,12 +1528,13 @@ Le job `check` lance ce script (`bun run typecheck`).
 Pyramide : beaucoup de tests unitaires, quelques tests d'intégration, peu de tests e2e. Seuls les
 unitaires tournent en CI (job `check`) ; intégration et e2e (vraie page Stripe) restent locaux
 avant chaque fusion.
-Dernier relevé (2026-10-22, branche `feat/infrastructure`) : unitaires 1 477, intégration 515
-(run complet précédent), e2e 64 réussis sur Chromium et WebKit, soit 32 par projet, 36 tests Caddy
-ignorés sans `CADDY_BASE_URL` (8,6 min, `workers: 1`).
+Dernier relevé (2026-10-23, branche `chore/previous-steps`) : unitaires 1 487 sur 1 487,
+intégration 515 sur 515 (46 fichiers), e2e 66 réussis et 0 échec sur Chromium et WebKit, soit 33
+par projet, 36 tests Caddy ignorés sans `CADDY_BASE_URL` (`workers: 1`).
 
 L'e2e ne couvre que les parcours critiques : réservation publique payée par la vraie page Stripe
-Checkout (annulation et expiration, une réservation en attente par client, carte refusée), lien
+Checkout (annulation et expiration, une réservation en attente par client, carte refusée), focus
+clavier de la case « bacs prêts » sous le header (`booking-payment-focus.spec.ts`), lien
 magique, réservations et suppression du compte (avec un test de focus clavier), accès Pro,
 planning, déplacement (clavier et état d'attente compris), fin d'intervention avec photos,
 création Pro (paiement hors ligne, lien de paiement et renvoi, recréation préremplie), une
@@ -1420,9 +1618,9 @@ trop instable.
   Tab saute les boutons et les liens : les tests clavier sur WebKit utilisent `Alt+Tab` et
   `Alt+Shift+Tab` (voir `tests/e2e/pro/pro-reschedule.spec.ts`) ; `body` est toléré,
   mais le focus doit se trouver au moins une fois dans le dialogue pour chaque touche.
-- Volume au 2026-10-22 : 1477 tests unitaires, 515 d'intégration, 64 e2e réussis sur deux projets
-  (32 par projet) plus 36 tests Caddy ignorés sans `CADDY_BASE_URL`. L'e2e complet dure environ
-  8,6 min.
+- Volume au 2026-10-23 : 1487 tests unitaires, 515 d'intégration (46 fichiers), 66 e2e réussis sur
+  deux projets (33 par projet) plus 36 tests Caddy ignorés sans `CADDY_BASE_URL`. L'e2e complet
+  durait environ 8,6 min au relevé du 2026-10-22 (durée non relevée le 2026-10-23).
 - CSP derrière Caddy : `tests/e2e/infra/csp-caddy.spec.ts` (18 tests par projet, ignorés sans
   `CADDY_BASE_URL`) et `tests/e2e/support/csp-monitor.ts` (relève les violations CSP, les erreurs
   de page et les requêtes bloquées). La liste des pages vient de `PUBLIC_PAGE_PATHS` ×
@@ -1481,10 +1679,18 @@ trop instable.
 - Tests instables : `booking-payment.spec.ts` n° 2 (le bouton « Payer » sort de la fenêtre sur la
   page Stripe) et n° 8 (délai de l'API d'adresse externe), délai ponctuel du nettoyage dans
   `account-deletion.test.ts`. Le détail de `customer-area-bookings` est stable depuis que le test
-  attend la réponse réseau. À surveiller (`TODO.md`, étape 8) : `pro-create.spec.ts:156` (renvoi du
-  lien de paiement parfois > 20 s sous charge), `customer-area.spec.ts:54` (7,4 s en run complet) et
-  `pro-complete.test.ts:89` (0 mail une fois, vert 4 fois sur 4 seul). `tests/e2e/customer-area.spec.ts`
-  approche 350 lignes (310).
+  attend la réponse réseau. `tests/e2e/customer-area.spec.ts` approche 350 lignes (310).
+- Lenteurs et mail manquant relevés à l'étape 8, éclaircis le 2026-10-23 :
+  - Renvoi du lien de paiement (`pro-create.spec.ts`) : la lecture Stripe n'avait pas de délai
+    propre ; corrigée par le délai de 5 s (voir `POST /api/pro/bookings/[id]/payment-link`).
+  - Carte « lien déjà utilisé » (`customer-area.spec.ts`), 7,4 s en run complet contre 3,4 s
+    seule : pas de cause dans le code applicatif, chargement à froid du serveur de dev pendant un
+    run complet.
+  - `pro-complete.test.ts` (0 mail une fois) : pas de cause dans le code applicatif, le mail part
+    par `event.waitUntil`, après la réponse, par conception. Le test vérifie maintenant que le
+    premier `complete` répond 200, puis que le mail arrive avant l'assertion suivante.
+- Suppression d'un compte client : `deleteProfileStripeCustomer` n'est appelée par aucune route (la
+  demande est traitée à la main). À brancher sur le traitement des demandes de suppression.
 - La branche « développement » de `isMailConfigured()` n'est testable qu'en intégration
   (`import.meta.dev` est figé à la construction).
 
