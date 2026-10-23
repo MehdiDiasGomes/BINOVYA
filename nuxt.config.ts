@@ -25,6 +25,16 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   css: ['~/assets/css/tailwind.css'],
 
+  app: {
+    head: {
+      link: [
+        { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'apple-touch-icon', href: '/apple-touch-icon.png' },
+      ],
+    },
+  },
+
   runtimeConfig: {
     resendApiKey: '',
     contactEmailTo: '',
@@ -108,8 +118,8 @@ export default defineNuxtConfig({
   },
   fonts: {
     families: [
-      { name: 'Montserrat', provider: 'google' },
-      { name: 'Quicksand', provider: 'google' },
+      { name: 'Montserrat', provider: 'google', weights: ['400 900'] },
+      { name: 'Quicksand', provider: 'google', weights: ['300 700'] },
     ],
   },
 })
