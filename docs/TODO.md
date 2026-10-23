@@ -28,6 +28,11 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
   Pro et paiement confirmé par webhook derrière Caddy vérifiés à la main dans la pile locale
   (2026-10-22), garde de démarrage `productionConfigCheck`, projet Playwright WebKit,
   voir `specs/technical.md`
+- ✅ 11. CI/CD : `.github/workflows/ci.yml` (`check` : lint, formatage, typecheck, tests
+  unitaires, build, sans secret ; `image` : GHCR `linux/amd64`, `<sha>` + `latest` sur `main`,
+  `dev-<sha>` sur `dev` ; `deploy` : SSH, digest, validation du `Caddyfile`, restauration en cas
+  d'échec) et `.github/dependabot.yml`, image vérifiée sans secret (2026-10-23). Le CD n'a pas
+  encore tourné : premier déploiement à l'étape 12, voir `specs/technical.md`
 
 ## V1
 
@@ -87,19 +92,22 @@ constats qui attendent le client (#10, #11, #12, #16, #17, #18).
 - [x] Dates « Dernière mise à jour » pilotées par `app/constants/legal.ts` (#28) ; la révélation
       au scroll de `/formulas` (#25) est sans objet
 
-### 11. CI/CD
+### 11. CI/CD (terminée, voir « Étapes terminées »)
 
 - [x] `vue-tsc` en devDependency et script `typecheck` qui couvre aussi `tests/` (branche
       `chore/typecheck`, fusionnée dans `dev`)
-- [ ] CI : lint, formatage, typecheck, tests unitaires, build
-- [ ] CI : image vers GHCR (tags SHA + `latest` sur `main`), construite en `linux/amd64`
-- [ ] CI : le job de build ne reçoit aucun secret applicatif (toute variable `NUXT_*` présente
+- [x] CI : lint, formatage, typecheck, tests unitaires, build
+- [x] CI : image vers GHCR (tags `<sha>` + `latest` sur `main`, `dev-<sha>` sur `dev`),
+      construite en `linux/amd64`
+- [x] CI : le job de build ne reçoit aucun secret applicatif (toute variable `NUXT_*` présente
       au `nuxt build` est cuite dans `.output`)
-- [ ] CI : images de base épinglées par tag (`oven/bun`, `node`, `caddy`) ; le digest avec
-      Renovate ou Dependabot est facultatif
-- [ ] Revoir le garde de démarrage (`productionConfigCheck`) si un prérendu est ajouté
-- [ ] CD : SSH, écrire `IMAGE_TAG` dans `deploy/.env`, puis `docker compose pull && up -d` depuis
-      `deploy/` (le VPS ne reçoit que `deploy/` et son `.env`)
+- [x] CI : images de base épinglées par tag (`oven/bun`, `node`, `caddy`), Dependabot mensuel
+      sur `dev` (actions, `Dockerfile`, `deploy/`)
+- [x] Revoir le garde de démarrage (`productionConfigCheck`) si un prérendu est ajouté : aucun
+      prérendu n'existe, rien à faire
+- [x] CD écrit dans le code : SSH, copie de `deploy/`, `pull`, validation du `Caddyfile`, `up`
+      par digest, `IMAGE_TAG` écrit après succès, restauration en cas d'échec. Non prouvé :
+      premier déploiement à l'étape 12
 - Les tests d'intégration et e2e restent en local avant chaque fusion.
 
 ### 12. Mise en production
@@ -140,7 +148,20 @@ constats qui attendent le client (#10, #11, #12, #16, #17, #18).
       `NUXT_CONTACT_EMAIL_TO`, clés Supabase. `NUXT_MAIL_TRANSPORT` absent. Copie dans un
       gestionnaire de mots de passe
 - [ ] Passage sur un vrai iPhone et avec un vrai lecteur d'écran
-- [ ] Premier déploiement
+- [ ] Réglages GitHub manuels (détail dans `specs/technical.md`, « CI/CD ») : environnement
+      `production` limité à `main` avec les 5 secrets (`SSH_HOST`, `SSH_USER`, `DEPLOY_PATH`,
+      `SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS`, aucun au niveau du dépôt) ; paquet GHCR `binovya`
+      privé, accès Actions limité au dépôt ; rulesets sur `main` et `dev` (pas de force-push ni
+      de suppression, contrôle `check` requis) ; Actions en « Read repository contents », création
+      et approbation de PR par Actions décochées, approbation pour les contributeurs extérieurs ;
+      alertes et mises à jour de sécurité Dependabot, secret scanning avec push protection, 2FA
+- [ ] VPS : utilisateur de déploiement dédié, clé restreinte dans `authorized_keys` (`restrict`,
+      éventuellement `command=`) ; `docker login ghcr.io` avec un jeton `read:packages` en
+      lecture seule, stocké pour cet utilisateur seul ; Docker Compose 2.17 ou plus
+      (`--wait-timeout`) ; purge des anciennes images (environ 300 Mo chacune)
+- [ ] Premier déploiement : vérifier que `caddy validate` journalise « Valid configuration » et
+      que `.incoming/` et `.previous/` apparaissent dans `$DEPLOY_PATH`
+- [ ] Poser la variable de dépôt `DEPLOY_ENABLED=true` en dernier, quand le VPS est prêt
 - [ ] Contrôle de disponibilité externe gratuit
 
 ### 13. Légal

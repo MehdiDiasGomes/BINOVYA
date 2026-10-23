@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -99,9 +99,11 @@ describe('sendTransactionalEmail in outbox mode', () => {
   })
 
   it('answers false and writes nothing when the directory is not writable', async () => {
-    stubConfig({ mailOutboxDir: '/proc/binovya-no-such-dir/outbox' })
+    const blocker: string = join(dir, 'blocker')
+    await writeFile(blocker, '')
+    stubConfig({ mailOutboxDir: join(blocker, 'outbox') })
     expect(await sendTransactionalEmail(EMAIL, 'Test email')).toBe(false)
-    expect(await readdir(dir)).toEqual([])
+    expect(await readdir(dir)).toEqual(['blocker'])
   })
 
   it('falls back to Resend outside development for an unknown value, so nothing is written', async () => {

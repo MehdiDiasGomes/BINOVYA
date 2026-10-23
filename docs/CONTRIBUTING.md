@@ -6,8 +6,8 @@ Thank you for your interest in contributing to BINOVYA! This document will guide
 
 ### Prerequisites
 
-- [Bun](https://bun.sh/) (package manager)
-- Node.js 18+ (for compatibility)
+- [Bun](https://bun.sh/) 1.2.14 (package manager, same version as the `Dockerfile` and CI)
+- Node.js 24.22.1 (same version as the `Dockerfile` and CI)
 - Git
 
 ## 🎨 Code Conventions
@@ -171,12 +171,10 @@ Before submitting your PR:
 ```bash
 bun run lint
 bun run format:check
-bunx nuxi typecheck
+bun run typecheck
 ```
 
-> Known issue: `bunx nuxi typecheck` currently fails on some machines (`npx` pulls vue-tsc 3.3.13
-> with TypeScript 7) and 5 type errors already exist. A `typecheck` script with `vue-tsc` as a
-> devDependency is planned, see `docs/TODO.md` (step 11).
+`vue-tsc` is a devDependency, so no `npx` download is involved.
 
 Automated tests (`bun run test:unit`, `test:integration`, `test:e2e`) are run once per feature,
 meaning a whole TODO step and its branch, at the end and before merging into `dev`, not after
@@ -193,6 +191,16 @@ bun run build
 ```bash
 bun run preview
 ```
+
+### CI checks
+
+Every push to `main` and `dev` and every pull request runs the `check` job
+(`.github/workflows/ci.yml`): `bun run lint`, `format:check`, `typecheck`, `test:unit` and
+`build`, in that order, with `bun install --frozen-lockfile` (commit `bun.lock` with
+`package.json`). A PR must have `check` green before it is merged. Integration and E2E tests do
+not run in CI: run them locally before merging. Dependabot opens monthly PRs against `dev` for
+GitHub Actions and Docker images; when you bump Bun or Node, change the `Dockerfile` and `ci.yml`
+together. See `docs/specs/technical.md` (CI/CD).
 
 ## 📚 Useful Resources
 

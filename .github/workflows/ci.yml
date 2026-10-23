@@ -1,0 +1,234 @@
+name: CI
+
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+env:
+  IMAGE_NAME: ghcr.io/mehdidiasgomes/binovya
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: 24.22.1
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6
+        with:
+          bun-version: 1.2.14
+
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run format:check
+      - run: bun run typecheck
+      - run: bun run test:unit
+      - run: bun run build
+
+  image:
+    needs: check
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+
+      - uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: build
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAME }}:${{ github.ref == 'refs/heads/main' && github.sha || format('dev-{0}', github.sha) }}
+            ${{ github.ref == 'refs/heads/main' && format('{0}:latest', env.IMAGE_NAME) || '' }}
+          no-cache: ${{ github.ref == 'refs/heads/main' }}
+          cache-from: ${{ github.ref == 'refs/heads/dev' && 'type=gha,scope=image' || '' }}
+          cache-to: ${{ github.ref == 'refs/heads/dev' && 'type=gha,scope=image,mode=max' || '' }}
+
+  deploy:
+    needs: image
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      SSH_HOST: ${{ secrets.SSH_HOST }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+      IMAGE_SHA: ${{ github.sha }}
+      IMAGE_DIGEST: ${{ needs.image.outputs.digest }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+          sparse-checkout: deploy
+
+      - name: Configure SSH
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.SSH_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          for name in SSH_HOST SSH_USER DEPLOY_PATH SSH_PRIVATE_KEY SSH_KNOWN_HOSTS; do
+            if [ -z "${!name}" ]; then
+              echo "Missing secret $name" >&2
+              exit 1
+            fi
+          done
+          if ! printf '%s' "$IMAGE_SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+            echo "Invalid image tag" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$IMAGE_DIGEST" | grep -Eq '^sha256:[0-9a-f]{64}$'; then
+            echo "Invalid image digest" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$SSH_HOST" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$'; then
+            echo "Invalid SSH_HOST" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$SSH_USER" | grep -Eq '^[A-Za-z0-9][A-Za-z0-9._-]*$'; then
+            echo "Invalid SSH_USER" >&2
+            exit 1
+          fi
+          if ! printf '%s' "$DEPLOY_PATH" | grep -Eq '^/[A-Za-z0-9._/-]+$'; then
+            echo "Invalid DEPLOY_PATH" >&2
+            exit 1
+          fi
+          umask 077
+          mkdir -p ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > "$RUNNER_TEMP/deploy_key"
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 "$RUNNER_TEMP/deploy_key" ~/.ssh/known_hosts
+
+      - name: Copy the Compose files
+        run: |
+          set -euo pipefail
+          printf -v remote_command 'mkdir -p -- %q' "$DEPLOY_PATH/.incoming"
+          ssh -i "$RUNNER_TEMP/deploy_key" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -- "$SSH_USER@$SSH_HOST" "$remote_command"
+          scp -i "$RUNNER_TEMP/deploy_key" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -- deploy/docker-compose.yml deploy/Caddyfile \
+            "$SSH_USER@$SSH_HOST:$DEPLOY_PATH/.incoming/"
+
+      - name: Deploy the image
+        run: |
+          set -euo pipefail
+          image_tag="$IMAGE_SHA@$IMAGE_DIGEST"
+          echo "Deploying $IMAGE_NAME:$image_tag"
+          printf -v remote_command 'bash -s -- %q %q' "$DEPLOY_PATH" "$image_tag"
+          ssh -i "$RUNNER_TEMP/deploy_key" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -- "$SSH_USER@$SSH_HOST" "$remote_command" <<'REMOTE'
+          set -euo pipefail
+          cd "$1"
+          if [ ! -f .env ]; then
+            echo ".env is missing in $1" >&2
+            exit 1
+          fi
+          compose_files=(docker-compose.yml Caddyfile)
+          for file in "${compose_files[@]}"; do
+            if [ ! -f ".incoming/$file" ]; then
+              echo ".incoming/$file is missing in $1" >&2
+              exit 1
+            fi
+          done
+          root_validated=false
+          if [ -f .previous/.ok ]; then
+            root_validated=true
+          fi
+          if [ ! -d .previous ] || [ "$root_validated" = true ]; then
+            rm -rf .previous.tmp
+            mkdir .previous.tmp
+            for file in "${compose_files[@]}"; do
+              if [ -f "$file" ]; then
+                cp -p -- "$file" ".previous.tmp/$file"
+              fi
+            done
+            rm -rf .previous
+            mv -- .previous.tmp .previous
+          fi
+          restore_previous() {
+            for file in "${compose_files[@]}"; do
+              if [ -f ".previous/$file" ]; then
+                mv -f -- ".previous/$file" "$file"
+              fi
+            done
+            touch .previous/.ok
+          }
+          caddy_changed=true
+          if [ "$root_validated" = true ] && cmp -s -- .incoming/Caddyfile Caddyfile; then
+            caddy_changed=false
+          fi
+          up_flags=(-d --wait --wait-timeout 180)
+          if [ "$caddy_changed" = true ]; then
+            up_flags+=(--force-recreate)
+          fi
+          for file in "${compose_files[@]}"; do
+            mv -f -- ".incoming/$file" "$file"
+          done
+          if ! IMAGE_TAG="$2" docker compose pull; then
+            restore_previous
+            exit 1
+          fi
+          if [ "$caddy_changed" = true ]; then
+            if ! IMAGE_TAG="$2" docker compose run --rm --no-deps -T caddy \
+              caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile < /dev/null; then
+              restore_previous
+              exit 1
+            fi
+          fi
+          if ! IMAGE_TAG="$2" docker compose up "${up_flags[@]}"; then
+            restore_previous
+            docker compose up "${up_flags[@]}" || true
+            exit 1
+          fi
+          if grep -q '^IMAGE_TAG=' .env; then
+            sed -i "s/^IMAGE_TAG=.*/IMAGE_TAG=$2/" .env
+          else
+            if [ -n "$(tail -c 1 .env)" ]; then
+              printf '\n' >> .env
+            fi
+            printf 'IMAGE_TAG=%s\n' "$2" >> .env
+          fi
+          touch .previous/.ok
+          REMOTE
+
+      - name: Remove the SSH key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/deploy_key"

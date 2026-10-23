@@ -1104,7 +1104,8 @@ www.{$SITE_DOMAIN} {
   `.env` va donc à `nuxt`.
 - Sur le VPS : copier `deploy/` et créer `deploy/.env`, rien d'autre du dépôt (le code arrive par
   l'image GHCR). `docker compose restart` ne relit pas `.env` ; `docker compose up -d` recrée le
-  conteneur.
+  conteneur. Le déploiement automatique n'écrit `IMAGE_TAG` dans `.env` qu'après un `up` réussi
+  (voir « CI/CD »).
 
 **Pile locale** (depuis `deploy/`, avec un `deploy/.env` temporaire) :
 
@@ -1160,25 +1161,116 @@ l'image amd64 sur un vrai VPS, une vraie photo de téléphone, un vrai passage a
 
 ## CI/CD
 
-**CI** (GitHub Actions, à chaque push et pull request) : lint, formatage, typecheck, tests
-unitaires, build Nuxt, puis, si tout est vert, build de l'image Docker et push vers GHCR
-(`ghcr.io/mehdidiasgomes/binovya`, en minuscules).
+Tout est dans `.github/workflows/ci.yml` (trois jobs) et `.github/dependabot.yml`. Écrit à
+l'étape 11 ; le CD n'a **jamais tourné** : premier déploiement réel à l'étape 12.
 
-| Tag                           | Quand                 | Usage                                               |
-| ----------------------------- | --------------------- | --------------------------------------------------- |
-| SHA du commit (ex. `1241c7d`) | Chaque build          | Immuable, seul tag utilisé pour déployer            |
-| `latest`                      | Sur `main` uniquement | Repère pour un humain, jamais utilisé pour déployer |
+**Déclencheurs** : push sur `main` et `dev`, et toute `pull_request`. Un seul run par référence
+(`concurrency: ci-<ref>`) : un nouveau push annule le run en cours, sauf sur `main`. Permissions
+par défaut `contents: read`.
 
-**CD** (après la CI sur `main`) : SSH au VPS, écriture du SHA dans `deploy/.env` (`IMAGE_TAG=<sha>`),
-puis, depuis `deploy/`, `docker compose pull` et `up -d`. Le VPS ne reçoit que le dossier `deploy/`
-et son `.env`. **Rollback** : remettre le SHA précédent dans `IMAGE_TAG`.
-**Secrets** : GitHub Actions et `deploy/.env` du VPS, jamais dans l'image.
+**Job `check`** (tous les déclencheurs) : Node 24.22.1 (`actions/setup-node`), Bun 1.2.14
+(`oven-sh/setup-bun`), `bun install --frozen-lockfile`, puis `lint`, `format:check`, `typecheck`,
+`test:unit` et `build`. Ce job ne reçoit aucun secret et aucune variable `NUXT_*` : tout ce qui est
+présent au `nuxt build` serait cuit dans `.output`. Vérifié par le testeur : l'image `linux/amd64`
+(301 Mo) ne contient ni `.env*`, ni clé Resend, Stripe ou JWT, et la configuration d'exécution est
+faite de chaînes vides. `check` est aussi le contrôle requis par les rulesets (voir plus bas).
+
+**Job `image`** (push sur `main` ou `dev`, après `check`) : `packages: write`, buildx
+`linux/amd64`, push vers GHCR (`ghcr.io/mehdidiasgomes/binovya`, en minuscules). Il expose le
+`digest` de l'image.
+
+| Tag               | Branche | Usage                                               |
+| ----------------- | ------- | --------------------------------------------------- |
+| `dev-<sha>`       | `dev`   | Image de la branche d'intégration, jamais déployée  |
+| `<sha>` (40 car.) | `main`  | Repère lisible du commit déployé                    |
+| `latest`          | `main`  | Repère pour un humain, jamais utilisé pour déployer |
+
+- Un tag GHCR est **mutable** : seul le digest (`sha256:…`) est immuable. Le déploiement se fait
+  donc par digest, jamais par tag seul.
+- Cache : `main` construit sans cache (`no-cache`), pour qu'un cache empoisonné depuis une autre
+  branche n'entre pas dans l'image de production. `dev` utilise le cache GHA (`scope=image`).
+
+**Job `deploy`** (push sur `main` uniquement, après `image`) : tourne seulement si la variable de
+**dépôt** `DEPLOY_ENABLED` vaut `true`. Ce doit être une variable de dépôt et non d'environnement :
+le `if` du job est évalué avant l'entrée dans l'environnement. Environnement `production`,
+`concurrency: deploy-production` sans annulation (deux déploiements ne se croisent jamais).
+
+- Secrets, tous dans l'environnement `production` et aucun au niveau du dépôt : `SSH_HOST`
+  (nom d'hôte ou IPv4, validé par regex, pas d'IPv6 brute), `SSH_USER`, `DEPLOY_PATH` (chemin
+  absolu, pas de `~`), `SSH_PRIVATE_KEY`, `SSH_KNOWN_HOSTS` (sortie de `ssh-keyscan` vérifiée
+  par un autre canal). Le job refuse de continuer si l'un manque, et valide par regex le SHA
+  (40 hexadécimaux) et le digest.
+- SSH avec `StrictHostKeyChecking=yes`, `IdentitiesOnly`, `BatchMode`. La clé est écrite dans
+  `$RUNNER_TEMP` et supprimée en fin de job (`if: always()`).
+- Seul le dossier `deploy/` est récupéré (`sparse-checkout`). `IMAGE_TAG` vaut
+  `<sha>@sha256:<digest>`.
+
+**Déroulé sur le VPS** (`$DEPLOY_PATH`, qui contient déjà `.env`) :
+
+1. `docker-compose.yml` et `Caddyfile` sont copiés par `scp` dans `.incoming/`.
+2. Sauvegarde : les fichiers actuels vont dans `.previous/`, **seulement** si `.previous/.ok`
+   existe (le dossier contient alors une configuration qui a démarré) ou au premier déploiement.
+   Sinon un déploiement raté écraserait la dernière bonne version. La copie passe par
+   `.previous.tmp`, puis un échange.
+3. Les fichiers de `.incoming/` remplacent ceux du dossier.
+4. `docker compose pull` avec `IMAGE_TAG=<sha>@sha256:<digest>` en variable du shell (le `.env`
+   n'est pas encore modifié).
+5. Si le `Caddyfile` a changé (ou si `.previous/.ok` n'existe pas) :
+   `docker compose run --rm --no-deps -T caddy caddy validate …`. La validation est hors ligne
+   (prouvé par le testeur avec `--network none`) et un `Caddyfile` cassé sort en erreur 1.
+6. `docker compose up -d --wait --wait-timeout 180`, avec `--force-recreate` si le `Caddyfile` a
+   changé (redémarrage de Caddy d'environ 1 s).
+7. Succès : `IMAGE_TAG=<sha>@sha256:<digest>` est écrit dans `.env` et `.previous/.ok` est créé.
+8. Échec à l'une des étapes 4 à 6 : les fichiers sont restaurés depuis `.previous/`, `up` est
+   relancé sur l'ancien `IMAGE_TAG` du `.env`, et le job sort en erreur.
+
+Pourquoi `--force-recreate` : le hash de configuration de Compose couvre le chemin du `Caddyfile`,
+pas son contenu, et un bind mount d'un fichier unique garde l'ancien inode après un `mv`. Sans
+recréation, un changement de `Caddyfile` ne serait jamais servi. Pourquoi `.env` en dernier : un
+déploiement qui échoue ne laisse jamais un `IMAGE_TAG` inutilisable pour le prochain `up`.
+Un déploiement provoque une courte fenêtre de 502 pendant la recréation de `nuxt`.
+
+**Rollback manuel** : mettre dans `deploy/.env` un ancien `IMAGE_TAG` **complet**
+(`<sha>@sha256:<digest>`), puis `docker compose up -d --wait`. Le digest se lit dans la ligne
+« Deploying … » du journal du job `deploy`, ou avec
+`docker buildx imagetools inspect ghcr.io/mehdidiasgomes/binovya:<sha>`. `.previous/` garde les
+fichiers Compose précédents. Ne jamais revenir en arrière par le tag seul. Relancer un ancien job
+`deploy` redéploie aussi son digest.
+
+**Dependabot** (`.github/dependabot.yml`) : mensuel, `target-branch: dev`, `cooldown` de 7 jours.
+Écosystèmes : `github-actions` (`/`), `docker` (`/`, le `Dockerfile`) et `docker-compose`
+(`/deploy`, en ignorant l'image de l'application `*mehdidiasgomes/binovya`). Pas d'écosystème JS en
+V1 (périmètre réduit).
+
+- Les mises à jour de **sécurité** ignorent `target-branch` et `cooldown` : leurs PR visent
+  `main`. À traiter comme un correctif urgent : fusionner dans `main` quand `check` est vert,
+  puis fusionner `main` dans `dev` aussitôt.
+- Les versions de Bun (`bun-version` dans `ci.yml`, `oven/bun` dans le `Dockerfile`) et de Node
+  (24.22.1 dans les deux) sont écrites à deux endroits : les monter ensemble.
+- Les actions sont épinglées par SHA de commit complet, sans commentaire de version (le projet
+  interdit les commentaires).
+
+**Réglages GitHub manuels** (hors dépôt, à faire à l'étape 12) :
+
+- Environnement `production` limité à la branche `main`, avec les 5 secrets ; aucun secret au
+  niveau du dépôt.
+- Variable de dépôt `DEPLOY_ENABLED` à `true` **seulement** quand le VPS est prêt.
+- Paquet GHCR `binovya` privé, accès Actions limité à ce dépôt. Sur le VPS, `docker login
+ghcr.io` avec un jeton en lecture seule (`read:packages`), stocké pour le seul utilisateur de
+  déploiement.
+- Rulesets sur `main` et `dev` : pas de force-push ni de suppression, contrôle d'état requis
+  `check`.
+- Réglages Actions : permissions du `GITHUB_TOKEN` en « Read repository contents », « Allow
+  GitHub Actions to create and approve pull requests » décoché, approbation requise pour les
+  contributeurs extérieurs.
+- Alertes Dependabot et mises à jour de sécurité, secret scanning avec push protection, 2FA sur
+  le compte.
 
 Les tests d'intégration et e2e restent en local avant chaque fusion (ils utilisent la base et le
 compte Stripe de test). Typecheck : `vue-tsc` est en devDependency et le script `typecheck`
 (`nuxt typecheck`) vérifie l'app, le serveur et `tests/` : `tests/tsconfig.json`, référencé par
 le `tsconfig.json` racine, couvre aussi `scripts/`, `playwright.config.ts` et `vitest.config.ts`.
-La CI de l'étape 11 lance ce script (`bun run typecheck`).
+Le job `check` lance ce script (`bun run typecheck`).
 
 ## Tâches planifiées
 
@@ -1236,8 +1328,9 @@ La CI de l'étape 11 lance ce script (`bun run typecheck`).
 
 ## Tests
 
-Pyramide : beaucoup de tests unitaires, quelques tests d'intégration, peu de tests e2e. Unitaires
-et intégration tournent en CI cible ; l'e2e (vraie page Stripe) reste local avant chaque fusion.
+Pyramide : beaucoup de tests unitaires, quelques tests d'intégration, peu de tests e2e. Seuls les
+unitaires tournent en CI (job `check`) ; intégration et e2e (vraie page Stripe) restent locaux
+avant chaque fusion.
 Dernier relevé (2026-10-22, branche `feat/infrastructure`) : unitaires 1 477, intégration 515
 (run complet précédent), e2e 64 réussis sur Chromium et WebKit, soit 32 par projet, 36 tests Caddy
 ignorés sans `CADDY_BASE_URL` (8,6 min, `workers: 1`).
@@ -1385,9 +1478,6 @@ trop instable.
   Aucun des deux n'est actif : le site n'active jamais `dark` et ce bouton shadcn n'est pas
   utilisé.
 - Photos d'intervention : aucune purge, durée de conservation à décider (`TODO.md`, étapes 10 et 13).
-- `prettier --check` échoue sur 8 fichiers de `dev` sans lien avec les étapes en cours
-  (`BeforeAfterSection`, `OffersSection`, `ServicesSection`, `TrustStripSection`, `layouts/footer`,
-  `pages/about`, `i18n/locales/fr/solutions.ts`, `README.md`) : chore dédié.
 - Tests instables : `booking-payment.spec.ts` n° 2 (le bouton « Payer » sort de la fenêtre sur la
   page Stripe) et n° 8 (délai de l'API d'adresse externe), délai ponctuel du nettoyage dans
   `account-deletion.test.ts`. Le détail de `customer-area-bookings` est stable depuis que le test
@@ -1413,8 +1503,7 @@ Pas de détail ici tant que ces sujets ne sont pas planifiés (voir `TODO.md`).
   Pro. Le VPS se reconstruit depuis Git et GHCR ; seul `deploy/.env` est à conserver à part.
 - **Supabase reproductible** : script de provisionnement, `config.toml` et `config push`,
   `migration repair`, `rls_auto_enable` en migration.
-- **Projet Supabase de test dédié à la CI** : intégration et e2e en CI, garde sur l'URL de test,
-  `concurrency` GitHub Actions.
+- **Projet Supabase de test dédié à la CI** : intégration et e2e en CI, garde sur l'URL de test.
 - **Anti-abus** : Cloudflare Turnstile, limites de débit détaillées par route.
 - **Droits par défaut** : `revoke all … from anon` sur les autres tables, `alter default
 privileges`, `references` et `trigger` sur `price_grid`, `booking_settings`, `quote_requests`.
