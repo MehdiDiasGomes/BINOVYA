@@ -22,6 +22,14 @@ export const PRO_QUOTE_MIN_CENTS: number = 1
 
 export const PRO_QUOTE_MAX_CENTS: number = 1000000
 
+export const CENTS_PER_EURO: number = 100
+
+export const PRO_QUOTE_MIN_EUROS: number = PRO_QUOTE_MIN_CENTS / CENTS_PER_EURO
+
+export const PRO_QUOTE_MAX_EUROS: number = PRO_QUOTE_MAX_CENTS / CENTS_PER_EURO
+
+export const PRO_QUOTE_STEP_EUROS: number = 1
+
 export const PRO_ADMIN_NOTE_MAX_LENGTH: number = 500
 
 export const PRO_PAYMENT_LINK_HOLD_MINUTES: number = 1435

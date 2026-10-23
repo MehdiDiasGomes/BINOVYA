@@ -22,6 +22,7 @@
   },
   "dependencies": {
     "@internationalized/date": "^3.10.1",
+    "@internationalized/number": "^3.6.5",
     "@nuxt/image": "^2.0.0",
     "@nuxtjs/i18n": "^10.2.1",
     "@nuxtjs/supabase": "^2.0.10",

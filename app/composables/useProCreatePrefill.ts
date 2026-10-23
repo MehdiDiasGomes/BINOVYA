@@ -14,7 +14,7 @@ import { prefilledProCreateDraft } from '@/utils/proCreate'
  * @returns Loading status and the text announcing it
  */
 export const useProCreatePrefill = (form: ProCreateFormState): ProCreatePrefillState => {
-  const { t, locale } = useI18n()
+  const { t } = useI18n()
   const route = useRoute()
   const { handleAuthError } = useProAuthError()
 
@@ -35,7 +35,7 @@ export const useProCreatePrefill = (form: ProCreateFormState): ProCreatePrefillS
         `/api/pro/interventions/${encodeURIComponent(bookingId)}/prefill`,
         { timeout: PAGE_DATA_TIMEOUT_MS },
       )
-      form.draft.value = prefilledProCreateDraft(prefill, locale.value)
+      form.draft.value = prefilledProCreateDraft(prefill)
       customerName.value = `${prefill.contact.firstName} ${prefill.contact.lastName}`.trim()
       status.value = 'loaded'
     } catch (error: unknown) {

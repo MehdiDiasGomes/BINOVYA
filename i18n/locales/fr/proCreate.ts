@@ -40,6 +40,9 @@ export default {
     quoteAmount: {
       label: 'Prix du devis par passage, en euros',
       hint: 'Montant TTC, par exemple 120,50.',
+      decrease: 'Baisser le prix du devis d’un euro',
+      increase: 'Augmenter le prix du devis d’un euro',
+      clamped: 'Prix du devis ramené au maximum, {max}.',
     },
     note: {
       label: 'Note interne (facultatif)',

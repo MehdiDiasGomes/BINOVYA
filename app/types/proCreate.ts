@@ -93,7 +93,7 @@ export type ProCreateDraft = {
   date: string
   mode: ProBookingMode
   priceSource: ProPriceSource
-  quoteAmount: string
+  quoteAmount: number | null
   note: string
 }
 
