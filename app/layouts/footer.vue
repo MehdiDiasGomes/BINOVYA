@@ -7,54 +7,61 @@
         class="mb-12 grid grid-cols-1 gap-x-10 gap-y-10 sm:grid-cols-2 lg:grid-cols-[1.4fr_1fr_1fr_1fr]"
       >
         <div>
-          <div class="mb-4 flex items-center gap-1.5">
-            <span class="text-xl font-black text-white">BINOVYA</span>
-            <span class="text-lg text-turquoise" aria-hidden="true">●</span>
-          </div>
+          <BrandLogo tone="onDark" class="mb-4 block h-16 w-auto" />
           <p class="max-w-xs text-[13px] leading-relaxed text-muted-foreground">
             {{ $t('footer.brand.tagline') }}
           </p>
-        </div>
-
-        <div>
-          <h3 class="mb-4 text-sm font-black uppercase tracking-wider text-white">
-            {{ $t('footer.contact.title') }}
-          </h3>
-          <ul role="list" class="text-[13px] text-muted-foreground">
-            <li class="flex min-h-11 items-center gap-2 lg:min-h-8">
-              <Icon name="Mail" :size="14" aria-hidden="true" class="shrink-0 text-turquoise" />
-              <a
-                :href="`mailto:${contactEmail}`"
-                :class="cn(FOOTER_LINK_CLASS, 'min-w-0 [overflow-wrap:anywhere]')"
-                >{{ contactEmail }}</a
-              >
+          <ul
+            role="list"
+            :aria-label="$t('footer.commitments.title')"
+            class="mt-5 space-y-1.5 text-[13px] text-muted-foreground"
+          >
+            <li v-for="key in FOOTER_COMMITMENT_KEYS" :key="key" class="flex items-center gap-2">
+              <Icon name="Check" :size="14" aria-hidden="true" class="shrink-0 text-turquoise" />
+              {{ $t(key) }}
             </li>
           </ul>
         </div>
 
-        <div>
-          <h3 class="mb-4 text-sm font-black uppercase tracking-wider text-white">
-            {{ $t('footer.commitments.title') }}
+        <nav
+          v-for="column in FOOTER_COLUMNS"
+          :key="column.id"
+          :aria-labelledby="`site-footer-${column.id}-heading`"
+        >
+          <h3 :id="`site-footer-${column.id}-heading`" :class="FOOTER_HEADING_CLASS">
+            {{ $t(column.titleKey) }}
           </h3>
-          <ul role="list" class="space-y-2 text-[13px] leading-relaxed text-muted-foreground">
-            <li>{{ $t('footer.commitments.eco') }}</li>
-            <li>{{ $t('footer.commitments.steam') }}</li>
-            <li>{{ $t('footer.commitments.quality') }}</li>
-          </ul>
-        </div>
-
-        <nav aria-labelledby="site-footer-info-heading">
-          <h3
-            id="site-footer-info-heading"
-            class="mb-4 text-sm font-black uppercase tracking-wider text-white"
-          >
-            {{ $t('footer.info.title') }}
-          </h3>
-          <ul role="list" class="text-[13px] text-muted-foreground">
-            <li v-for="link in FOOTER_INFO_LINKS" :key="link.path">
-              <NuxtLink :to="localePath(link.path)" :class="FOOTER_LINK_CLASS">{{
-                $t(link.labelKey)
-              }}</NuxtLink>
+          <ul role="list" :class="FOOTER_LIST_CLASS">
+            <li
+              v-for="link in column.links"
+              :key="link.kind === 'page' ? link.labelKey : link.kind"
+            >
+              <a
+                v-if="link.kind === 'email'"
+                :href="`mailto:${contactEmail}`"
+                :class="cn(FOOTER_LINK_CLASS, 'min-w-0')"
+              >
+                <Icon name="Mail" :size="14" aria-hidden="true" class="shrink-0 text-turquoise" />
+                <span class="min-w-0 [overflow-wrap:anywhere]">{{ contactEmail }}</span>
+              </a>
+              <NuxtLink
+                v-else-if="link.kind === 'account'"
+                :to="accountPath"
+                :class="FOOTER_LINK_CLASS"
+              >
+                {{ $t(accountLabelKey) }}
+              </NuxtLink>
+              <a
+                v-else-if="link.hash"
+                :href="localePath(link.path) + link.hash"
+                :class="FOOTER_LINK_CLASS"
+                @click="goToAnchor($event, link)"
+              >
+                {{ $t(link.labelKey) }}
+              </a>
+              <NuxtLink v-else :to="localePath(link.path)" :class="FOOTER_LINK_CLASS">
+                {{ $t(link.labelKey) }}
+              </NuxtLink>
             </li>
           </ul>
         </nav>
@@ -68,13 +75,30 @@
 </template>
 
 <script setup lang="ts">
-import { FOOTER_INFO_LINKS, FOOTER_LINK_CLASS } from '@/constants/footer'
+import type { FooterPageLink } from '@/types/footer'
+
+import {
+  FOOTER_COLUMNS,
+  FOOTER_COMMITMENT_KEYS,
+  FOOTER_HEADING_CLASS,
+  FOOTER_LINK_CLASS,
+  FOOTER_LIST_CLASS,
+} from '@/constants/footer'
 import { cn } from '@/lib/utils'
 
 const { t } = useI18n()
 const localePath = useLocalePath()
+const { path: accountPath, labelKey: accountLabelKey } = useAccountNavLink()
+const navigateToItem = useAnchorNavigation()
 
 const currentYear: ComputedRef<number> = computed((): number => new Date().getFullYear())
 
 const contactEmail: ComputedRef<string> = computed((): string => t('contact.info.email.address'))
+
+const goToAnchor = async (event: MouseEvent, link: FooterPageLink): Promise<void> => {
+  if ((await navigateToItem(event, link)) === 'currentPage') {
+    await nextTick()
+    focusAnchorTarget(link.focusId)
+  }
+}
 </script>

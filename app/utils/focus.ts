@@ -15,3 +15,18 @@ export const focusFirstElement = (ids: string[]): void => {
       : target
   control?.focus()
 }
+
+/**
+ * Focuses an in-page anchor target and scrolls it to the top of the viewport.
+ * @param targetId - Id of the element to focus
+ * @returns Whether the target exists and received the focus
+ */
+export const focusAnchorTarget = (targetId?: string): boolean => {
+  const target: HTMLElement | null = targetId ? document.getElementById(targetId) : null
+  if (!target) {
+    return false
+  }
+  target.focus({ preventScroll: true })
+  target.scrollIntoView({ block: 'start' })
+  return true
+}

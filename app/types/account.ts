@@ -12,6 +12,12 @@ export type AccountStatusIcon = 'CalendarDays' | 'CircleCheck' | 'CircleX'
 
 export type AccountNavIcon = 'CircleUser' | 'LayoutDashboard'
 
+export type AccountNavLink = {
+  path: ComputedRef<string>
+  labelKey: ComputedRef<string>
+  icon: ComputedRef<AccountNavIcon>
+}
+
 export type AccountPaymentIcon = 'FileText' | 'Receipt' | 'HandCoins'
 
 export type AccountPaymentDocumentView = {

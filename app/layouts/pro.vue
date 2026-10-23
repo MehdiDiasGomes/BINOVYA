@@ -86,13 +86,13 @@
           <ul role="list" class="flex flex-wrap items-center gap-x-3">
             <li>
               <NuxtLink :to="localePath('/legal')" :class="FOOTER_LINK_CLASS">
-                {{ $t('footer.info.legal') }}
+                {{ $t('footer.links.legal') }}
               </NuxtLink>
             </li>
             <li>
               <span aria-hidden="true" class="mr-3 hidden text-white/60 sm:inline">·</span>
               <NuxtLink :to="localePath('/privacy')" :class="FOOTER_LINK_CLASS">
-                {{ $t('footer.info.privacy') }}
+                {{ $t('footer.links.privacy') }}
               </NuxtLink>
             </li>
             <li>
