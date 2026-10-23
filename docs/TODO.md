@@ -19,9 +19,18 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
 - ✅ 6. Mails : confirmation, annulation, alerte admin, rappel, photos disponibles, habillage
   commun, voir `specs/technical.md`
 - ✅ 7. Espace client : lien magique, cartes de réservation, suppression du compte, jeton
-  d'adresse signé, voir `specs/booking-system.md`
+  d'adresse signé, voir `specs/booking-system.md` ; réglages Auth du tableau de bord Supabase
+  vérifiés (2026-10-23) : Auth Hook « Send Email » vers `public.suppress_auth_emails`, OTP e-mail
+  à 86 400 s, inscriptions désactivées
 - ✅ 8. Espace BINOVYA Pro : accès admin, planning, liste, disponibilités, déplacement, photos,
-  fin d'intervention, photos côté client, voir `specs/technical.md` et `specs/booking-system.md`
+  fin d'intervention, photos côté client, voir `specs/technical.md` et `specs/booking-system.md`.
+  Correctifs du 2026-10-23 : header sticky qui masquait les cases de l'étape de paiement
+  (`scroll-margin-top` global, classe `CHECKBOX_CLASS`, test `booking-payment-focus.spec.ts`),
+  renvoi du lien de paiement borné (délai Stripe de 5 s, 502 sans code si Stripe est injoignable),
+  journal de `loadBookingEmailData` sur erreur de lecture. Lenteur de la carte « lien déjà
+  utilisé » et mail manquant de `pro-complete.test.ts` : aucune cause dans le code applicatif
+  (démarrage à froid du serveur de dev ; mail envoyé après la réponse par `event.waitUntil`, le
+  test attend maintenant son arrivée)
 - ✅ 10. Infrastructure : Dockerfile (`node-server`), `deploy/docker-compose.yml` (Caddy et Nuxt),
   `deploy/Caddyfile`, CSP testée en local derrière Caddy (14 pages publiques, réservation et
   retour Stripe Checkout, espace client, espace Pro), connexion par lien magique, connexion admin
@@ -36,37 +45,18 @@ V1 = ce qu'il faut pour lancer. Le reste est en V2, en fin de fichier (décision
 
 ## V1
 
-### Reste des étapes 0 à 8
+### Reste des étapes 7 et 8
 
-- [ ] 0. Aligner `specs/booking-system.md` sur le brief (rayon 20 km, grille par formule, deux
-     jours de collecte, « bacs vides et accessibles », devis, pros, Luxembourg)
-- [ ] 7. Vérifier dans le dashboard Supabase : Auth Hook « Send Email » vers
-     `public.suppress_auth_emails`, OTP e-mail à 86 400 s, inscriptions désactivées
-- [x] 8. Chore : migrer les boutons natifs de la réservation, du devis, de la page contact
-     (hors envoi, déjà fait) et de `AccountDeletionRequest.vue` vers `AppButton` (variante
-     `destructiveSolid` ; restent natifs : date suggérée, « Réessayer » de l'adresse, pastille
-     de retrait d'une photo du devis, faute de variante, voir `specs/technical.md`)
-- [x] 8. Chore : WebKit perd la session Supabase sur `http://localhost` (cookie `Secure` par
-     défaut dans `@nuxtjs/supabase`) : `cookieOptions.secure` posé seulement en production et
-     projet Playwright WebKit rétabli (étape 10), voir `specs/technical.md`
-- [x] 8. Chore e2e : test instable du détail de `customer-area-bookings` (suite e2e refaite,
-     le test attend la réponse réseau, vert à chaque run complet)
-- [ ] 8. Chore UI (ui-stylist) : le header sticky masque la case « bacs prêts » à l'étape de
-     paiement de la réservation. L'aide e2e `acceptPaymentCheckboxes` la centre avant de la
-     cocher, mais la page a besoin d'un `scroll-margin` ou `scroll-padding`
-- [ ] 8. À vérifier à la main : lenteur possible de `POST /api/pro/bookings/[id]/payment-link`
-     (renvoi parfois > 20 s sous charge, `tests/e2e/pro/pro-create.spec.ts:156` instable 1 fois
-     sur 3), de la carte « lien déjà utilisé » du lien magique (7,4 s en run complet contre 3,4 s
-     seule, `tests/e2e/customer-area.spec.ts:54`), et un résultat intermittent à 0 mail dans
-     `tests/integration/pro/pro-complete.test.ts:89` (vert 4 fois sur 4 seul)
 - [ ] 8. À vérifier à la main (plus couvert par l'e2e) : mise en page à 375 px, survol, anneau de
      focus et squelettes de l'espace client, accordéon des détails Pro (`aria-expanded`), feuille
      mobile du dialogue de déplacement, `href` des liens du pied de page Pro, branche 401 de
      `AccountDeletionRequest.vue`, retour à la dernière page de `/pro/interventions` quand
      `?page=` dépasse la fin, alerte de délai du dialogue de déplacement et rechargement de la
      liste à la fermeture
-- [ ] 8. Hors code : facture française réelle avec les mentions légales, à décider avec le
-     client (le reçu Stripe n'en tient pas lieu)
+- [ ] 8. Hors code : mentions légales réelles de la facture. La facture Stripe et sa note de
+     crédit existent déjà (`server/utils/bookingInvoice.ts`) ; il manque les vraies mentions
+     (raison sociale, forme juridique, SIRET, RCS, TVA, pied de page), aujourd'hui des textes
+     fictifs dans `app/constants/invoice.ts`, en attente du client
 
 ### SEO (branche `chore/seo`, après la fusion de l'étape 8 dans `dev`)
 
@@ -76,39 +66,11 @@ constats qui attendent le client (#10, #11, #12, #16, #17, #18).
 - [ ] Répondre aux questions client de `specs/seo.md` (adresse, téléphone, villes ciblées, image
       OG, engagements restants, mentions légales LCEN : téléphone, SIRET/RCS, hébergeur).
       Domaine et e-mail tranchés : `binovya.com`, `contact@binovya.fr`
-- [x] `<html lang>`, `canonical`, `hreflang` avec `x-default`, langue `en` au lieu de `en-US` :
-      `useLocaleHead` dans `app.vue` (#5, #6, #15)
-- [x] Pages privées : en-têtes `X-Robots-Tag` via `routeRules` (#2)
-- [x] Sitemap, robots, URL publique `NUXT_PUBLIC_SITE_URL` (#3, #4)
 - [ ] Données structurées : `LocalBusiness`, `Service` (#10), après les réponses du client
-- [x] Page `/formulas`, clés `alt` et `aria-label` absentes, images manquantes : pages supprimées
-      (`/formulas`, `/about`, `/faq`, `/solutions/*`) (#7, #13, #14)
-- [x] Maillage interne, sélecteur de langue, liens localisés, footer (#8, #9, #23, #24)
 - [ ] Adresse et téléphone cohérents, après réponse du client (#11, #12 ; téléphone factice déjà
       retiré de `/legal`)
 - [ ] Titres, descriptions, promesses restantes, image OG (#16, #17, #18) ; fait : dimensions,
       `sizes`, `alt` (#21, #22)
-- [x] FAQ et `$tm` / `$rt` (#19, #20) : `/faq` supprimée, `privacy` corrigée
-- [x] Dates « Dernière mise à jour » pilotées par `app/constants/legal.ts` (#28) ; la révélation
-      au scroll de `/formulas` (#25) est sans objet
-
-### 11. CI/CD (terminée, voir « Étapes terminées »)
-
-- [x] `vue-tsc` en devDependency et script `typecheck` qui couvre aussi `tests/` (branche
-      `chore/typecheck`, fusionnée dans `dev`)
-- [x] CI : lint, formatage, typecheck, tests unitaires, build
-- [x] CI : image vers GHCR (tags `<sha>` + `latest` sur `main`, `dev-<sha>` sur `dev`),
-      construite en `linux/amd64`
-- [x] CI : le job de build ne reçoit aucun secret applicatif (toute variable `NUXT_*` présente
-      au `nuxt build` est cuite dans `.output`)
-- [x] CI : images de base épinglées par tag (`oven/bun`, `node`, `caddy`), Dependabot mensuel
-      sur `dev` (actions, `Dockerfile`, `deploy/`)
-- [x] Revoir le garde de démarrage (`productionConfigCheck`) si un prérendu est ajouté : aucun
-      prérendu n'existe, rien à faire
-- [x] CD écrit dans le code : SSH, copie de `deploy/`, `pull`, validation du `Caddyfile`, `up`
-      par digest, `IMAGE_TAG` écrit après succès, restauration en cas d'échec. Non prouvé :
-      premier déploiement à l'étape 12
-- Les tests d'intégration et e2e restent en local avant chaque fusion.
 
 ### 12. Mise en production
 
@@ -123,6 +85,9 @@ constats qui attendent le client (#10, #11, #12, #16, #17, #18).
       `/api/pro/auth/login`, `/api/booking*`, `/api/contact`, `/api/quote`,
       `/api/address/search`), proposition 30 req / 10 s par IP, blocage 60 s ; vérifier le
       nombre de règles du plan gratuit
+- [ ] Cloudflare : vérifier que la règle de limite de débit couvre aussi `/api/pro/**` (audit de
+      sécurité : le renvoi du lien de paiement lit Stripe même quand il répond 409 ou 502 sans
+      consommer de quota de renvoi ; seule la limite de débit de Cloudflare borne ces lectures)
 - [ ] Caddy : `trusted_proxies` sur les plages Cloudflare, IP réelle dans `CF-Connecting-IP`,
       volume `/data` persisté (certificats, limite Let's Encrypt)
 - [ ] Caddy : masquer aussi `Cf-Connecting-Ipv6` et `True-Client-Ip` dans les journaux, vérifier
