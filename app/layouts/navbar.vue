@@ -3,29 +3,26 @@
     class="sticky top-0 z-50 w-full border-b border-white/5 bg-navy-950"
     @keydown.esc="closeOnEscape"
   >
-    <div class="mx-auto flex max-w-[1180px] items-center justify-between px-8 py-4">
+    <div
+      class="mx-auto flex max-w-[1180px] items-center justify-between px-8 py-2.5 md:px-6 md:py-3.5 lg:px-8 lg:py-2.5"
+    >
       <NuxtLink
         :to="localePath('/')"
         :aria-label="$t('common.backToHome')"
         class="rounded-lg focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
       >
-        <NuxtImg
-          src="/images/brand/logo.png"
-          :alt="$t('common.logoAlt')"
-          class="h-10 w-auto object-contain"
-          width="48"
-          height="40"
-          format="webp"
-          loading="eager"
-        />
+        <BrandLogo tone="onDark" class="block h-13 w-auto md:h-8 lg:h-13" />
       </NuxtLink>
 
-      <nav class="hidden items-center gap-8 md:flex" :aria-label="$t('nav.mainNavAriaLabel')">
+      <nav
+        class="hidden items-center gap-5 md:flex lg:gap-8"
+        :aria-label="$t('nav.mainNavAriaLabel')"
+      >
         <NuxtLink
           v-for="item in navigationItems"
           :key="item.labelKey"
           :to="{ path: localePath(item.path), hash: item.hash }"
-          class="rounded-md text-[14px] font-semibold text-[#dce8f0] transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none"
+          class="rounded-md text-[14px] font-semibold text-on-navy transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none"
         >
           {{ $t(item.labelKey) }}
         </NuxtLink>
@@ -35,19 +32,21 @@
         <LanguageSwitcher class="hidden md:block" />
         <NuxtLink
           :to="accountPath"
-          class="hidden h-11 items-center gap-2 rounded-lg px-2 text-[14px] font-semibold text-[#dce8f0] transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none md:flex"
+          class="hidden h-11 items-center gap-2 rounded-lg px-2 text-[14px] font-semibold text-on-navy transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none md:flex"
         >
           <Icon :name="accountIcon" :size="16" aria-hidden="true" />
           {{ $t(accountLabelKey) }}
         </NuxtLink>
-        <NuxtLink
+        <AppButton
           :to="localePath('/booking')"
-          class="hidden items-center gap-2 rounded-lg bg-primary px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-primary/30 transition-[translate,background-color] duration-press ease-brand hover:-translate-y-px hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none motion-reduce:hover:translate-y-0 md:flex"
+          variant="onDarkPrimary"
+          size="sm"
+          icon="CalendarCheck"
+          class="hidden px-5 md:inline-flex"
           :aria-label="$t('nav.reserverAriaLabel')"
         >
-          <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
           {{ $t('nav.reserver') }}
-        </NuxtLink>
+        </AppButton>
         <MenuToggleButton
           ref="buttonRef"
           :is-open="isOpen"
@@ -70,7 +69,7 @@
             :key="item.labelKey"
             :href="localePath(item.path) + (item.hash ?? '')"
             :class="MOBILE_MENU_LINK_CLASS"
-            @click.prevent="handleMobileNavClick(item)"
+            @click="handleMobileNavClick($event, item)"
           >
             {{ $t(item.labelKey) }}
           </a>
@@ -88,24 +87,24 @@
           class="border-b border-white/5"
           @navigate="closeFromLink"
         />
-        <NuxtLink
+        <AppButton
           :to="localePath('/booking')"
-          class="mt-4 flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-3 text-sm font-bold text-white transition-colors duration-press ease-brand hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none"
+          variant="onDarkPrimary"
+          size="sm"
+          icon="CalendarCheck"
+          class="mt-4 px-5 py-3"
           @click="closeFromLink(localePath('/booking'))"
         >
-          <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
           {{ $t('nav.reserverAriaLabel') }}
-        </NuxtLink>
+        </AppButton>
       </div>
     </Transition>
   </header>
 </template>
 
 <script setup lang="ts">
-import type { AccountNavIcon } from '@/types/account'
-import type { NavItem } from '@/types/navbar'
+import type { AnchorNavigationOutcome, NavItem } from '@/types/navbar'
 
-import { ACCOUNT_NAV_ICONS, ACCOUNT_NAV_LABEL_KEYS, ACCOUNT_NAV_PATHS } from '@/constants/account'
 import {
   MOBILE_MENU_LINK_CLASS,
   MOBILE_MENU_PANEL_CLASS,
@@ -117,29 +116,18 @@ import { cn } from '@/lib/utils'
 const MOBILE_MENU_ID: string = 'site-mobile-menu'
 
 const localePath = useLocalePath()
-const route = useRoute()
 const { isOpen, buttonRef, toggle, close, closeOnEscape, closeFromLink, focusTarget } =
   useMobileMenu()
-const { status: sessionStatus } = useCustomerSession()
+const { path: accountPath, labelKey: accountLabelKey, icon: accountIcon } = useAccountNavLink()
+const navigateToItem = useAnchorNavigation()
 
-const accountPath: ComputedRef<string> = computed(() =>
-  localePath(ACCOUNT_NAV_PATHS[sessionStatus.value]),
-)
-
-const accountLabelKey: ComputedRef<string> = computed(
-  () => ACCOUNT_NAV_LABEL_KEYS[sessionStatus.value],
-)
-
-const accountIcon: ComputedRef<AccountNavIcon> = computed(
-  () => ACCOUNT_NAV_ICONS[sessionStatus.value],
-)
-
-const handleMobileNavClick = async (item: NavItem): Promise<void> => {
-  const path: string = localePath(item.path)
-  const isCurrentPage: boolean = route.path === path
+const handleMobileNavClick = async (event: MouseEvent, item: NavItem): Promise<void> => {
+  const outcome: AnchorNavigationOutcome = await navigateToItem(event, item)
+  if (outcome === 'ignored') {
+    return
+  }
   close()
-  await navigateTo({ path, hash: item.hash })
-  if (isCurrentPage) {
+  if (outcome === 'currentPage') {
     await focusTarget(item.focusId)
   }
 }

@@ -23,14 +23,7 @@
       </button>
     </h2>
     <div :id="contentId">
-      <Transition
-        :enter-active-class="ACCORDION_ENTER_ACTIVE_CLASS"
-        enter-from-class="grid-rows-[0fr] opacity-0"
-        enter-to-class="grid-rows-[1fr] opacity-100"
-        :leave-active-class="ACCORDION_LEAVE_ACTIVE_CLASS"
-        leave-from-class="grid-rows-[1fr] opacity-100"
-        leave-to-class="grid-rows-[0fr] opacity-0"
-      >
+      <Transition v-bind="COLLAPSE_TRANSITION">
         <div v-if="isOpen" class="grid">
           <div class="min-h-0 overflow-hidden">
             <dl class="grid gap-2 px-5 pb-5 pt-1.5 text-[15px]">
@@ -63,7 +56,7 @@ import type { ProIntervention } from '@/types/pro'
 
 import { TEXT_LINK_CLASS } from '@/constants/buttons'
 import { DETAIL_ROW_CLASS } from '@/constants/mediaCard'
-import { ACCORDION_ENTER_ACTIVE_CLASS, ACCORDION_LEAVE_ACTIVE_CLASS } from '@/constants/motion'
+import { COLLAPSE_TRANSITION } from '@/constants/motion'
 import { cn } from '@/lib/utils'
 import { bookingDateLabel, bookingServicesLabel } from '@/utils/accountBookingCard'
 import { groupPhoneDigits, telHref } from '@/utils/phone'

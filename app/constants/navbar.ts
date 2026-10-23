@@ -8,7 +8,7 @@ export const MOBILE_MENU_LINK_CLASS: string =
   'flex min-h-11 items-center gap-2 border-b border-white/5 py-3 text-[15px] font-semibold text-white/85 transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-inset focus-visible:ring-white/60 aria-[current=page]:font-black aria-[current=page]:text-white aria-[current=page]:underline aria-[current=page]:underline-offset-8 motion-reduce:transition-none'
 
 export const LANGUAGE_LINK_CLASS: string =
-  'flex min-h-11 min-w-11 items-center justify-center rounded-md font-semibold text-[#dce8f0] transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 aria-[current=true]:font-black aria-[current=true]:text-white aria-[current=true]:hover:text-white aria-[current=true]:underline aria-[current=true]:underline-offset-8 motion-reduce:transition-none'
+  'flex min-h-11 min-w-11 items-center justify-center rounded-md font-semibold text-on-navy transition-colors duration-press ease-brand hover:text-turquoise focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 aria-[current=true]:font-black aria-[current=true]:text-white aria-[current=true]:hover:text-white aria-[current=true]:underline aria-[current=true]:underline-offset-8 motion-reduce:transition-none'
 
 export const MOBILE_MENU_TRANSITION: TransitionProps = {
   enterActiveClass:

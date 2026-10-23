@@ -39,15 +39,17 @@
       </dl>
       <ProToMoveBadge v-if="props.intervention.isToMove" class="mt-1 px-2 py-0.5 text-xs" />
     </div>
-    <NuxtLink
+    <AppButton
       v-if="recreateRoute"
       :to="localePath(recreateRoute)"
-      class="relative z-10 flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border border-white/40 bg-white/10 px-3 text-sm font-bold text-white transition-colors duration-press ease-brand hover:border-white/70 hover:bg-white/20 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white motion-reduce:transition-none"
+      variant="onDarkGhost"
+      size="sm"
+      icon="RotateCcw"
+      class="z-10 shrink-0 gap-1.5 px-3"
     >
-      <Icon name="RotateCcw" :size="16" aria-hidden="true" />
       {{ $t('pro.card.recreate') }}
       <span class="sr-only">{{ subject }}</span>
-    </NuxtLink>
+    </AppButton>
     <ProRescheduleMenu
       v-if="isReschedulable"
       :subject="subject"

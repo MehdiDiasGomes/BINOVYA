@@ -9,17 +9,14 @@ import type {
 } from '@/types/proCreate'
 
 import {
+  CENTS_PER_EURO,
   PRO_CHECKOUT_EXPIRY_MARGIN_SECONDS,
   PRO_CREATE_ERROR_CODES,
   PRO_PAYMENT_LINK_ERROR_CODES,
 } from '@/constants/proCreate'
 import { validateContact } from '@/utils/bookingValidation'
 import { toInternationalPhone, toNationalPhone } from '@/utils/phone'
-import {
-  adminNoteSchema,
-  formatEuroInput,
-  parseQuoteAmountCents,
-} from '@/utils/proCreateValidation'
+import { adminNoteSchema, toQuoteAmountCents } from '@/utils/proCreateValidation'
 
 const MILLISECONDS_PER_SECOND: number = 1000
 
@@ -45,7 +42,7 @@ export const emptyProCreateDraft = (): ProCreateDraft => ({
   date: '',
   mode: 'payment_link',
   priceSource: 'grid',
-  quoteAmount: '',
+  quoteAmount: null,
   note: '',
 })
 
@@ -53,13 +50,9 @@ export const emptyProCreateDraft = (): ProCreateDraft => ({
  * Builds the draft recreating an intervention whose payment link expired: same customer,
  * address, bins, plan, collection days, price and note, a new request id and no date.
  * @param prefill - Intervention to recreate, address signed again by the server
- * @param locale - BCP 47 locale of the page, for the quote amount
  * @returns Draft to complete with a date
  */
-export const prefilledProCreateDraft = (
-  prefill: ProCreatePrefill,
-  locale: string,
-): ProCreateDraft => {
+export const prefilledProCreateDraft = (prefill: ProCreatePrefill): ProCreateDraft => {
   const phone: NationalPhone = toNationalPhone(prefill.contact.phone)
   return {
     ...emptyProCreateDraft(),
@@ -72,7 +65,7 @@ export const prefilledProCreateDraft = (
     recycling: collectionAnswer(prefill.recyclingCollectionWeekdays),
     priceSource: prefill.quoteAmountCents === null ? 'grid' : 'quote',
     quoteAmount:
-      prefill.quoteAmountCents === null ? '' : formatEuroInput(prefill.quoteAmountCents, locale),
+      prefill.quoteAmountCents === null ? null : prefill.quoteAmountCents / CENTS_PER_EURO,
     note: prefill.note ?? '',
   }
 }
@@ -94,7 +87,7 @@ export const validateProCreateDraft = (
   if (!draft.address) {
     errors.address = 'pro.create.errors.address'
   }
-  if (isQuote && parseQuoteAmountCents(draft.quoteAmount) === null) {
+  if (isQuote && toQuoteAmountCents(draft.quoteAmount) === null) {
     errors.quoteAmount = 'pro.create.errors.quoteAmount'
   }
   if (draft.smallBinCount + draft.largeBinCount === 0) {
@@ -138,8 +131,7 @@ export const toProCreateRequest = (
     recyclingCollectionWeekdays: draft.recycling.weekdays,
     date: draft.date,
     mode: draft.mode,
-    quoteAmountCents:
-      draft.priceSource === 'quote' ? parseQuoteAmountCents(draft.quoteAmount) : null,
+    quoteAmountCents: draft.priceSource === 'quote' ? toQuoteAmountCents(draft.quoteAmount) : null,
     note: note.length > 0 ? note : null,
     force,
   }

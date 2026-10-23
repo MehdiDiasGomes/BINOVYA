@@ -1,6 +1,7 @@
 import account from './en/account'
 import booking from './en/booking'
 import contact from './en/contact'
+import home from './en/home'
 import legal from './en/legal'
 import privacy from './en/privacy'
 import pro from './en/pro'
@@ -16,92 +17,11 @@ export default {
     mainNavAriaLabel: 'Main navigation',
     menu: 'Menu',
   },
-  hero: {
-    eyebrow: 'Professional steam cleaning',
-    titleMain: 'Urban hygiene',
-    titleAccent: 'next generation',
-    lead: 'We clean your waste bins, PAV, street furniture, signage and collection areas using a professional, eco-friendly method adapted to the needs of individuals, professionals and local authorities.',
-    ctaReserver: 'Book an intervention',
-    ctaReserverAriaLabel: 'Book an intervention online',
-    ctaDevis: 'Request a quote',
-    platNote: '100% electric vehicle',
-    imageAlt: 'BINOVYA professional steam cleaning',
-    badges: {
-      steam: 'HIGH-TEMPERATURE STEAM',
-      eco: 'ECO-FRIENDLY',
-      electric: '100% ELECTRIC UTILITY VEHICLE',
-      natural: 'NATURAL PRODUCTS',
-    },
-  },
-  trust: {
-    fast: 'Fast intervention',
-    flexible: 'Flexible time slots',
-    payment: 'Secure payment',
-  },
-  services: {
-    eyebrow: 'What we do',
-    title: 'Our services',
-    subtitle:
-      'Four steam cleaning interventions to restore urban spaces to their full cleanliness.',
-    items: {
-      bins: {
-        title: 'Wheeled bin cleaning',
-        desc: 'Eliminates dirt, bacteria and bad odors from your wheeled bins.',
-      },
-      pav: {
-        title: 'PAV cleaning',
-        desc: 'Keeping your voluntary drop-off points clean and hygienic.',
-      },
-      urban: {
-        title: 'Street furniture',
-        desc: 'Benches, bus shelters, bollards... restored to their former glory.',
-      },
-      signage: {
-        title: 'Signage',
-        desc: 'Road signs, street name plates, vertical signage...',
-      },
-    },
-  },
-  offers: {
-    eyebrow: 'Individuals',
-    title: 'Book your intervention',
-    subtitle: 'Simply book your intervention online in just a few clicks.',
-    cta: 'Book an intervention',
-    small: {
-      title: 'Small bins',
-      desc: '120 to 240 L bin — high-temperature steam cleaning.',
-      price: 'From €19',
-      priceNote: 'per visit, with the annual plan',
-      ctaAriaLabel: 'Book an intervention for small bins',
-    },
-    large: {
-      title: 'Large bins',
-      badge: 'Large format',
-      desc: '600 to 1,100 L bin — high-temperature steam cleaning.',
-      price: 'From €29',
-      priceNote: 'per visit, with the annual plan',
-      ctaAriaLabel: 'Book an intervention for large bins',
-    },
-  },
-  quoteCta: {
-    eyebrow: 'Professionals & Local authorities',
-    title: "Have a project? Let's talk",
-    subtitle:
-      'Bins, drop-off points, street furniture or signage: request a quote in a few minutes, or write to us.',
-    quote: 'Request a quote',
-    contact: 'Contact us',
-  },
-  beforeAfter: {
-    imageAlt: 'Before/after result of BINOVYA steam cleaning',
-  },
   footer: {
     heading: 'About BINOVYA',
     copyright: '© {year} BINOVYA — All rights reserved.',
     brand: {
       tagline: 'Next-generation urban hygiene.',
-    },
-    contact: {
-      title: 'Contact us',
     },
     commitments: {
       title: 'Our commitments',
@@ -109,15 +29,25 @@ export default {
       steam: 'High-temperature steam',
       quality: 'Quality service',
     },
-    info: {
-      title: 'Information',
+    services: {
+      title: 'What we offer',
+    },
+    contact: {
+      title: 'Contact',
+    },
+    legal: {
+      title: 'Legal information',
+    },
+    links: {
       booking: 'Book an intervention',
       quote: 'Request a quote',
-      contact: 'Contact form',
+      pricing: 'Pricing',
+      contactForm: 'Contact form',
       legal: 'Legal notice',
       privacy: 'Privacy policy',
     },
   },
+  home,
   privacy,
   legal,
   contact,
@@ -127,7 +57,7 @@ export default {
   quote,
   common: {
     honeypot: 'Leave this field empty',
-    logoAlt: 'BINOVYA Logo',
+    brandLogoLabel: 'BINOVYA',
     backToHome: 'Back to home page',
     language: 'Language',
     lastUpdate: 'Last updated: {date}',

@@ -31,4 +31,11 @@ export const WHOLE_NUMBER_FORMAT: Intl.NumberFormatOptions = {
   useGrouping: false,
 }
 
+export const EURO_AMOUNT_FORMAT: Intl.NumberFormatOptions = {
+  style: 'currency',
+  currency: 'EUR',
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+}
+
 export const DIGITS_PATTERN: RegExp = /^\d+$/

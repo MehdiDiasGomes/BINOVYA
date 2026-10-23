@@ -31,13 +31,11 @@ export const BOOKING_SERVICES: BookingService[] = [
     slug: 'small-bin',
     titleKey: 'booking.bins.small.title',
     capacityKey: 'booking.bins.small.capacity',
-    image: '/images/offers/petit-format.png',
   },
   {
     slug: 'large-bin',
     titleKey: 'booking.bins.large.title',
     capacityKey: 'booking.bins.large.capacity',
-    image: '/images/offers/grand-format.png',
   },
 ]
 

@@ -10,7 +10,7 @@ import {
 } from '@/constants/proCreate'
 import { formatPrice } from '@/utils/pricing'
 import { emptyProCreateDraft, validateProCreateDraft } from '@/utils/proCreate'
-import { parseQuoteAmountCents } from '@/utils/proCreateValidation'
+import { toQuoteAmountCents } from '@/utils/proCreateValidation'
 
 /**
  * Holds the BINOVYA Pro intervention form: the draft, its price (from the grid shared with the
@@ -40,7 +40,7 @@ export const useProCreateForm = (): ProCreateFormState => {
   const isQuote: ComputedRef<boolean> = computed(() => draft.value.priceSource === 'quote')
 
   const quoteCents: ComputedRef<number | null> = computed(() =>
-    parseQuoteAmountCents(draft.value.quoteAmount),
+    toQuoteAmountCents(draft.value.quoteAmount),
   )
 
   const priceFor = (plan: BookingPlan): number | null =>

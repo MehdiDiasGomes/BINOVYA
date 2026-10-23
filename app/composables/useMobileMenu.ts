@@ -1,5 +1,7 @@
 import type { MenuToggleButtonInstance, MobileMenuState } from '@/types/mobileMenu'
 
+import { focusAnchorTarget } from '@/utils/focus'
+
 /**
  * Holds the open state of a layout's mobile menu. The menu closes on every route change; Escape
  * and a link to the current page close it and give the focus back to the toggle button, or to the
@@ -21,10 +23,7 @@ export const useMobileMenu = (): MobileMenuState => {
 
   const focusTarget = async (targetId?: string): Promise<void> => {
     await nextTick()
-    const target: HTMLElement | null = targetId ? document.getElementById(targetId) : null
-    if (target) {
-      target.focus({ preventScroll: true })
-      target.scrollIntoView({ block: 'start' })
+    if (focusAnchorTarget(targetId)) {
       return
     }
     buttonRef.value?.button?.focus()

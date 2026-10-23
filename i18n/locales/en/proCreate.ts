@@ -40,6 +40,9 @@ export default {
     quoteAmount: {
       label: 'Quote price per visit, in euros',
       hint: 'Amount including VAT, for example 120.50.',
+      decrease: 'Lower the quote price by one euro',
+      increase: 'Raise the quote price by one euro',
+      clamped: 'Quote price lowered to the maximum, {max}.',
     },
     note: {
       label: 'Internal note (optional)',

@@ -26,7 +26,7 @@
       :name="props.trailingIcon"
       :size="16"
       aria-hidden="true"
-      class="shrink-0"
+      :class="BUTTON_TRAILING_ICON_CLASS"
     />
   </component>
 </template>
@@ -41,7 +41,7 @@ import type { Component, ComponentPublicInstance } from 'vue'
 import type { RouteLocationRaw } from 'vue-router'
 
 import { NuxtLink } from '#components'
-import { buttonClass } from '@/constants/buttons'
+import { BUTTON_TRAILING_ICON_CLASS, buttonClass } from '@/constants/buttons'
 import { cn } from '@/lib/utils'
 
 const props = withDefaults(

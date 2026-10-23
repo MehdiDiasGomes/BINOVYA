@@ -1,115 +1,92 @@
 <template>
-  <section
-    id="accueil"
-    class="overflow-hidden bg-gradient-to-b from-[#020810] via-navy-950 to-navy-900 py-20"
-  >
-    <div class="mx-auto max-w-[1180px] px-8">
-      <div class="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
-        <div>
-          <span
-            :class="HERO_ENTER_CLASS"
-            class="mb-3.5 inline-block text-[13px] font-bold uppercase tracking-[1.5px] text-turquoise"
-          >
-            {{ $t('hero.eyebrow') }}
-          </span>
-          <h1
-            :class="HERO_ENTER_CLASS"
-            class="delay-75 mb-5 text-[44px] font-black leading-[1.12] text-white lg:text-5xl"
-          >
-            {{ $t('hero.titleMain') }}
-            <span class="text-turquoise">{{ $t('hero.titleAccent') }}</span>
-          </h1>
-          <p
-            :class="HERO_ENTER_CLASS"
-            class="delay-150 mb-8 max-w-[500px] text-[16.5px] leading-relaxed text-[#c4d6e2]"
-          >
-            {{ $t('hero.lead') }}
-          </p>
-
-          <div :class="HERO_ENTER_CLASS" class="delay-200 mb-8 flex flex-wrap gap-3.5">
-            <NuxtLink
-              :to="localePath('/booking')"
-              class="flex items-center gap-2 rounded-lg bg-primary px-5 py-3.5 text-sm font-bold text-white shadow-lg shadow-primary/35 transition-all hover:-translate-y-px hover:bg-primary/90"
-              :aria-label="$t('hero.ctaReserverAriaLabel')"
-            >
-              <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
-              {{ $t('hero.ctaReserver') }}
-            </NuxtLink>
-            <NuxtLink
-              :to="localePath('/quote')"
-              class="flex items-center gap-2 rounded-lg border border-white/25 px-5 py-3.5 text-sm font-bold text-white transition-all hover:border-turquoise hover:bg-turquoise/8 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
-            >
-              <Icon name="FileText" :size="16" aria-hidden="true" />
-              {{ $t('hero.ctaDevis') }}
-            </NuxtLink>
-          </div>
-
-          <div
-            :class="HERO_ENTER_CLASS"
-            class="delay-300 mt-2 grid grid-cols-2 gap-3.5 sm:grid-cols-4"
-          >
-            <div
-              v-for="badge in heroBadges"
-              :key="badge.key"
-              class="flex flex-col items-center rounded-xl border border-turquoise/25 bg-white/4 px-2 py-3.5 text-center transition-all hover:-translate-y-1 hover:border-turquoise"
-            >
-              <Icon :name="badge.icon" class="mb-2 h-8 w-8 text-turquoise" aria-hidden="true" />
-              <span class="text-[11px] font-bold leading-tight tracking-wide text-[#e7f2f7]">
-                {{ $t(badge.labelKey) }}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div
-          class="animate-in fade-in zoom-in-95 fill-mode-both delay-150 duration-1000 motion-reduce:animate-none relative"
+  <section aria-labelledby="home-hero-title" class="bg-navy-950">
+    <div
+      :class="
+        cn(
+          HOME_SECTION_CONTAINER_CLASS,
+          'grid grid-cols-1 items-center gap-12 py-20 lg:grid-cols-[1fr_1.1fr] lg:py-24',
+        )
+      "
+    >
+      <div class="min-w-0">
+        <p
+          :class="HERO_ENTER_CLASS"
+          class="mb-5 text-xs font-bold uppercase tracking-[2px] text-turquoise"
         >
-          <NuxtImg
-            src="/images/hero.png"
-            :alt="$t('hero.imageAlt')"
-            class="block w-full rounded-[18px] shadow-[0_30px_60px_-20px_rgba(0,0,0,0.6)]"
-            width="600"
-            height="400"
-            sizes="sm:100vw lg:600px"
-            format="webp"
-            loading="eager"
-            fetchpriority="high"
-          />
-          <div
-            class="animate-in fade-in zoom-in-75 fill-mode-both delay-700 duration-500 motion-reduce:animate-none absolute -bottom-4 -left-4 flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-black text-navy-950 shadow-[0_10px_24px_rgba(0,0,0,0.25)]"
-            aria-live="polite"
+          {{ $t('home.hero.eyebrow') }}
+        </p>
+        <h1
+          id="home-hero-title"
+          :class="HERO_ENTER_CLASS"
+          class="delay-75 mb-5 text-balance text-[40px] font-black leading-[1.05] text-white sm:text-5xl"
+        >
+          {{ $t('home.hero.titleMain') }}
+          <span class="text-turquoise">{{ $t('home.hero.titleAccent') }}</span>
+        </h1>
+        <p
+          :class="HERO_ENTER_CLASS"
+          class="delay-150 mb-9 max-w-lg text-lg leading-relaxed text-on-navy"
+        >
+          {{ $t('home.hero.lead') }}
+        </p>
+        <div
+          :class="HERO_ENTER_CLASS"
+          class="delay-200 flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:gap-x-7"
+        >
+          <AppButton
+            :to="localePath('/booking')"
+            variant="onDarkAccent"
+            trailing-icon="ArrowRight"
+            class="shrink-0 whitespace-nowrap rounded-xl px-7 py-4 font-heading text-base font-extrabold"
           >
-            <span class="relative flex h-2 w-2">
-              <span
-                class="absolute inline-flex h-full w-full animate-ping rounded-full motion-reduce:animate-none bg-green-500 opacity-75"
-              />
-              <span class="relative inline-flex h-2 w-2 rounded-full bg-green-500" />
-            </span>
-            {{ $t('hero.platNote') }}
-          </div>
+            {{ $t('home.hero.cta') }}
+          </AppButton>
+          <NuxtLink
+            :to="localePath('/quote')"
+            class="inline-flex min-h-11 items-center justify-center rounded-sm text-center text-sm font-bold text-white underline decoration-turquoise decoration-2 underline-offset-[6px] transition-colors duration-press ease-brand hover:decoration-white focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none sm:justify-start sm:text-left"
+          >
+            {{ $t('home.hero.quoteLink') }}
+          </NuxtLink>
         </div>
+        <ul
+          role="list"
+          :class="HERO_ENTER_CLASS"
+          class="delay-300 mt-10 flex flex-wrap gap-x-6 gap-y-2 border-t border-white/15 pt-6 text-sm font-semibold text-on-navy"
+        >
+          <li v-for="key in HOME_HIGHLIGHT_KEYS" :key="key" class="flex items-center gap-2">
+            <Icon name="Check" :size="16" aria-hidden="true" class="shrink-0 text-turquoise" />
+            {{ $t(`home.hero.highlights.${key}`) }}
+          </li>
+        </ul>
       </div>
+
+      <figure class="min-w-0">
+        <BeforeAfterSlider
+          :before="{ src: HOME_BEFORE_IMAGE_SRC, alt: $t('home.hero.beforeAlt') }"
+          :after="{ src: HOME_AFTER_IMAGE_SRC, alt: $t('home.hero.afterAlt') }"
+          :width="HOME_BEFORE_AFTER_WIDTH"
+          :height="HOME_BEFORE_AFTER_HEIGHT"
+          is-priority
+        />
+        <figcaption class="mt-3 text-center text-sm text-muted-foreground">
+          {{ $t('home.hero.caption') }}
+        </figcaption>
+      </figure>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
-import type { LucideIconName } from '@/types/icon'
-
+import {
+  HOME_AFTER_IMAGE_SRC,
+  HOME_BEFORE_AFTER_HEIGHT,
+  HOME_BEFORE_AFTER_WIDTH,
+  HOME_BEFORE_IMAGE_SRC,
+  HOME_HIGHLIGHT_KEYS,
+  HOME_SECTION_CONTAINER_CLASS,
+} from '@/constants/home'
 import { HERO_ENTER_CLASS } from '@/constants/motion'
+import { cn } from '@/lib/utils'
 
 const localePath = useLocalePath()
-
-type HeroBadge = {
-  key: string
-  icon: LucideIconName
-  labelKey: string
-}
-
-const heroBadges: HeroBadge[] = [
-  { key: 'steam', icon: 'Thermometer', labelKey: 'hero.badges.steam' },
-  { key: 'eco', icon: 'Leaf', labelKey: 'hero.badges.eco' },
-  { key: 'electric', icon: 'Zap', labelKey: 'hero.badges.electric' },
-  { key: 'natural', icon: 'Droplets', labelKey: 'hero.badges.natural' },
-]
 </script>

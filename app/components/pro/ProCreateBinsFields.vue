@@ -1,21 +1,27 @@
 <template>
   <div class="space-y-8">
-    <div class="space-y-5">
+    <div>
       <ProRadioCards
         v-model="priceSource"
         :name="`${PRO_CREATE_ID_PREFIX}-price-source`"
         :legend="$t('pro.create.priceSource.legend')"
         :options="priceSourceOptions"
       />
-      <BookingField
-        v-if="draft.priceSource === 'quote'"
-        :id="PRO_CREATE_FIELD_IDS.quoteAmount"
-        v-model="draft.quoteAmount"
-        :label="$t('pro.create.quoteAmount.label')"
-        :hint="$t('pro.create.quoteAmount.hint')"
-        :error="props.quoteAmountError"
-        input-mode="decimal"
-      />
+      <Transition v-bind="COLLAPSE_SLIDE_TRANSITION">
+        <div v-if="draft.priceSource === 'quote'" class="grid">
+          <div class="-m-1 min-h-0 overflow-hidden p-1">
+            <div class="pt-5">
+              <ProQuoteAmountField
+                :id="PRO_CREATE_FIELD_IDS.quoteAmount"
+                v-model="draft.quoteAmount"
+                :label="$t('pro.create.quoteAmount.label')"
+                :hint="$t('pro.create.quoteAmount.hint')"
+                :error="props.quoteAmountError"
+              />
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
 
     <fieldset :id="PRO_CREATE_FIELD_IDS.bins" :aria-describedby="binsDescribedBy">
@@ -31,14 +37,7 @@
           class="flex flex-col gap-3 rounded-xl border border-border bg-paper-2/50 p-3 sm:p-4"
         >
           <div class="flex min-w-0 items-center gap-3">
-            <NuxtImg
-              :src="service.image"
-              alt=""
-              width="56"
-              height="56"
-              loading="lazy"
-              class="size-12 shrink-0 object-contain sm:size-14"
-            />
+            <BookingBinIllustration :service="service.slug" class="size-12 shrink-0 sm:size-14" />
             <div class="min-w-0">
               <p :id="binLabelId(service.slug)" class="text-sm font-black text-ink">
                 {{ $t(service.titleKey) }}
@@ -92,6 +91,7 @@ import type {
 
 import { BOOKING_SERVICES } from '@/constants/booking'
 import { FIELD_ERROR_CLASS, FIELD_HINT_CLASS } from '@/constants/form'
+import { COLLAPSE_SLIDE_TRANSITION } from '@/constants/motion'
 import {
   PRO_CREATE_FIELD_IDS,
   PRO_CREATE_ID_PREFIX,
