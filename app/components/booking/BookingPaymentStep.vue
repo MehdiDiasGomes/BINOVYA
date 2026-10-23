@@ -10,7 +10,7 @@
         type="checkbox"
         required
         aria-describedby="booking-bins-ready-hint"
-        class="mt-0.5 h-5 w-5 shrink-0 rounded border-ink/40 accent-primary"
+        :class="cn(CHECKBOX_CLASS, 'mt-0.5')"
       />
       <span>
         {{ $t('booking.payment.binsReady') }}
@@ -30,7 +30,7 @@
           v-model="draft.hasAcceptedTerms"
           type="checkbox"
           required
-          class="mt-0.5 h-5 w-5 shrink-0 rounded border-ink/40 accent-primary"
+          :class="cn(CHECKBOX_CLASS, 'mt-0.5')"
         />
         {{ $t('booking.payment.terms') }}
       </label>
@@ -53,6 +53,9 @@
 </template>
 
 <script setup lang="ts">
+import { CHECKBOX_CLASS } from '@/constants/form'
+import { cn } from '@/lib/utils'
+
 const localePath = useLocalePath()
 const { draft } = useBookingDraft()
 </script>
