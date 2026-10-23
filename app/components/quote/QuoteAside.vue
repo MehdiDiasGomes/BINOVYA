@@ -43,13 +43,15 @@
       <p class="mt-1.5 text-sm leading-relaxed text-white/80">
         {{ $t('quote.aside.online.text') }}
       </p>
-      <NuxtLink
+      <AppButton
         :to="localePath('/booking')"
-        class="mt-4 inline-flex h-11 items-center gap-2 rounded-lg bg-white px-4 text-sm font-bold text-ink transition-all duration-150 hover:-translate-y-px hover:bg-paper-2 active:translate-y-0 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 focus-visible:ring-offset-2 focus-visible:ring-offset-navy-900 motion-reduce:transition-none motion-reduce:hover:translate-y-0"
+        variant="onDark"
+        size="sm"
+        icon="CalendarCheck"
+        class="mt-4 rounded-lg font-body text-sm"
       >
-        <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
         {{ $t('quote.aside.online.cta') }}
-      </NuxtLink>
+      </AppButton>
     </section>
 
     <p class="flex flex-wrap items-center gap-x-1.5 px-1 text-sm text-ink/80">

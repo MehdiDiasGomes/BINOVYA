@@ -7,7 +7,12 @@
 
     <label
       for="quote-photos"
-      class="mt-4 inline-flex h-11 cursor-pointer items-center gap-2 rounded-lg border border-ink/50 bg-white px-4 text-sm font-bold text-ink transition-colors hover:border-primary hover:bg-paper-2 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2"
+      :class="
+        cn(
+          buttonClass({ variant: 'secondary', size: 'sm' }),
+          'mt-4 has-[:focus-visible]:ring-[3px] has-[:focus-visible]:ring-primary has-[:focus-visible]:ring-offset-2',
+        )
+      "
     >
       <Icon name="Camera" :size="16" aria-hidden="true" />
       {{ $t('quote.photos.add') }}
@@ -61,6 +66,7 @@
 <script setup lang="ts">
 import type { QuotePhotoIssue, QuotePhotoPreview } from '@/types/quote'
 
+import { buttonClass } from '@/constants/buttons'
 import { ERROR_TEXT_TONE_CLASS } from '@/constants/feedback'
 import {
   QUOTE_MAX_PHOTO_BYTES,

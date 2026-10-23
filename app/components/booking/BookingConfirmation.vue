@@ -45,12 +45,9 @@
     </div>
 
     <div class="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
-      <NuxtLink
-        :to="localePath('/')"
-        class="flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-sm font-bold text-white transition-all duration-150 hover:-translate-y-px hover:bg-navy-800 active:translate-y-0 active:scale-[0.98] motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
-      >
+      <AppButton :to="localePath('/')" class="px-6">
         {{ $t('booking.confirmation.home') }}
-      </NuxtLink>
+      </AppButton>
       <AppButton variant="secondary" @click="emit('restart')">
         {{ $t('booking.confirmation.newBooking') }}
       </AppButton>

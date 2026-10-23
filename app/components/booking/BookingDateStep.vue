@@ -38,15 +38,16 @@
           {{ formatLongDate(nextAvailable.date, locale) }}
         </p>
       </div>
-      <button
+      <AppButton
         v-if="draft.date !== nextAvailable.date"
-        type="button"
-        class="flex h-11 items-center justify-center gap-2 rounded-lg bg-turquoise px-4 text-sm font-black text-navy-950 transition-all duration-150 hover:bg-white active:scale-[0.98] focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60 motion-reduce:transition-none motion-reduce:active:scale-100"
+        variant="onDarkAccent"
+        size="sm"
+        icon="CalendarCheck"
+        class="font-black"
         @click="draft.date = nextAvailable.date"
       >
-        <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
         {{ $t('booking.date.pickSuggested') }}
-      </button>
+      </AppButton>
     </div>
 
     <BookingCalendar v-model="draft.date" :days="days" />

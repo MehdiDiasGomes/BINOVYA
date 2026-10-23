@@ -3,7 +3,7 @@ import { resolve as resolvePath } from 'node:path'
 
 import { describe, expect, it } from 'vitest'
 
-import { buttonClass } from '../../../app/constants/buttons'
+import { BUTTON_TRAILING_ICON_CLASS, buttonClass } from '../../../app/constants/buttons'
 
 import type { ButtonClassOptions, ButtonSize, ButtonVariant } from '../../../app/types/button'
 
@@ -51,24 +51,57 @@ describe('buttonClass', () => {
     },
   )
 
-  it('lifts the filled variants on hover but never when disabled', () => {
-    ;(['primary', 'warning', 'onDark', 'onDarkWarning'] as ButtonVariant[]).forEach(variant => {
-      const classes = buttonClass({ variant, size: 'md' })
-      expect(classes).toContain('hover:-translate-y-px')
-      expect(classes).toContain('aria-disabled:hover:translate-y-0')
-    })
-    expect(buttonClass({ variant: 'secondary', size: 'md' })).not.toContain('hover:-translate-y-px')
+  it.each(VARIANTS)('lifts, shadows and presses %s on hover and press', variant => {
+    const classes = buttonClass({ variant, size: 'md' })
+    expect(classes).toContain('hover:-translate-y-0.5')
+    expect(classes).toMatch(/(?:^|\s)hover:shadow-(?:md|lg)\s/)
+    expect(classes).toMatch(/(?:^|\s)hover:shadow-\S+\/\d+(?:\s|$)/)
+    expect(classes).toContain('active:translate-y-0')
+    expect(classes).toContain('active:scale-[0.98]')
+  })
+
+  it.each(VARIANTS)('never lifts, shadows or shines a disabled %s', variant => {
+    const classes = buttonClass({ variant, size: 'md' })
+    expect(classes).toContain('disabled:hover:translate-y-0')
+    expect(classes).toContain('disabled:hover:shadow-none')
+    expect(classes).toContain('disabled:before:hidden')
+    expect(classes).toContain('aria-disabled:hover:translate-y-0')
+    expect(classes).toContain('aria-disabled:hover:shadow-none')
+    expect(classes).toContain('aria-disabled:active:scale-100')
+    expect(classes).toContain('aria-disabled:before:hidden')
+  })
+
+  it.each(VARIANTS)('draws a shine band behind the content of %s', variant => {
+    const classes = buttonClass({ variant, size: 'md' })
+    expect(classes).toContain('hover:before:translate-x-[300%]')
+    expect(classes).toMatch(/(?:^|\s)before:via-\S+/)
   })
 
   it('respects reduced motion', () => {
     VARIANTS.forEach(variant => {
-      expect(buttonClass({ variant, size: 'md' })).toContain('motion-reduce:transition-none')
+      const classes = buttonClass({ variant, size: 'md' })
+      expect(classes).toContain('motion-reduce:transition-none')
+      expect(classes).toContain('motion-reduce:hover:translate-y-0')
+      expect(classes).toContain('motion-reduce:active:scale-100')
+      expect(classes).toContain('motion-reduce:before:hidden')
     })
   })
 
-  it('derives the variant list from the source type, destructiveSolid included', () => {
-    expect(VARIANTS).toContain('destructiveSolid')
-    expect(VARIANTS).toHaveLength(10)
+  it('nudges the trailing icon on button hover, except when disabled or in reduced motion', () => {
+    expect(BUTTON_TRAILING_ICON_CLASS).toContain('motion-safe:group-hover/button:translate-x-0.5')
+    expect(BUTTON_TRAILING_ICON_CLASS).toContain(
+      'group-disabled/button:group-hover/button:translate-x-0',
+    )
+    expect(BUTTON_TRAILING_ICON_CLASS).toContain(
+      'group-aria-disabled/button:group-hover/button:translate-x-0',
+    )
+  })
+
+  it('derives the variant list from the source type, destructiveSolid and on-dark additions included', () => {
+    expect(VARIANTS).toEqual(
+      expect.arrayContaining(['destructiveSolid', 'onDarkPrimary', 'onDarkAccent']),
+    )
+    expect(new Set(VARIANTS).size).toBe(VARIANTS.length)
   })
 
   it('uses the destructive colour for the destructive variant', () => {

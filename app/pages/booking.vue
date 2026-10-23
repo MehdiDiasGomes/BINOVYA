@@ -19,7 +19,7 @@
         </h1>
         <p
           :class="HERO_ENTER_CLASS"
-          class="delay-150 mt-2 max-w-[560px] text-[15px] leading-relaxed text-[#c4d6e2]"
+          class="delay-150 mt-2 max-w-[560px] text-[15px] leading-relaxed text-on-navy"
         >
           {{ $t('booking.header.subtitle') }}
         </p>

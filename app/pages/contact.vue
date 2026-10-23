@@ -16,7 +16,7 @@
         </h1>
         <p
           :class="HERO_ENTER_CLASS"
-          class="delay-150 mt-2 max-w-[560px] text-[15px] leading-relaxed text-[#c4d6e2]"
+          class="delay-150 mt-2 max-w-[560px] text-[15px] leading-relaxed text-on-navy"
         >
           {{ $t('contact.header.subtitle') }}
         </p>
@@ -66,13 +66,9 @@
         <div class="rounded-2xl border border-border bg-paper-2 p-5 shadow-sm sm:p-6">
           <h2 class="text-lg font-black text-ink">{{ $t('contact.quote.title') }}</h2>
           <p class="mt-1.5 text-sm leading-relaxed text-ink/80">{{ $t('contact.quote.text') }}</p>
-          <NuxtLink
-            :to="localePath('/quote')"
-            class="mt-4 inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-bold text-white transition-colors hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2"
-          >
-            <Icon name="FileText" :size="16" aria-hidden="true" />
+          <AppButton :to="localePath('/quote')" size="sm" icon="FileText" class="mt-4 px-5">
             {{ $t('contact.quote.cta') }}
-          </NuxtLink>
+          </AppButton>
         </div>
 
         <ul class="space-y-4 rounded-2xl border border-border bg-white p-5 shadow-sm sm:p-6">
