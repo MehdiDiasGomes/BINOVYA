@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
+import { sleep } from '../../../scripts/test-process'
 import {
   createCustomer,
   openSession,
@@ -15,6 +16,8 @@ import { FAR_RANGES, farDates, removeOverrides } from '../../support/pro'
 import { createProBooking, proCreateBody, resendProPaymentLink } from '../../support/pro-create'
 
 import type { ProCreateResponse } from '../../../app/types/proCreate'
+
+const WEBHOOK_SETTLE_MS = 4000
 
 const [DAY, OTHER_DAY] = farDates(FAR_RANGES.integrationProResend) as [string, string]
 
@@ -155,6 +158,7 @@ describe('POST /api/pro/bookings/[id]/payment-link resends', () => {
       success_url: 'https://example.com/ok',
     })
     await stripe.checkout.sessions.expire(session.id)
+    await sleep(WEBHOOK_SETTLE_MS)
     const customer = await createCustomer({
       email: uniqueTestEmail('presend-closed'),
       firstName: 'Fermee',

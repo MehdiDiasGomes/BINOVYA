@@ -137,7 +137,7 @@
     }
   }
   [id] {
-    scroll-margin-top: 60px;
+    scroll-margin-top: 6rem;
   }
   * {
     @apply border-border outline-ring/50;

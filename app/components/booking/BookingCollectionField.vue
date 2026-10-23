@@ -50,7 +50,7 @@
       <input
         :id="`booking-collection-${props.kind}-unknown`"
         type="checkbox"
-        class="h-5 w-5 rounded border-ink/40 accent-primary"
+        :class="CHECKBOX_CLASS"
         :checked="answer.isUnknown"
         @change="toggleUnknown"
       />
@@ -63,6 +63,7 @@
 import type { CollectionAnswer, CollectionKind } from '@/types/booking'
 
 import { COLLECTION_LID_CLASSES, WEEKDAYS_MONDAY_FIRST } from '@/constants/booking'
+import { CHECKBOX_CLASS } from '@/constants/form'
 
 const props = withDefaults(
   defineProps<{

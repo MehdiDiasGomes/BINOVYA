@@ -71,18 +71,22 @@ export const loadBookingEmailData = async (
   client: SupabaseClient<Database>,
   bookingId: string,
 ): Promise<BookingEmailData | null> => {
-  const { data: booking } = await client
+  const { data: booking, error: bookingError } = await client
     .from('bookings')
     .select(BOOKING_EMAIL_COLUMNS)
     .eq('id', bookingId)
     .maybeSingle()
-  const { data: customer } = booking
+  const { data: customer, error: customerError } = booking
     ? await client
         .from('profiles')
         .select(CUSTOMER_EMAIL_COLUMNS)
         .eq('id', booking.customer_id)
         .maybeSingle()
-    : { data: null }
+    : { data: null, error: null }
+  if (bookingError || customerError) {
+    console.error(`Booking emails skipped: booking ${bookingId} could not be read`)
+    return null
+  }
   if (!booking || !customer) {
     console.error(`Booking emails skipped: booking ${bookingId} or its customer was not found`)
     return null

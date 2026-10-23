@@ -1,5 +1,7 @@
+import Stripe from 'stripe'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { PRO_PAYMENT_LINK_STRIPE_TIMEOUT_MS } from '../../../app/constants/proCreate'
 import { resendPaymentLink } from '../../../server/utils/proPaymentLink'
 import { asClient, caught, stubCreateError } from '../../support/pro-fixtures'
 
@@ -123,13 +125,72 @@ describe('resendPaymentLink', () => {
     expect(emails.sendPaymentLinkEmail).not.toHaveBeenCalled()
   })
 
-  it('answers 409 linkUnavailable when Stripe cannot be reached', async () => {
+  it('answers 502 without code when Stripe cannot be reached, without claiming or sending', async () => {
     sessionsRetrieve.mockRejectedValue(new Error('down'))
-    const error = await caught(() =>
-      resendPaymentLink(clientWith({ data: 'ok', error: null }).client, BOOKING),
+    const { client, rpc } = clientWith({ data: 'ok', error: null })
+    const error = await caught(() => resendPaymentLink(client, BOOKING))
+    expect(error.statusCode).toBe(502)
+    expect(error.data?.code).toBeUndefined()
+    expect(rpc).not.toHaveBeenCalled()
+    expect(emails.sendPaymentLinkEmail).not.toHaveBeenCalled()
+  })
+
+  it.each([
+    [
+      'a connection error',
+      new Stripe.errors.StripeConnectionError({ message: 'timeout' }),
+      'StripeConnectionError',
+    ],
+    [
+      'an API 5xx',
+      new Stripe.errors.StripeAPIError({ message: 'oops', statusCode: 500 }),
+      'StripeAPIError',
+    ],
+    [
+      'a rate limit',
+      new Stripe.errors.StripeRateLimitError({ message: 'slow', statusCode: 429 }),
+      'StripeRateLimitError',
+    ],
+    [
+      'an authentication error',
+      new Stripe.errors.StripeAuthenticationError({ message: 'bad key' }),
+      'StripeAuthenticationError',
+    ],
+    ['a non-Stripe error', new Error('down'), 'unknown'],
+  ])('answers 502 without code and logs only the type for %s', async (_label, failure, type) => {
+    sessionsRetrieve.mockRejectedValue(failure)
+    const { client, rpc } = clientWith({ data: 'ok', error: null })
+    const error = await caught(() => resendPaymentLink(client, BOOKING))
+    expect(error.statusCode).toBe(502)
+    expect(error.data?.code).toBeUndefined()
+    expect(rpc).not.toHaveBeenCalled()
+    const logged = vi.mocked(console.error).mock.calls.flat().join(' ')
+    expect(logged).toContain(`Checkout session unreachable for booking ${BOOKING} (${type})`)
+    expect(logged).not.toContain(failure.message)
+  })
+
+  it('answers 409 linkUnavailable when Stripe no longer knows the session, without claiming', async () => {
+    sessionsRetrieve.mockRejectedValue(
+      new Stripe.errors.StripeInvalidRequestError({
+        message: 'No such checkout.session',
+        statusCode: 404,
+      }),
     )
+    const { client, rpc } = clientWith({ data: 'ok', error: null })
+    const error = await caught(() => resendPaymentLink(client, BOOKING))
     expect(error.statusCode).toBe(409)
     expect(error.data?.code).toBe('linkUnavailable')
+    expect(rpc).not.toHaveBeenCalled()
+  })
+
+  it('reads the session with a short timeout and no network retry', async () => {
+    const { client } = clientWith({ data: 'ok', error: null })
+    await resendPaymentLink(client, BOOKING)
+    expect(sessionsRetrieve).toHaveBeenCalledWith(
+      'cs_test_open',
+      {},
+      { timeout: PRO_PAYMENT_LINK_STRIPE_TIMEOUT_MS, maxNetworkRetries: 0 },
+    )
   })
 
   it('answers 502 emailFailed when the mail is not accepted', async () => {
