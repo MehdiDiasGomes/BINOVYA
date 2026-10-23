@@ -1,100 +1,77 @@
 <template>
-  <section id="services" class="bg-paper py-20">
-    <div class="mx-auto max-w-[1180px] px-8">
-      <Reveal class="mb-12 text-center">
-        <span class="mb-2.5 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary">
-          {{ $t('services.eyebrow') }}
-        </span>
+  <section
+    id="services"
+    :aria-labelledby="SERVICES_HEADING_ID"
+    :class="cn(HOME_SECTION_CONTAINER_CLASS, 'py-20')"
+  >
+    <Reveal class="mb-12 flex flex-wrap items-end justify-between gap-4">
+      <div class="max-w-xl">
+        <p :class="cn(HOME_EYEBROW_CLASS, 'text-primary')">{{ $t('home.services.eyebrow') }}</p>
         <h2
           :id="SERVICES_HEADING_ID"
           tabindex="-1"
-          class="scroll-mt-24 text-[32px] font-black text-ink outline-none"
+          :class="cn(HOME_SECTION_TITLE_CLASS, 'mb-3 scroll-mt-24 text-ink outline-none')"
         >
-          {{ $t('services.title') }}
+          {{ $t('home.services.title') }}
         </h2>
-        <p class="mx-auto mt-3 max-w-[560px] text-[15px] leading-relaxed text-ink/70">
-          {{ $t('services.subtitle') }}
-        </p>
-      </Reveal>
-
-      <div class="grid grid-cols-2 gap-5 lg:grid-cols-4">
-        <Reveal
-          v-for="(service, index) in serviceItems"
-          :key="service.key"
-          :delay="index * REVEAL_STAGGER"
-        >
-          <div
-            class="group h-full overflow-hidden rounded-2xl border border-[#e6eef2] bg-white shadow-sm transition-all hover:-translate-y-1.5 hover:shadow-lg"
-          >
-            <div
-              class="relative flex h-32 items-center justify-center overflow-hidden bg-gradient-to-br from-navy-900 to-navy-800"
-            >
-              <NuxtImg
-                :src="service.image"
-                alt=""
-                class="h-full w-full object-cover transition-transform duration-400 group-hover:scale-105"
-                width="300"
-                :height="service.imageHeight"
-                sizes="sm:50vw lg:300px"
-                format="webp"
-                loading="lazy"
-              />
-            </div>
-            <div class="p-4">
-              <h3 class="mb-1.5 text-[14px] font-black leading-snug text-ink">
-                {{ $t(service.titleKey) }}
-              </h3>
-              <p class="text-[12.5px] leading-snug text-ink/70">
-                {{ $t(service.descKey) }}
-              </p>
-            </div>
-          </div>
-        </Reveal>
+        <p class="text-ink/70">{{ $t('home.services.subtitle') }}</p>
       </div>
-    </div>
+      <NuxtLink :to="localePath('/quote')" :class="cn(TEXT_LINK_CLASS, 'font-bold')">
+        {{ $t('home.services.quoteLink') }}
+        <Icon name="ArrowRight" :size="16" aria-hidden="true" />
+      </NuxtLink>
+    </Reveal>
+
+    <ul role="list" class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <Reveal
+        v-for="(service, index) in HOME_SERVICES"
+        :key="service.key"
+        as="li"
+        :delay="index * REVEAL_STAGGER"
+      >
+        <article class="h-full overflow-hidden rounded-3xl bg-white shadow-sm ring-1 ring-border">
+          <div class="aspect-[4/3] overflow-hidden">
+            <NuxtImg
+              :src="service.image"
+              alt=""
+              class="h-full w-full object-cover"
+              width="300"
+              height="225"
+              sizes="sm:50vw lg:300px"
+              format="webp"
+              loading="lazy"
+            />
+          </div>
+          <div class="p-5">
+            <span
+              class="mb-2 inline-block rounded-full bg-paper-2 px-2.5 py-0.5 text-xs font-bold text-primary"
+            >
+              {{ $t(`home.services.items.${service.key}.tag`) }}
+            </span>
+            <h3 class="mb-1 font-extrabold text-ink">
+              {{ $t(`home.services.items.${service.key}.title`) }}
+            </h3>
+            <p class="text-sm text-ink/70">
+              {{ $t(`home.services.items.${service.key}.desc`) }}
+            </p>
+          </div>
+        </article>
+      </Reveal>
+    </ul>
   </section>
 </template>
 
 <script setup lang="ts">
+import { TEXT_LINK_CLASS } from '@/constants/buttons'
+import {
+  HOME_EYEBROW_CLASS,
+  HOME_SECTION_CONTAINER_CLASS,
+  HOME_SECTION_TITLE_CLASS,
+  HOME_SERVICES,
+} from '@/constants/home'
 import { REVEAL_STAGGER } from '@/constants/motion'
 import { SERVICES_HEADING_ID } from '@/constants/navbar'
+import { cn } from '@/lib/utils'
 
-type ServiceItem = {
-  key: string
-  image: string
-  imageHeight: number
-  titleKey: string
-  descKey: string
-}
-
-const serviceItems: ServiceItem[] = [
-  {
-    key: 'bins',
-    image: '/images/services/bins.png',
-    imageHeight: 200,
-    titleKey: 'services.items.bins.title',
-    descKey: 'services.items.bins.desc',
-  },
-  {
-    key: 'pav',
-    image: '/images/services/pav.png',
-    imageHeight: 225,
-    titleKey: 'services.items.pav.title',
-    descKey: 'services.items.pav.desc',
-  },
-  {
-    key: 'urban',
-    image: '/images/services/urban.png',
-    imageHeight: 200,
-    titleKey: 'services.items.urban.title',
-    descKey: 'services.items.urban.desc',
-  },
-  {
-    key: 'signage',
-    image: '/images/services/signage.png',
-    imageHeight: 200,
-    titleKey: 'services.items.signage.title',
-    descKey: 'services.items.signage.desc',
-  },
-]
+const localePath = useLocalePath()
 </script>

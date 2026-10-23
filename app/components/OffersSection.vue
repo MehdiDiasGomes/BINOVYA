@@ -1,89 +1,118 @@
 <template>
-  <section id="particuliers" class="bg-paper-2 py-20">
-    <div class="mx-auto max-w-[1180px] px-8">
+  <section
+    id="tarifs"
+    :aria-labelledby="HOME_OFFERS_HEADING_ID"
+    class="bg-navy-950 py-20 text-white"
+  >
+    <div :class="HOME_SECTION_CONTAINER_CLASS">
       <Reveal class="mb-12 text-center">
-        <span class="mb-2.5 block text-[12.5px] font-black uppercase tracking-[1.5px] text-primary">
-          {{ $t('offers.eyebrow') }}
-        </span>
-        <h2 class="text-[32px] font-black text-ink">{{ $t('offers.title') }}</h2>
-        <p class="mx-auto mt-3 max-w-[560px] text-[15px] leading-relaxed text-ink/70">
-          {{ $t('offers.subtitle') }}
-        </p>
+        <p :class="cn(HOME_EYEBROW_CLASS, 'text-turquoise')">{{ $t('home.offers.eyebrow') }}</p>
+        <h2
+          :id="HOME_OFFERS_HEADING_ID"
+          tabindex="-1"
+          :class="cn(HOME_SECTION_TITLE_CLASS, 'mb-3 scroll-mt-24 outline-none')"
+        >
+          {{ $t('home.offers.title') }}
+        </h2>
+        <p class="text-on-navy">{{ $t('home.offers.subtitle') }}</p>
       </Reveal>
 
-      <div class="grid gap-6 md:grid-cols-2">
-        <Reveal class="flex flex-col rounded-2xl border border-[#e6eef2] bg-white p-8 shadow-sm">
-          <div class="mb-6 flex justify-center">
-            <NuxtImg
-              src="/images/offers/petit-format.png"
-              alt=""
-              class="h-40 w-auto object-contain"
-              width="107"
-              height="160"
-              sizes="107px"
-              format="webp"
-              loading="lazy"
-            />
-          </div>
-          <h3 class="mb-2 text-xl font-black text-ink">{{ $t('offers.small.title') }}</h3>
-          <p class="mb-4 flex-1 text-sm leading-relaxed text-ink/70">
-            {{ $t('offers.small.desc') }}
-          </p>
-          <div class="mb-1 text-[22px] font-black text-ink">{{ $t('offers.small.price') }}</div>
-          <div class="mb-6 text-sm text-ink/70">{{ $t('offers.small.priceNote') }}</div>
-          <NuxtLink
-            :to="{ path: localePath('/booking'), query: { service: 'small-bin' } }"
-            class="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground shadow-md shadow-primary/30 transition-[translate,background-color,box-shadow] duration-press ease-brand hover:bg-navy-800 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0 [@media(hover:hover)]:hover:-translate-y-px"
-            :aria-label="$t('offers.small.ctaAriaLabel')"
-          >
-            <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
-            {{ $t('offers.cta') }}
-          </NuxtLink>
-        </Reveal>
-
+      <ul role="list" class="mx-auto grid max-w-4xl grid-cols-1 gap-6 md:grid-cols-2">
         <Reveal
-          class="relative flex flex-col rounded-2xl border-2 border-turquoise bg-white p-8 shadow-sm"
-          :delay="REVEAL_STAGGER"
+          v-for="(offer, index) in HOME_OFFERS"
+          :key="offer.key"
+          as="li"
+          :delay="index * REVEAL_STAGGER"
+          :class="
+            cn(
+              'relative flex flex-col rounded-3xl p-8',
+              offer.isHighlighted
+                ? 'bg-white text-ink shadow-2xl shadow-turquoise/20 ring-2 ring-turquoise'
+                : 'bg-white/5 ring-1 ring-white/10',
+            )
+          "
         >
-          <div
-            class="absolute -top-3 left-6 rounded-full bg-accent px-3 py-0.5 text-xs font-black text-accent-foreground"
+          <span
+            v-if="offer.isHighlighted"
+            class="absolute -top-3 right-8 rounded-full bg-turquoise px-3 py-1 text-xs font-bold text-navy-950"
           >
-            {{ $t('offers.large.badge') }}
+            {{ $t(`home.offers.${offer.key}.badge`) }}
+          </span>
+          <div class="mb-6 flex items-center gap-4">
+            <div
+              class="flex size-20 shrink-0 items-center justify-center rounded-2xl bg-paper-2 md:size-24"
+            >
+              <BookingBinIllustration :service="offer.slug" class="size-14 md:size-16" />
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-xl font-extrabold">{{ $t(`home.offers.${offer.key}.title`) }}</h3>
+              <p :class="cn('text-sm', mutedTextClass(offer))">
+                {{ $t(`home.offers.${offer.key}.capacity`) }}
+              </p>
+            </div>
           </div>
-          <div class="mb-6 flex justify-center">
-            <NuxtImg
-              src="/images/offers/grand-format.png"
-              alt=""
-              class="h-40 w-auto object-contain"
-              width="202"
-              height="160"
-              sizes="202px"
-              format="webp"
-              loading="lazy"
-            />
-          </div>
-          <h3 class="mb-2 text-xl font-black text-ink">{{ $t('offers.large.title') }}</h3>
-          <p class="mb-4 flex-1 text-sm leading-relaxed text-ink/70">
-            {{ $t('offers.large.desc') }}
+          <p class="mb-1 flex items-baseline gap-1.5">
+            <span :class="cn('shrink-0 whitespace-nowrap text-sm', mutedTextClass(offer))">
+              {{ $t('home.offers.priceFrom') }}
+            </span>
+            <span class="whitespace-nowrap font-heading text-5xl font-black">
+              {{ $t(`home.offers.${offer.key}.price`) }}
+            </span>
           </p>
-          <div class="mb-1 text-[22px] font-black text-ink">{{ $t('offers.large.price') }}</div>
-          <div class="mb-6 text-sm text-ink/70">{{ $t('offers.large.priceNote') }}</div>
-          <NuxtLink
-            :to="{ path: localePath('/booking'), query: { service: 'large-bin' } }"
-            class="flex w-full items-center justify-center gap-2 rounded-lg bg-accent py-3 text-sm font-bold text-accent-foreground shadow-md shadow-accent/30 transition-[translate,background-color,box-shadow] duration-press ease-brand hover:bg-accent/85 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-primary focus-visible:ring-offset-2 motion-reduce:transition-none motion-reduce:hover:translate-y-0 [@media(hover:hover)]:hover:-translate-y-px"
-            :aria-label="$t('offers.large.ctaAriaLabel')"
+          <p :class="cn('mb-6 text-sm', mutedTextClass(offer))">
+            {{ $t('home.offers.priceNote') }}
+          </p>
+          <ul
+            role="list"
+            :class="
+              cn(
+                'mb-8 flex-1 space-y-2.5 text-sm',
+                offer.isHighlighted ? 'text-ink/70' : 'text-on-navy',
+              )
+            "
           >
-            <Icon name="CalendarCheck" :size="16" aria-hidden="true" />
-            {{ $t('offers.cta') }}
-          </NuxtLink>
+            <li v-for="item in HOME_OFFER_INCLUDED_KEYS" :key="item" class="flex items-start gap-2">
+              <Icon
+                name="Check"
+                :size="16"
+                aria-hidden="true"
+                :class="
+                  cn('mt-0.5 shrink-0', offer.isHighlighted ? 'text-primary' : 'text-turquoise')
+                "
+              />
+              {{ $t(`home.offers.included.${item}`) }}
+            </li>
+          </ul>
+          <AppButton
+            :to="{ path: localePath('/booking'), query: { service: offer.slug } }"
+            :variant="offer.isHighlighted ? 'primary' : 'onDarkOutline'"
+            class="rounded-xl px-6 py-3 text-base"
+          >
+            {{ $t('home.offers.cta') }}
+            <span class="sr-only">{{ $t(`home.offers.${offer.key}.ctaContext`) }}</span>
+          </AppButton>
         </Reveal>
-      </div>
+      </ul>
     </div>
   </section>
 </template>
 
 <script setup lang="ts">
+import type { HomeOffer } from '@/types/home'
+
+import {
+  HOME_EYEBROW_CLASS,
+  HOME_OFFER_INCLUDED_KEYS,
+  HOME_OFFERS,
+  HOME_OFFERS_HEADING_ID,
+  HOME_SECTION_CONTAINER_CLASS,
+  HOME_SECTION_TITLE_CLASS,
+} from '@/constants/home'
 import { REVEAL_STAGGER } from '@/constants/motion'
+import { cn } from '@/lib/utils'
 
 const localePath = useLocalePath()
+
+const mutedTextClass = (offer: HomeOffer): string =>
+  offer.isHighlighted ? 'text-ink/70' : 'text-muted-foreground'
 </script>

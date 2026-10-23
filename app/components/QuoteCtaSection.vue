@@ -1,52 +1,52 @@
 <template>
   <section
+    id="pros"
     aria-labelledby="quote-cta-title"
-    class="bg-gradient-to-b from-navy-950 to-[#020810] py-16 sm:py-24"
+    :class="cn(HOME_SECTION_CONTAINER_CLASS, 'py-20')"
   >
-    <div class="mx-auto max-w-[1180px] px-4 text-center sm:px-8">
-      <Reveal>
-        <span class="mb-3 block text-[12.5px] font-black uppercase tracking-[1.5px] text-turquoise">
-          {{ $t('quoteCta.eyebrow') }}
-        </span>
-      </Reveal>
-      <Reveal :delay="REVEAL_STAGGER">
-        <h2
-          id="quote-cta-title"
-          class="mx-auto max-w-[720px] text-[32px] font-black leading-tight text-white sm:text-4xl"
-        >
-          {{ $t('quoteCta.title') }}
-        </h2>
-      </Reveal>
-      <Reveal :delay="REVEAL_STAGGER * 2">
-        <p class="mx-auto mt-4 max-w-[560px] text-[16.5px] leading-relaxed text-[#c4d6e2]">
-          {{ $t('quoteCta.subtitle') }}
-        </p>
-      </Reveal>
-      <Reveal
-        :delay="REVEAL_STAGGER * 3"
-        class="mx-auto mt-10 flex max-w-[420px] flex-col gap-3.5 sm:max-w-none sm:flex-row sm:justify-center"
-      >
-        <NuxtLink
-          :to="localePath('/quote')"
-          class="flex h-12 items-center justify-center gap-2 rounded-lg bg-primary px-6 text-sm font-bold text-white shadow-lg shadow-primary/35 transition-all hover:-translate-y-px hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
-        >
-          <Icon name="FileText" :size="16" aria-hidden="true" />
-          {{ $t('quoteCta.quote') }}
-        </NuxtLink>
-        <NuxtLink
-          :to="localePath('/contact')"
-          class="flex h-12 items-center justify-center gap-2 rounded-lg border border-white/25 px-6 text-sm font-bold text-white transition-all hover:border-turquoise hover:bg-turquoise/8 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-white/60"
-        >
-          <Icon name="Mail" :size="16" aria-hidden="true" />
-          {{ $t('quoteCta.contact') }}
-        </NuxtLink>
-      </Reveal>
-    </div>
+    <Reveal
+      class="relative isolate overflow-hidden rounded-[2rem] bg-linear-to-br from-navy-800 to-primary p-8 text-white sm:p-14"
+    >
+      <div
+        aria-hidden="true"
+        class="absolute -right-16 -top-16 -z-10 size-64 rounded-full bg-white/10"
+      />
+      <div class="grid grid-cols-1 items-center gap-8 lg:grid-cols-[1.4fr_1fr]">
+        <div>
+          <p :class="cn(HOME_EYEBROW_CLASS, 'text-white')">{{ $t('home.quoteCta.eyebrow') }}</p>
+          <h2 id="quote-cta-title" :class="cn(HOME_SECTION_TITLE_CLASS, 'mb-3')">
+            {{ $t('home.quoteCta.title') }}
+          </h2>
+          <p class="max-w-lg text-white">{{ $t('home.quoteCta.subtitle') }}</p>
+        </div>
+        <div class="flex flex-col gap-3 sm:flex-row lg:flex-col">
+          <AppButton
+            :to="localePath('/quote')"
+            variant="onDark"
+            class="rounded-xl px-6 py-3.5 font-body text-primary"
+          >
+            {{ $t('home.quoteCta.quote') }}
+          </AppButton>
+          <AppButton
+            :to="localePath('/contact')"
+            variant="onDarkGhost"
+            class="rounded-xl px-6 py-3.5 text-base"
+          >
+            {{ $t('home.quoteCta.contact') }}
+          </AppButton>
+        </div>
+      </div>
+    </Reveal>
   </section>
 </template>
 
 <script setup lang="ts">
-import { REVEAL_STAGGER } from '@/constants/motion'
+import {
+  HOME_EYEBROW_CLASS,
+  HOME_SECTION_CONTAINER_CLASS,
+  HOME_SECTION_TITLE_CLASS,
+} from '@/constants/home'
+import { cn } from '@/lib/utils'
 
 const localePath = useLocalePath()
 </script>
