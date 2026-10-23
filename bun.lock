@@ -2,7 +2,7 @@
   "lockfileVersion": 1,
   "workspaces": {
     "": {
-      "name": "kb_clean",
+      "name": "binovya",
       "dependencies": {
         "@internationalized/date": "^3.10.1",
         "@nuxt/image": "^2.0.0",

@@ -36,3 +36,6 @@ bun.lock
 app/components/ui
 # Third-party Claude skill, kept as published
 .claude/skills/ui-ux-pro-max
+
+# Local Claude settings
+.claude/settings.local.json
