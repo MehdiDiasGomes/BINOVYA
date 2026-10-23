@@ -1,3 +1,5 @@
+import Stripe from 'stripe'
+
 import { sendPaymentLinkEmail } from './bookingPaymentLinkEmails'
 import { bookingNotFound, codedError } from './proErrors'
 import { useStripe } from './stripe'
@@ -6,7 +8,8 @@ import type { Database } from '@/types/database.types'
 import type { ProRejection } from '@/types/pro'
 import type { ProPaymentLinkErrorCode, ProPaymentLinkResponse } from '@/types/proCreate'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type Stripe from 'stripe'
+
+import { PRO_PAYMENT_LINK_STRIPE_TIMEOUT_MS } from '@/constants/proCreate'
 
 type ResendClaim = Database['public']['Functions']['admin_claim_checkout_link_resend']['Returns']
 
@@ -45,6 +48,14 @@ const EMAIL_FAILED: ProRejection<ProPaymentLinkErrorCode> = {
   code: 'emailFailed',
 }
 
+const STRIPE_UNREACHABLE: Omit<ProRejection<ProPaymentLinkErrorCode>, 'code'> = {
+  statusCode: 502,
+  statusMessage: 'Payment provider unavailable',
+}
+
+const isSessionGone = (error: unknown): boolean =>
+  error instanceof Stripe.errors.StripeInvalidRequestError
+
 const claimResend = async (client: SupabaseClient<Database>, bookingId: string): Promise<void> => {
   const { data, error } = await client.rpc('admin_claim_checkout_link_resend', {
     p_booking_id: bookingId,
@@ -82,8 +93,18 @@ const isLinkPending = (link: LinkRow): boolean =>
 
 const openLink = async (bookingId: string, sessionId: string): Promise<OpenLink> => {
   const session: Stripe.Checkout.Session | null = await useStripe()
-    .checkout.sessions.retrieve(sessionId)
-    .catch((): null => {
+    .checkout.sessions.retrieve(
+      sessionId,
+      {},
+      { timeout: PRO_PAYMENT_LINK_STRIPE_TIMEOUT_MS, maxNetworkRetries: 0 },
+    )
+    .catch((error: unknown): null => {
+      if (!isSessionGone(error)) {
+        const errorType: string =
+          error instanceof Stripe.errors.StripeError ? error.type : 'unknown'
+        console.error(`Checkout session unreachable for booking ${bookingId} (${errorType})`)
+        throw createError(STRIPE_UNREACHABLE)
+      }
       console.error(`Checkout session unavailable for booking ${bookingId}`)
       return null
     })
@@ -106,7 +127,8 @@ const openLink = async (bookingId: string, sessionId: string): Promise<OpenLink>
  * @param bookingId - Identifier of the booking
  * @returns The booking whose link was sent
  * @throws 404, 422, 429 for a refused claim, 409 when the Stripe session is no longer open, 502
- * when the email fails (see `data.code`), 500 when the database fails
+ * when the email fails (see `data.code`), 502 without code when Stripe cannot be read (network,
+ * timeout, 5xx, rate limit), 500 when the database fails
  */
 export const resendPaymentLink = async (
   client: SupabaseClient<Database>,
