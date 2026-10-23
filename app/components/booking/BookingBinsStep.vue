@@ -14,14 +14,11 @@
             )
           "
         >
-          <NuxtImg
-            :src="service.image"
-            alt=""
-            width="120"
-            loading="lazy"
+          <BookingBinIllustration
+            :service="service.slug"
             :class="
               cn(
-                'h-28 w-28 object-contain transition-transform duration-200 motion-reduce:transition-none',
+                'h-28 w-28 transition-transform duration-200 motion-reduce:transition-none',
                 draft.quantities[service.slug] > 0 && 'scale-105 motion-reduce:scale-100',
               )
             "

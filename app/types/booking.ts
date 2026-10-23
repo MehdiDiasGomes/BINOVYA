@@ -21,7 +21,6 @@ export type BookingService = {
   slug: ServiceSlug
   titleKey: string
   capacityKey: string
-  image: string
 }
 
 export type CountryCode = 'FR' | 'LU'

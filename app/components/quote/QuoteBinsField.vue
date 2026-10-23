@@ -7,13 +7,7 @@
         :key="service.slug"
         class="flex flex-col items-center gap-3 rounded-xl border border-border bg-white p-5 text-center"
       >
-        <NuxtImg
-          :src="service.image"
-          alt=""
-          width="96"
-          loading="lazy"
-          class="h-24 w-24 object-contain"
-        />
+        <BookingBinIllustration :service="service.slug" class="h-24 w-24" />
         <div>
           <p class="text-base font-black text-ink">{{ $t(service.titleKey) }}</p>
           <p class="mt-0.5 text-sm text-ink/70">{{ $t(service.capacityKey) }}</p>
